@@ -1,0 +1,16 @@
+{
+  "name": "amazon-keyword-intelligence",
+  "version": "9.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "node --check src/worker.js",
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "db:migrate": "wrangler d1 migrations apply amazon-keyword-intelligence-db --remote",
+    "types": "wrangler types"
+  },
+  "devDependencies": {
+    "wrangler": "^4.33.1"
+  }
+}

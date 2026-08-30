@@ -1,0 +1,32 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "amazon-keyword-intelligence",
+  "main": "./src/worker.js",
+  "compatibility_date": "2026-08-30",
+  "assets": {
+    "directory": "./",
+    "binding": "ASSETS",
+    "run_worker_first": ["/api/*"]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "amazon-keyword-intelligence-db",
+      "database_id": "e38981da-fbeb-412e-ac8c-936bf16adb36",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "DATA",
+      "bucket_name": "amazon-keyword-intelligence-data"
+    }
+  ],
+  "vars": {
+    "APP_ENV": "production",
+    "AMAZON_API_MODE": "disabled"
+  },
+  "observability": {
+    "enabled": true
+  }
+}
