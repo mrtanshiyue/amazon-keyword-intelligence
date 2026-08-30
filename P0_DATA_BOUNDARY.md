@@ -1,58 +1,51 @@
-# P0 Data Boundary Hardening
+# Data Boundary Status
 
-Status: **ACCESS AUTHENTICATION NOT YET ACTIVE IN PRODUCTION**
+Status: **PUBLIC TEST MODE — AUTHENTICATION DEFERRED BY OWNER**
 
-Current `main` has already removed the two business seed files from Workers Static Assets and now serves them from private R2 through `/api/data/*`. Those routes are still in `public-test` mode, so the data remains browser-readable without authentication.
+The current project is intentionally operating with test data. Authentication, Cloudflare Access, JWT validation, repository privacy remediation, and real Amazon OAuth/API authorization are **not current release blockers** and should not be implemented until the owner explicitly reactivates that work.
 
-This document records the remaining P0 security boundary work. Do not describe the runtime as Access-protected until the Cloudflare Zero Trust application, Worker variables, JWT validation, and browser acceptance are all complete.
-
-## Current architecture
+Current `main` has already removed the two large seed datasets from Workers Static Assets. The browser now loads them through read-only Worker routes backed by R2:
 
 ```text
 Browser
-  -> Worker /api/data/*
-  -> private R2 objects
+  -> Worker /api/data/seed.js
+  -> Worker /api/data/unified-seed.js
+  -> R2 test-data objects
 
 Workers Static Assets
-  -> HTML / CSS / JS application code only
+  -> HTML / CSS / application JavaScript only
 ```
 
-## Target architecture
+## Current contract
 
-```text
-Browser
-  -> Cloudflare Access
-  -> Worker /api/data/*
-  -> Cf-Access-Jwt-Assertion validation
-  -> private R2 objects
+- Data mode: `public-test`
+- Authentication: deferred
+- Amazon Ads API: disabled
+- Amazon mutation/write execution: disabled
+- `/api/data/*`: read-only test-data delivery
+- `/api/data/manifest`: read-only runtime/data-source manifest
+- `/api/health`: runtime capability/readiness endpoint
+- D1: deployment/source metadata
+- R2: test dataset storage
+- Workers Static Assets: application code only; seed datasets are not copied into `dist`
 
-Public/minimal
-  -> Workers Static Assets
-  -> GET /api/health (capability/readiness only)
-```
+## Current acceptance gates
 
-## Required Cloudflare configuration
+1. Production application continues to render from the R2-backed test-data routes.
+2. `dist` contains no seed JS or raw CSV datasets.
+3. Dashboard / Analytics / Finance calculations remain consistent with the accepted baseline.
+4. `/api/data/*` remains GET/HEAD-only.
+5. `AMAZON_API_MODE=disabled` remains unchanged.
+6. UI must not imply that Amazon OAuth, live sync, or Amazon mutation is active.
 
-Create a Cloudflare Zero Trust Access application that protects the Production hostname, then configure:
+## Deferred security phase
 
-- `TEAM_DOMAIN`: full Access team domain, e.g. `https://<team>.cloudflareaccess.com`
-- `POLICY_AUD`: Access Application Audience (AUD) tag
+Only when real/private data or real Amazon account connectivity is required, reopen the security phase and evaluate:
 
-Worker-side JWT verification is defense in depth and is not a substitute for the hostname-level Access application.
+- Cloudflare Access for the Production hostname
+- Worker-side Access JWT validation as defense in depth
+- authenticated application sessions / user authorization
+- repository privacy and historical-data remediation where appropriate
+- real Amazon Ads OAuth callback, token storage/refresh, advertiser/profile authorization, and scoped backend APIs
 
-## Production acceptance gates
-
-1. Access application protects the Production hostname.
-2. `TEAM_DOMAIN` and `POLICY_AUD` are configured in Production.
-3. Unauthenticated `/api/data/seed.js` never returns dataset bytes.
-4. Invalid JWT is denied.
-5. Authenticated browser loads both datasets and the full application.
-6. `/api/data/manifest` requires authentication.
-7. `dist` contains no seed JS or raw CSV.
-8. `/api/health` exposes only non-sensitive readiness/capability state.
-9. Dashboard / Analytics / Finance calculations match the current baseline.
-10. `AMAZON_API_MODE=disabled` remains unchanged.
-
-## Repository exposure
-
-The GitHub repository is currently public and historical commits contain business-shaped data files. Changing only the latest tree does not remove historical exposure; repository privacy/history remediation is a separate P0 operation.
+Do not enable any of these implicitly. They require an explicit owner decision and a separate production acceptance cycle.
