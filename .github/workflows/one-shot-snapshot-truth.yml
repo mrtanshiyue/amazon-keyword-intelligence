@@ -1,0 +1,40 @@
+name: One-shot snapshot truth follow-up
+
+on:
+  push:
+    branches:
+      - fix/p1-inert-control-truth
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/p1-inert-control-truth
+          fetch-depth: 0
+      - name: Apply snapshot truth patch
+        run: python scripts/one-shot-snapshot-truth.py
+      - name: Validate snapshot semantics
+        run: |
+          node --check app.js
+          grep -F "Data Workspaces" app.js
+          grep -F "DATA LOADED" app.js
+          grep -F "Imported dataset snapshot · Amazon API disabled" app.js
+          grep -F "Sync Model Preview" app.js
+          grep -F "Imported snapshot" app.js
+          grep -F "Workspace preview" app.js
+          ! grep -F "badge('Healthy','green')" app.js
+          ! grep -F "?'10 min ago':'—'" app.js
+      - name: Remove temporary assets and commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/one-shot-snapshot-truth.yml scripts/one-shot-snapshot-truth.py
+          git add app.js
+          git commit -m "Align workspace status with imported-data runtime"
+          git push origin HEAD:fix/p1-inert-control-truth
