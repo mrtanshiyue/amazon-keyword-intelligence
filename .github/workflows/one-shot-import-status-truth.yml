@@ -1,0 +1,35 @@
+name: One-shot import persistence status truth
+
+on:
+  push:
+    branches:
+      - fix/p1-import-indexeddb-persistence
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/p1-import-indexeddb-persistence
+          fetch-depth: 0
+      - name: Patch status labels
+        run: python scripts/one-shot-import-status-truth.py
+      - name: Validate
+        run: |
+          node --check app.js
+          grep -F "state.adsImportedAt?'Session only':'Cloudflare seed'" app.js
+          grep -F "state.financeImportedAt?'Session only':'Cloudflare seed'" app.js
+          grep -F "state.financeImportPreview=null;const persisted" app.js
+      - name: Remove temporary patch assets and commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/one-shot-import-status-truth.yml scripts/one-shot-import-status-truth.py
+          git add app.js
+          git commit -m "Report browser import persistence state accurately"
+          git push origin HEAD:fix/p1-import-indexeddb-persistence
