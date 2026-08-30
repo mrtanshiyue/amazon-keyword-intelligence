@@ -1,0 +1,80 @@
+name: One-shot suggestion review state
+
+on:
+  push:
+    branches:
+      - fix/p1-suggestion-review-state
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/p1-suggestion-review-state
+          fetch-depth: 0
+
+      - name: Patch suggestion review-cycle persistence
+        shell: python
+        run: |
+          from pathlib import Path
+
+          path = Path('app.js')
+          text = path.read_text(encoding='utf-8')
+
+          replacements = []
+
+          replacements.append((
+              "  protected:'keywordos_v9_protected', rules:'keywordos_v9_rules', logs:'keywordos_v9_logs', settings:'keywordos_v9_settings', presets:'keywordos_v9_presets', presetDefault:'keywordos_v9_preset_default'\n",
+              "  protected:'keywordos_v9_protected', rules:'keywordos_v9_rules', logs:'keywordos_v9_logs', settings:'keywordos_v9_settings', presets:'keywordos_v9_presets', presetDefault:'keywordos_v9_preset_default', suggestionReviews:'keywordos_v9_suggestion_reviews'\n"
+          ))
+
+          replacements.append((
+              "  actions:load(STORAGE.actions,[]), negatives:load(STORAGE.negatives,[]), tracked:load(STORAGE.tracked,[]),\n  protected:new Set(load(STORAGE.protected,DEFAULT_PROTECTED)), rules:load(STORAGE.rules,SEED.rules||[]),\n",
+              "  actions:load(STORAGE.actions,[]), negatives:load(STORAGE.negatives,[]), tracked:load(STORAGE.tracked,[]),\n  suggestionReviews:load(STORAGE.suggestionReviews,{}),\n  protected:new Set(load(STORAGE.protected,DEFAULT_PROTECTED)), rules:load(STORAGE.rules,SEED.rules||[]),\n"
+          ))
+
+          replacements.append((
+              "function suggestionCount(){const d=suggestionData();return Object.values(d).reduce((n,a)=>n+a.length,0)||'';}\nfunction renderSuggestions(){\n  const data=suggestionData(),tabs=['AI Bids','Bids','New Keywords','Negative Keywords','Budget'],items=data[state.suggestionTab]||[];\n  const tabCount=t=>data[t].length;\n",
+              "function suggestionDatasetKey(){const rows=state.currentRows||[];let min='',max='';for(const r of rows){const d=r.date||'';if(d&&(!min||d<min))min=d;if(d&&d>max)max=d;}return `${rows.length}:${min}:${max}`;}\nfunction suggestionReviewKey(tab,x){return [suggestionDatasetKey(),tab,x.key||x.name||'',x.campaign||'',x.adGroup||'',x.matchType||''].join('|');}\nfunction suggestionReviewStatus(tab,x){return state.suggestionReviews[suggestionReviewKey(tab,x)]?.status||'';}\nfunction suggestionHidden(tab,x){return ['removed','paused'].includes(suggestionReviewStatus(tab,x));}\nfunction setSuggestionReview(tab,x,status){const key=suggestionReviewKey(tab,x);state.suggestionReviews[key]={status,updatedAt:new Date().toISOString()};save(STORAGE.suggestionReviews,state.suggestionReviews);logEvent('Suggestion Review',x.name||x.key||'—',`${tab} → ${status}`,'Manual','Suggestions');}\nfunction resetSuggestionReviews(tab){const prefix=`${suggestionDatasetKey()}|${tab}|`;let restored=0;for(const key of Object.keys(state.suggestionReviews)){if(key.startsWith(prefix)){delete state.suggestionReviews[key];restored++;}}save(STORAGE.suggestionReviews,state.suggestionReviews);if(restored)logEvent('Suggestion Review Reset',tab,`Restored ${restored} hidden suggestion(s)`,'Manual','Suggestions');return restored;}\nfunction suggestionCount(){const d=suggestionData();return Object.entries(d).reduce((n,[tab,a])=>n+a.filter(x=>!suggestionHidden(tab,x)).length,0)||'';}\nfunction renderSuggestions(){\n  const data=suggestionData(),tabs=['AI Bids','Bids','New Keywords','Negative Keywords','Budget'],allItems=data[state.suggestionTab]||[];\n  const items=allItems.filter(x=>!suggestionHidden(state.suggestionTab,x));\n  const hiddenRemoved=allItems.filter(x=>suggestionReviewStatus(state.suggestionTab,x)==='removed').length;\n  const hiddenPaused=allItems.filter(x=>suggestionReviewStatus(state.suggestionTab,x)==='paused').length;\n  const hiddenCount=hiddenRemoved+hiddenPaused;\n  const tabCount=t=>data[t].filter(x=>!suggestionHidden(t,x)).length;\n"
+          ))
+
+          replacements.append((
+              "  <div class=\"suggest-settings\"><span><b>Account AI Bid Settings</b> · Default Target ACoS ${state.settings.targetAcos}% · Maximum Bid $3.00</span><button class=\"btn ghost sm\">Edit Settings</button></div>\n",
+              "  <div class=\"suggest-settings\"><span><b>Account AI Bid Settings</b> · Default Target ACoS ${state.settings.targetAcos}% · Active ${items.length} · Hidden ${hiddenCount}${hiddenCount?` (${hiddenRemoved} removed · ${hiddenPaused} paused)`:''}</span><div style=\"display:flex;gap:6px\"><button class=\"btn ghost sm\" id=\"restore-hidden-suggestions\" ${hiddenCount?'':'disabled'}>Restore Hidden${hiddenCount?` (${hiddenCount})`:''}</button><button class=\"btn ghost sm\" id=\"suggestion-settings\">Edit Settings</button></div></div>\n"
+          ))
+
+          replacements.append((
+              "  $$('[data-suggestion-tab]').forEach(b=>b.addEventListener('click',()=>{state.suggestionTab=b.dataset.suggestionTab;render();}));\n  $$('[data-suggest-action]').forEach(b=>b.addEventListener('click',()=>{const x=items[+b.dataset.suggestIndex];if(!x)return;const type=state.suggestionTab==='Negative Keywords'?'Negative Exact':state.suggestionTab==='New Keywords'?'Add Exact Keyword':state.suggestionTab==='Budget'?'Budget Change':'Bid Change';if(b.dataset.suggestAction==='apply'){queueAction(type,x.name||x.key,{reason:`Suggestions · ${state.suggestionTab}`});toast('Suggestion staged in Action Center','success');}else if(b.dataset.suggestAction==='remove')toast('Suggestion removed from this review cycle','success');else toast('Suggestion paused','success');renderNav();}));\n",
+              "  $$('[data-suggestion-tab]').forEach(b=>b.addEventListener('click',()=>{state.suggestionTab=b.dataset.suggestionTab;render();}));\n  $('#restore-hidden-suggestions')?.addEventListener('click',()=>{const restored=resetSuggestionReviews(state.suggestionTab);toast(`${restored} hidden suggestion(s) restored`,restored?'success':'warn');render();});\n  $('#suggestion-settings')?.addEventListener('click',()=>{state.page='settings';resetTableState();render();});\n  $$('[data-suggest-action]').forEach(b=>b.addEventListener('click',()=>{const x=items[+b.dataset.suggestIndex];if(!x)return;const type=state.suggestionTab==='Negative Keywords'?'Negative Exact':state.suggestionTab==='New Keywords'?'Add Exact Keyword':state.suggestionTab==='Budget'?'Budget Change':'Bid Change';if(b.dataset.suggestAction==='apply'){queueAction(type,x.name||x.key,{reason:`Suggestions · ${state.suggestionTab}`});toast('Suggestion staged in Action Center','success');renderNav();return;}const status=b.dataset.suggestAction==='remove'?'removed':'paused';setSuggestionReview(state.suggestionTab,x,status);toast(status==='removed'?'Suggestion removed from this review cycle':'Suggestion paused for this review cycle','success');render();}));\n"
+          ))
+
+          for old, new in replacements:
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'Expected exactly one match for replacement, found {count}: {old[:100]!r}')
+              text = text.replace(old, new, 1)
+
+          path.write_text(text, encoding='utf-8')
+
+      - name: Validate JavaScript and persistence contracts
+        run: |
+          node --check app.js
+          grep -F "suggestionReviews:'keywordos_v9_suggestion_reviews'" app.js
+          grep -F "function suggestionDatasetKey()" app.js
+          grep -F "function setSuggestionReview(tab,x,status)" app.js
+          grep -F "id=\"restore-hidden-suggestions\"" app.js
+          grep -F "Suggestion Review Reset" app.js
+
+      - name: Remove one-shot workflow and commit fix
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/one-shot-suggestion-review-state.yml
+          git add app.js
+          git commit -m "Persist suggestion remove and pause review state"
+          git push origin HEAD:fix/p1-suggestion-review-state
