@@ -55,13 +55,15 @@
   function setRowVisibility(row) {
     const removed = row.dataset.reviewStatus === 'removed';
     const searchHidden = row.dataset.searchHidden === '1';
-    row.style.display = removed || searchHidden ? 'none' : '';
+    const nextDisplay = removed || searchHidden ? 'none' : '';
+    if (row.style.display !== nextDisplay) row.style.display = nextDisplay;
   }
 
   function styleRow(row) {
     const status = currentStatus(row);
     row.dataset.reviewStatus = status;
-    row.style.opacity = status === 'paused' ? '.62' : status === 'applied' ? '.56' : '';
+    const nextOpacity = status === 'paused' ? '.62' : status === 'applied' ? '.56' : '';
+    if (row.style.opacity !== nextOpacity) row.style.opacity = nextOpacity;
 
     const checkbox = $('input[data-suggest-select]', row);
     const apply = $('[data-suggest-action="apply"]', row);
@@ -70,7 +72,7 @@
 
     if (checkbox) {
       checkbox.disabled = status === 'paused' || status === 'applied';
-      if (checkbox.disabled) checkbox.checked = false;
+      if (checkbox.disabled && checkbox.checked) checkbox.checked = false;
     }
 
     if (apply) {
@@ -84,7 +86,8 @@
 
     if (pause) {
       pause.disabled = status === 'applied';
-      pause.textContent = status === 'paused' ? '▶' : 'Ⅱ';
+      const label = status === 'paused' ? '▶' : 'Ⅱ';
+      if (pause.textContent !== label) pause.textContent = label;
       pause.title = status === 'paused' ? 'Resume' : status === 'applied' ? 'Already staged' : 'Pause';
     }
 
@@ -100,7 +103,8 @@
     const checked = $$('input[data-suggest-select]:checked').filter((input) => !input.disabled && input.closest('tr')?.style.display !== 'none');
     const button = $('#apply-suggestion-changes');
     if (!button) return;
-    button.textContent = `Apply ${checked.length} Changes`;
+    const label = `Apply ${checked.length} Changes`;
+    if (button.textContent !== label) button.textContent = label;
     button.disabled = checked.length === 0;
   }
 
@@ -119,7 +123,8 @@
   function wireSettingsButton() {
     const settings = $('.suggest-settings button');
     if (!settings) return;
-    settings.textContent = 'Edit Threshold Settings';
+    const label = 'Edit Threshold Settings';
+    if (settings.textContent !== label) settings.textContent = label;
     settings.title = 'Open Workspace Settings to change recommendation thresholds.';
   }
 
@@ -141,9 +146,10 @@
       summary.className = 'small muted';
       callout.querySelector('div')?.appendChild(summary);
     }
-    summary.textContent = entries.length
+    const summaryText = entries.length
       ? `Review state · ${counts.applied || 0} staged · ${counts.paused || 0} paused · ${counts.removed || 0} dismissed`
       : 'Review state · no local decisions yet';
+    if (summary.textContent !== summaryText) summary.textContent = summaryText;
 
     let reset = $('#reset-suggestion-review');
     if (!reset && entries.length) {
@@ -169,7 +175,8 @@
   function filterRows(query) {
     const value = query.trim().toLowerCase();
     visibleSuggestionRows().forEach((row) => {
-      row.dataset.searchHidden = value && !row.textContent.toLowerCase().includes(value) ? '1' : '0';
+      const hidden = value && !row.textContent.toLowerCase().includes(value) ? '1' : '0';
+      if (row.dataset.searchHidden !== hidden) row.dataset.searchHidden = hidden;
       setRowVisibility(row);
     });
   }
