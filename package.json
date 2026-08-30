@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "check": "node --check src/worker.js",
+    "build": "rm -rf dist && mkdir -p dist && cp index.html styles.css h10-ui.css i18n.js app.js report-adapter.js unified-report-adapter.js seed-data.js unified-seed-data.js dist/",
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
     "db:migrate": "wrangler d1 migrations apply amazon-keyword-intelligence-db --remote",

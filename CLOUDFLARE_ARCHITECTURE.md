@@ -15,9 +15,13 @@ Cloudflare's current recommendation for new static, SPA, and full-stack projects
 - **D1 (`DB`)** — deployment metadata and registered data-source manifest.
 - **R2 (`DATA`)** — private archive for large runtime seed/source objects and future raw report objects.
 - **Workers Observability** — enabled in `wrangler.jsonc`.
-- **Workers Builds** — intended production CI/CD target from GitHub `main` using `npx wrangler deploy`.
+- **Workers Builds** — GitHub `main` production trigger with Cloudflare-native build/deploy.
 
 This is deliberately a minimal migration: no frontend framework rewrite, no duplicate API service, and no speculative queues/workflows.
+
+## Static asset build
+
+`npm run build` creates `dist/` from an explicit allowlist of the nine runtime files used by V9. Worker source, Wrangler configuration, dependencies, migrations, raw CSVs, samples, and documentation are never part of the static asset bundle.
 
 ## Runtime endpoints
 
@@ -28,7 +32,7 @@ No unauthenticated mutation endpoint is exposed.
 
 ## Data placement
 
-The browser still consumes `seed-data.js` and `unified-seed-data.js` so the existing UI and calculations remain byte-for-byte compatible with V9 behavior. Large duplicate CSV/sample files are excluded from the Static Assets upload by `.assetsignore`.
+The browser still consumes `seed-data.js` and `unified-seed-data.js` so the existing UI and calculations remain compatible with V9 behavior. Duplicate raw CSV/sample files are not deployed as public static assets.
 
 D1 records the registered data sources. R2 privately archives the deployed runtime seeds without buffering them into Worker memory.
 
@@ -43,6 +47,7 @@ Before any future server-side mutations or Amazon API integration, add authentic
 ```bash
 npm install
 npm run check
+npm run build
 npm run dev
 npm run db:migrate
 npm run deploy
