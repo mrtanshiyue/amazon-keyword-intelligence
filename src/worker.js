@@ -1,3 +1,9 @@
+import {
+  AccessAuthError,
+  accessAuthConfigured,
+  verifyAccessRequest,
+} from './access-auth.js';
+
 const JSON_HEADERS = {
   'content-type': 'application/json; charset=utf-8',
   'cache-control': 'no-store',
@@ -14,6 +20,14 @@ function json(body, init = {}) {
   return new Response(JSON.stringify(body), {
     ...init,
     headers: { ...JSON_HEADERS, ...(init.headers || {}) },
+  });
+}
+
+function headResponse(response) {
+  return new Response(null, {
+    status: response.status,
+    statusText: response.statusText,
+    headers: response.headers,
   });
 }
 
@@ -64,6 +78,27 @@ async function serveTestData(request, env, key) {
   return new Response(request.method === 'HEAD' ? null : object.body, { headers });
 }
 
+async function servePrivateSession(request, env) {
+  try {
+    const identity = await verifyAccessRequest(request, env);
+    const response = json({
+      authenticated: true,
+      identity,
+      storeAuthorization: 'not_configured',
+      amazonApiMode: env.AMAZON_API_MODE || 'disabled',
+    });
+    return request.method === 'HEAD' ? headResponse(response) : response;
+  } catch (error) {
+    if (error instanceof AccessAuthError) {
+      const response = json({ error: error.code }, { status: error.status });
+      return request.method === 'HEAD' ? headResponse(response) : response;
+    }
+    console.error('private session check failed', error);
+    const response = json({ error: 'auth_check_failed' }, { status: 503 });
+    return request.method === 'HEAD' ? headResponse(response) : response;
+  }
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -73,6 +108,10 @@ export default {
         { error: 'method_not_allowed' },
         { status: 405, headers: { allow: 'GET, HEAD' } }
       );
+    }
+
+    if (url.pathname === '/api/private/session') {
+      return servePrivateSession(request, env);
     }
 
     if (url.pathname === '/api/health') {
@@ -93,6 +132,7 @@ export default {
           sources: sources.length,
           r2: objects,
           dataMode: 'public-test',
+          accessAuthConfigured: accessAuthConfigured(env),
         });
       } catch (error) {
         console.error('health check failed', error);
