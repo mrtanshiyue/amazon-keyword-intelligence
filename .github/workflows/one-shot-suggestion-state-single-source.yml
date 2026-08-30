@@ -1,0 +1,39 @@
+name: One-shot suggestion state single source
+
+on:
+  push:
+    branches:
+      - fix/p1-suggestion-state-single-source
+
+permissions:
+  contents: write
+
+jobs:
+  validate:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/p1-suggestion-state-single-source
+          fetch-depth: 0
+      - name: Validate single source contract
+        run: |
+          node --check suggestions-actions.js
+          node --check app.js
+          ! grep -F "keywordos_v9_suggestion_review_state" suggestions-actions.js
+          ! grep -F "localStorage" suggestions-actions.js
+          ! grep -F "reset-suggestion-review" suggestions-actions.js
+          ! grep -F "button.closest('.suggest-settings')" suggestions-actions.js
+          grep -F "apply-suggestion-changes" suggestions-actions.js
+          grep -F "data-suggest-select" suggestions-actions.js
+          grep -F "suggestionReviews:'keywordos_v9_suggestion_reviews'" app.js
+          grep -F "suggestionDatasetKey" app.js
+          grep -F "Restore Hidden" app.js
+      - name: Remove validation workflow and commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/one-shot-suggestion-state-single-source.yml
+          git commit -m "Validate suggestion review state ownership"
+          git push origin HEAD:fix/p1-suggestion-state-single-source
