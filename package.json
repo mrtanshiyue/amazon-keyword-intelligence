@@ -1,11 +1,11 @@
 {
   "name": "amazon-keyword-intelligence",
-  "version": "9.1.1",
+  "version": "9.2.0",
   "private": true,
   "type": "module",
   "scripts": {
     "check": "node --check src/worker.js && node --check runtime-capabilities.js",
-    "build": "rm -rf dist && mkdir -p dist && cp index.html styles.css h10-ui.css runtime-capabilities.css runtime-capabilities.js i18n.js app.js report-adapter.js unified-report-adapter.js seed-data.js unified-seed-data.js dist/",
+    "build": "rm -rf dist && mkdir -p dist && cp index.html styles.css h10-ui.css runtime-capabilities.css runtime-capabilities.js i18n.js app.js report-adapter.js unified-report-adapter.js dist/",
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
     "db:migrate": "wrangler d1 migrations apply amazon-keyword-intelligence-db --remote",
