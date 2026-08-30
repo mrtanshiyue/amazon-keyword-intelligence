@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS access_users (
   last_seen_at TEXT NOT NULL
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS idx_access_users_email
+CREATE INDEX IF NOT EXISTS idx_access_users_email
   ON access_users(email)
   WHERE email IS NOT NULL;
 
