@@ -1,0 +1,175 @@
+/* KeywordOS P1 readability hardening
+   Conservative overrides only: improve legibility and keyboard focus without changing product layout. */
+
+:root{
+  --readability-focus: var(--blue);
+}
+
+body{
+  line-height:1.45;
+  text-rendering:optimizeLegibility;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* Keep the dense analytics feel, but remove sub-10px text from primary working surfaces. */
+.brand-copy span,
+.tool-switcher small,
+.nav-section-title,
+.control-label,
+.eyebrow,
+.metric-sub,
+.v8-kpi>small,
+.card-title small,
+.result-count,
+.filter-field label,
+.field-inline label,
+.subline,
+.badge,
+.status-badge,
+.scope-tag,
+.runtime-capability-chip{
+  font-size:10px!important;
+  line-height:1.35;
+}
+
+.nav-item,
+.side-link,
+.product-menu,
+.market-chip,
+.breadcrumb,
+.section-tab,
+.btn,
+.select,
+.input,
+.suggest-settings,
+.learn-panel>p{
+  font-size:12px;
+}
+
+.page-title-row p{
+  font-size:12.5px;
+  line-height:1.5;
+}
+
+.metric-label,
+.card-title h3,
+.scope-banner b,
+.h10-callout b{
+  font-size:11.5px!important;
+}
+
+.data-table{
+  font-size:12px;
+  line-height:1.35;
+}
+
+.data-table thead th{
+  font-size:10.5px;
+  letter-spacing:0;
+}
+
+.data-table tbody td{
+  min-height:40px;
+}
+
+/* Strong, consistent keyboard focus across the app. */
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+[role="button"]:focus-visible,
+.entity-link:focus-visible,
+.toggle:focus-visible{
+  outline:2px solid var(--readability-focus);
+  outline-offset:2px;
+}
+
+button:disabled,
+input:disabled,
+select:disabled{
+  cursor:not-allowed;
+}
+
+/* Avoid overly compressed controls in long operating sessions. */
+.btn,
+.select,
+.input,
+.market-chip,
+.language-switch{
+  min-height:34px;
+}
+
+.btn.sm{
+  min-height:30px;
+}
+
+.icon-action,
+.header-action,
+.pager button{
+  min-width:30px;
+  min-height:30px;
+}
+
+/* Improve dense table scanability while preserving existing colors and spacing. */
+.data-table tbody td,
+.data-table thead th{
+  padding-left:10px;
+  padding-right:10px;
+}
+
+.table-footer,
+.filter-footer,
+.bulkbar{
+  font-size:11px;
+}
+
+/* Small laptop hardening: allow page-level controls to wrap before they collide. */
+@media (max-width:1180px){
+  .page-title-row{
+    align-items:flex-start;
+    gap:12px;
+    flex-wrap:wrap;
+  }
+  .page-controls{
+    flex-wrap:wrap;
+    justify-content:flex-start;
+  }
+  .profile-control .select{
+    min-width:190px;
+  }
+  .suite-nav button{
+    padding-left:9px;
+    padding-right:9px;
+  }
+}
+
+@media (max-width:900px){
+  .global-header{
+    overflow-x:auto;
+  }
+  .header-left,
+  .header-right{
+    flex:0 0 auto;
+  }
+  .suite-nav{
+    display:none;
+  }
+  .filter-panel{
+    grid-template-columns:repeat(2,minmax(150px,1fr));
+  }
+  .overview-strip{
+    overflow-x:auto;
+    grid-template-columns:repeat(6,minmax(150px,1fr));
+  }
+  .table-scroll{
+    max-height:none;
+  }
+}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{
+    scroll-behavior:auto!important;
+    transition-duration:.01ms!important;
+    animation-duration:.01ms!important;
+    animation-iteration-count:1!important;
+  }
+}
