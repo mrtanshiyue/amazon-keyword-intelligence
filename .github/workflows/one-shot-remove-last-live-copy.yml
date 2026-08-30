@@ -1,0 +1,37 @@
+name: One-shot final imported-data copy
+
+on:
+  push:
+    branches:
+      - fix/p1-inert-control-truth
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/p1-inert-control-truth
+          fetch-depth: 0
+      - name: Apply final copy patch
+        run: python scripts/one-shot-remove-last-live-copy.py
+      - name: Validate
+        run: |
+          node --check app.js
+          grep -F "Imported snapshot" app.js
+          grep -F "Store 01 dataset" app.js
+          grep -F "Imported Ads data" app.js
+          ! grep -F "ACoS in connected Store" app.js
+          ! grep -F "Unified Report · connected store" app.js
+      - name: Remove temporary assets and commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/one-shot-remove-last-live-copy.yml scripts/one-shot-remove-last-live-copy.py
+          git add app.js
+          git commit -m "Remove remaining live-connection copy from imported-data views"
+          git push origin HEAD:fix/p1-inert-control-truth
