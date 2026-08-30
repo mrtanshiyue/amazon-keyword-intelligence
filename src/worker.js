@@ -1,3 +1,5 @@
+import { createRemoteJWKSet, jwtVerify } from 'jose';
+
 const JSON_HEADERS = {
   'content-type': 'application/json; charset=utf-8',
   'cache-control': 'no-store',
@@ -10,11 +12,51 @@ const DATA_OBJECTS = {
   '/api/data/unified-seed.js': 'seed/unified-seed-data.js',
 };
 
+const jwksCache = new Map();
+
 function json(body, init = {}) {
   return new Response(JSON.stringify(body), {
     ...init,
     headers: { ...JSON_HEADERS, ...(init.headers || {}) },
   });
+}
+
+function accessConfig(env) {
+  const teamDomain = String(env.TEAM_DOMAIN || '').replace(/\/+$/, '');
+  const audience = String(env.POLICY_AUD || '').trim();
+  return { teamDomain, audience, configured: Boolean(teamDomain && audience) };
+}
+
+function getAccessJwks(teamDomain) {
+  let jwks = jwksCache.get(teamDomain);
+  if (!jwks) {
+    jwks = createRemoteJWKSet(new URL(`${teamDomain}/cdn-cgi/access/certs`));
+    jwksCache.set(teamDomain, jwks);
+  }
+  return jwks;
+}
+
+async function requireAccess(request, env) {
+  const { teamDomain, audience, configured } = accessConfig(env);
+  if (!configured) {
+    return { ok: false, response: json({ error: 'access_not_configured' }, { status: 503 }) };
+  }
+
+  const token = request.headers.get('Cf-Access-Jwt-Assertion');
+  if (!token) {
+    return { ok: false, response: json({ error: 'access_required' }, { status: 401 }) };
+  }
+
+  try {
+    await jwtVerify(token, getAccessJwks(teamDomain), {
+      issuer: teamDomain,
+      audience,
+    });
+    return { ok: true };
+  } catch (error) {
+    console.warn('access jwt validation failed', error?.code || error?.message || error);
+    return { ok: false, response: json({ error: 'access_denied' }, { status: 401 }) };
+  }
 }
 
 async function readManifest(env) {
@@ -46,7 +88,10 @@ async function r2Status(env) {
   }));
 }
 
-async function serveTestData(request, env, key) {
+async function serveProtectedData(request, env, key) {
+  const auth = await requireAccess(request, env);
+  if (!auth.ok) return auth.response;
+
   const object = await env.DATA.get(key);
   if (!object) {
     return json({ error: 'data_object_not_found' }, { status: 404 });
@@ -54,10 +99,10 @@ async function serveTestData(request, env, key) {
 
   const headers = new Headers({
     'content-type': 'application/javascript; charset=utf-8',
-    'cache-control': 'no-store',
+    'cache-control': 'private, no-store',
     'x-content-type-options': 'nosniff',
     'referrer-policy': 'no-referrer',
-    'x-keywordos-data-mode': 'public-test',
+    'x-keywordos-data-mode': 'access-protected',
   });
   if (object.httpEtag) headers.set('etag', object.httpEtag);
 
@@ -82,8 +127,10 @@ export default {
           readManifest(env),
           r2Status(env),
         ]);
+        const protectedDataReady = objects.every((object) => object.present);
+        const { configured: accessConfigured } = accessConfig(env);
         return json({
-          status: objects.every((object) => object.present) ? 'ok' : 'degraded',
+          status: protectedDataReady ? 'ok' : 'degraded',
           service: 'amazon-keyword-intelligence',
           environment: env.APP_ENV || 'production',
           amazonApiMode: env.AMAZON_API_MODE || 'disabled',
@@ -91,8 +138,9 @@ export default {
           schemaVersion: meta.schema_version || '1',
           sourceCommit: meta.source_commit || null,
           sources: sources.length,
-          dataReady: objects.every((object) => object.present),
-          dataMode: 'public-test',
+          protectedDataReady,
+          accessConfigured,
+          dataMode: 'access-protected',
         });
       } catch (error) {
         console.error('health check failed', error);
@@ -101,13 +149,15 @@ export default {
     }
 
     if (url.pathname === '/api/data/manifest') {
+      const auth = await requireAccess(request, env);
+      if (!auth.ok) return auth.response;
       try {
         const [meta, sources, objects] = await Promise.all([
           readMeta(env),
           readManifest(env),
           r2Status(env),
         ]);
-        return json({ meta, sources, r2: objects, dataMode: 'public-test' });
+        return json({ meta, sources, r2: objects, dataMode: 'access-protected' });
       } catch (error) {
         console.error('manifest failed', error);
         return json({ error: 'manifest_unavailable' }, { status: 503 });
@@ -116,7 +166,7 @@ export default {
 
     const dataKey = DATA_OBJECTS[url.pathname];
     if (dataKey) {
-      return serveTestData(request, env, dataKey);
+      return serveProtectedData(request, env, dataKey);
     }
 
     return json({ error: 'not_found' }, { status: 404 });
