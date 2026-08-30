@@ -75,7 +75,7 @@
   }
 
   function isLocalTableSearch(input) {
-    if (input.id === 'log-search' || input.id === 'kw-search') return true;
+    if (input.id === 'log-search' || input.id === 'kw-search' || input.id === 'global-keyword-search') return true;
     if (pageTitle() === 'Keyword Tracker' && input.closest('.toolbar .searchbox')) return true;
     return false;
   }
@@ -149,6 +149,15 @@
         toggle.title = 'Bid automation is not active in the current test runtime.';
       });
     }
+  }
+
+  function markStaticShellTruth() {
+    disableButton($('.sidebar-collapse'), 'Sidebar collapse is not implemented in the current test runtime.');
+    disableButton($('#tool-switcher'), 'Advertising is the only active tool workspace in the current test runtime.');
+    disableButton($('.product-menu'), 'Product suite switching is not implemented in the current test runtime.');
+    $$('.suite-nav button').forEach((button) => disableButton(button, 'Suite navigation is preview-only in this runtime.'));
+    $$('.header-action').forEach((button) => disableButton(button, 'This global header action is not implemented in the current test runtime.'));
+    $$('.side-link:not([data-page])').forEach((button) => disableButton(button, 'Help Center integration is not implemented in the current test runtime.'));
   }
 
   function markKnownInactiveControls() {
@@ -256,6 +265,7 @@
   const observer = new MutationObserver(() => markKnownInactiveControls());
 
   function start() {
+    markStaticShellTruth();
     markKnownInactiveControls();
     observer.observe($('#content') || document.body, { childList: true, subtree: true });
   }
