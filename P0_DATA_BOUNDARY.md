@@ -2,11 +2,9 @@
 
 Status: **DO NOT MERGE TO PRODUCTION UNTIL CLOUDFLARE ACCESS IS CONFIGURED**
 
-This branch removes business seed data from Workers Static Assets and serves it only from private R2 through authenticated Worker routes.
+Current `main` already removed the two business seed files from Workers Static Assets and serves them from private R2 through `/api/data/*`. However, those routes are still in `public-test` mode and are therefore browser-readable without authentication.
 
-## Why
-
-The current production build publishes `seed-data.js` and `unified-seed-data.js` as browser-readable static assets. That is convenient for a prototype, but it is not an acceptable long-term boundary for business advertising and transaction data.
+This branch closes that remaining P0 gap by requiring a valid Cloudflare Access JWT before any business dataset or detailed data manifest can be read.
 
 ## Target architecture
 
@@ -14,45 +12,48 @@ The current production build publishes `seed-data.js` and `unified-seed-data.js`
 Browser
   -> Cloudflare Access
   -> Worker /api/data/*
-  -> Access JWT validation
+  -> Cf-Access-Jwt-Assertion validation
   -> private R2 objects
 
 Public/minimal:
   -> Workers Static Assets (HTML/CSS/app code only)
-  -> GET /api/health (no raw dataset contents)
+  -> GET /api/health (capability/readiness only)
 ```
 
 ## Changes in this branch
 
-- `seed-data.js` and `unified-seed-data.js` are removed from `dist`.
-- `index.html` loads `/api/data/seed.js` and `/api/data/unified-seed.js` instead of public static files.
-- `/api/data/*` validates the Cloudflare Access JWT from `Cf-Access-Jwt-Assertion` using the Access JWKS endpoint and the official `jose` package.
-- `/api/data/manifest` is protected by the same Access check.
-- `/api/health` remains non-sensitive and reports only readiness/capability state.
-- R2 becomes the runtime source for the two seed objects; the Worker no longer depends on static assets to reconstruct R2.
+- keep `seed-data.js` and `unified-seed-data.js` out of `dist`
+- keep runtime data in private R2
+- validate `Cf-Access-Jwt-Assertion` with Cloudflare Access JWKS using `jose`
+- protect `/api/data/seed.js`
+- protect `/api/data/unified-seed.js`
+- protect `/api/data/manifest`
+- keep `/api/health` public but non-sensitive
+- fail closed when Access configuration is missing
+- Amazon Ads API remains disabled
 
 ## Required Cloudflare configuration before merge
 
-Create a Cloudflare Zero Trust Access application that protects the production hostname, then configure these Worker variables:
+Create a Cloudflare Zero Trust Access application that protects the Production hostname, then configure these Worker variables:
 
-- `TEAM_DOMAIN`: the Access team domain, for example `https://<team>.cloudflareaccess.com`
-- `POLICY_AUD`: the Access Application Audience (AUD) tag
+- `TEAM_DOMAIN`: full Access team domain, e.g. `https://<team>.cloudflareaccess.com`
+- `POLICY_AUD`: Access Application Audience (AUD) tag
 
-Do not treat either variable as a substitute for the Access application itself. The hostname must actually be protected by Access.
+The hostname-level Access application is mandatory. Worker JWT validation is defense in depth, not a substitute for protecting the hostname.
 
 ## Production merge gates
 
-All gates are mandatory:
+1. Access application protects the Production hostname.
+2. `TEAM_DOMAIN` and `POLICY_AUD` exist in the Production Worker environment.
+3. Unauthenticated `/api/data/seed.js` returns 401/Access challenge and never returns dataset bytes.
+4. Invalid JWT is denied.
+5. Authenticated browser loads both datasets and the full app.
+6. `/api/data/manifest` requires authentication.
+7. `dist` contains no seed JS or raw CSV.
+8. `/api/health` reports `accessConfigured=true` and `protectedDataReady=true` without exposing object names/sizes.
+9. Dashboard / Analytics / Finance calculations match the current baseline.
+10. `AMAZON_API_MODE=disabled` remains unchanged.
 
-1. Access application protects the production hostname.
-2. `TEAM_DOMAIN` and `POLICY_AUD` are configured on the Worker.
-3. Unauthenticated request to `/api/data/seed.js` is denied.
-4. Authenticated browser can load the app and both datasets.
-5. `dist` contains no seed JS or raw CSV files.
-6. `/api/health` returns healthy with `protectedDataReady=true` and `accessConfigured=true`.
-7. Existing dashboard/analytics/finance calculations match the current production baseline.
-8. Amazon API remains disabled.
+## Repository exposure remains separate
 
-## Separate repository exposure work
-
-The GitHub repository is currently public and historical commits contain data files. Making the repository private and removing sensitive historical blobs is a separate P0 operation. Deleting files only from the latest tree is insufficient because Git history remains retrievable.
+The GitHub repository is still public and historical commits contain business-shaped data files. Changing the latest tree alone does not remove historical exposure. Repository privacy/history remediation is a separate P0 operation.
