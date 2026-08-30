@@ -1,5 +1,3 @@
-import { createRemoteJWKSet, jwtVerify } from 'jose';
-
 const JSON_HEADERS = {
   'content-type': 'application/json; charset=utf-8',
   'cache-control': 'no-store',
@@ -12,52 +10,11 @@ const DATA_OBJECTS = {
   '/api/data/unified-seed.js': 'seed/unified-seed-data.js',
 };
 
-const jwksCache = new Map();
-
 function json(body, init = {}) {
   return new Response(JSON.stringify(body), {
     ...init,
     headers: { ...JSON_HEADERS, ...(init.headers || {}) },
   });
-}
-
-function normalizeTeamDomain(value) {
-  return String(value || '').trim().replace(/\/$/, '');
-}
-
-function getRemoteJwks(teamDomain) {
-  if (!jwksCache.has(teamDomain)) {
-    jwksCache.set(
-      teamDomain,
-      createRemoteJWKSet(new URL(`${teamDomain}/cdn-cgi/access/certs`))
-    );
-  }
-  return jwksCache.get(teamDomain);
-}
-
-async function verifyAccess(request, env) {
-  const teamDomain = normalizeTeamDomain(env.TEAM_DOMAIN);
-  const audience = String(env.POLICY_AUD || '').trim();
-
-  if (!teamDomain || !audience) {
-    return { ok: false, status: 503, error: 'access_not_configured' };
-  }
-
-  const token = request.headers.get('Cf-Access-Jwt-Assertion');
-  if (!token) {
-    return { ok: false, status: 403, error: 'access_token_required' };
-  }
-
-  try {
-    const { payload } = await jwtVerify(token, getRemoteJwks(teamDomain), {
-      issuer: teamDomain,
-      audience,
-    });
-    return { ok: true, identity: payload };
-  } catch (error) {
-    console.error('Cloudflare Access JWT validation failed', error);
-    return { ok: false, status: 403, error: 'access_token_invalid' };
-  }
 }
 
 async function readManifest(env) {
@@ -89,12 +46,7 @@ async function r2Status(env) {
   }));
 }
 
-async function serveProtectedData(request, env, key) {
-  const access = await verifyAccess(request, env);
-  if (!access.ok) {
-    return json({ error: access.error }, { status: access.status });
-  }
-
+async function serveTestData(request, env, key) {
   const object = await env.DATA.get(key);
   if (!object) {
     return json({ error: 'data_object_not_found' }, { status: 404 });
@@ -102,9 +54,10 @@ async function serveProtectedData(request, env, key) {
 
   const headers = new Headers({
     'content-type': 'application/javascript; charset=utf-8',
-    'cache-control': 'private, no-store',
+    'cache-control': 'no-store',
     'x-content-type-options': 'nosniff',
     'referrer-policy': 'no-referrer',
+    'x-keywordos-data-mode': 'public-test',
   });
   if (object.httpEtag) headers.set('etag', object.httpEtag);
 
@@ -138,8 +91,8 @@ export default {
           schemaVersion: meta.schema_version || '1',
           sourceCommit: meta.source_commit || null,
           sources: sources.length,
-          protectedDataReady: objects.every((object) => object.present),
-          accessConfigured: Boolean(env.TEAM_DOMAIN && env.POLICY_AUD),
+          dataReady: objects.every((object) => object.present),
+          dataMode: 'public-test',
         });
       } catch (error) {
         console.error('health check failed', error);
@@ -148,17 +101,13 @@ export default {
     }
 
     if (url.pathname === '/api/data/manifest') {
-      const access = await verifyAccess(request, env);
-      if (!access.ok) {
-        return json({ error: access.error }, { status: access.status });
-      }
       try {
         const [meta, sources, objects] = await Promise.all([
           readMeta(env),
           readManifest(env),
           r2Status(env),
         ]);
-        return json({ meta, sources, r2: objects });
+        return json({ meta, sources, r2: objects, dataMode: 'public-test' });
       } catch (error) {
         console.error('manifest failed', error);
         return json({ error: 'manifest_unavailable' }, { status: 503 });
@@ -167,7 +116,7 @@ export default {
 
     const dataKey = DATA_OBJECTS[url.pathname];
     if (dataKey) {
-      return serveProtectedData(request, env, dataKey);
+      return serveTestData(request, env, dataKey);
     }
 
     return json({ error: 'not_found' }, { status: 404 });
