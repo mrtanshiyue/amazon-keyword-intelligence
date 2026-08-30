@@ -11,6 +11,9 @@
     "db:migrate": "wrangler d1 migrations apply amazon-keyword-intelligence-db --remote",
     "types": "wrangler types"
   },
+  "dependencies": {
+    "jose": "^6.1.0"
+  },
   "devDependencies": {
     "wrangler": "^4.33.1"
   }
