@@ -1,3 +1,5 @@
+import { createRemoteJWKSet, jwtVerify } from 'jose';
+
 const JSON_HEADERS = {
   'content-type': 'application/json; charset=utf-8',
   'cache-control': 'no-store',
@@ -5,16 +7,57 @@ const JSON_HEADERS = {
   'referrer-policy': 'no-referrer',
 };
 
-const SEED_ASSETS = [
-  { sourceKey: 'ads-202606', path: '/seed-data.js', r2Key: 'seed/seed-data.js' },
-  { sourceKey: 'unified-202606', path: '/unified-seed-data.js', r2Key: 'seed/unified-seed-data.js' },
-];
+const DATA_OBJECTS = {
+  '/api/data/seed.js': 'seed/seed-data.js',
+  '/api/data/unified-seed.js': 'seed/unified-seed-data.js',
+};
+
+const jwksCache = new Map();
 
 function json(body, init = {}) {
   return new Response(JSON.stringify(body), {
     ...init,
     headers: { ...JSON_HEADERS, ...(init.headers || {}) },
   });
+}
+
+function normalizeTeamDomain(value) {
+  return String(value || '').trim().replace(/\/$/, '');
+}
+
+function getRemoteJwks(teamDomain) {
+  if (!jwksCache.has(teamDomain)) {
+    jwksCache.set(
+      teamDomain,
+      createRemoteJWKSet(new URL(`${teamDomain}/cdn-cgi/access/certs`))
+    );
+  }
+  return jwksCache.get(teamDomain);
+}
+
+async function verifyAccess(request, env) {
+  const teamDomain = normalizeTeamDomain(env.TEAM_DOMAIN);
+  const audience = String(env.POLICY_AUD || '').trim();
+
+  if (!teamDomain || !audience) {
+    return { ok: false, status: 503, error: 'access_not_configured' };
+  }
+
+  const token = request.headers.get('Cf-Access-Jwt-Assertion');
+  if (!token) {
+    return { ok: false, status: 403, error: 'access_token_required' };
+  }
+
+  try {
+    const { payload } = await jwtVerify(token, getRemoteJwks(teamDomain), {
+      issuer: teamDomain,
+      audience,
+    });
+    return { ok: true, identity: payload };
+  } catch (error) {
+    console.error('Cloudflare Access JWT validation failed', error);
+    return { ok: false, status: 403, error: 'access_token_invalid' };
+  }
 }
 
 async function readManifest(env) {
@@ -35,10 +78,10 @@ async function readMeta(env) {
 }
 
 async function r2Status(env) {
-  return Promise.all(SEED_ASSETS.map(async (item) => {
-    const object = await env.DATA.head(item.r2Key);
+  return Promise.all(Object.values(DATA_OBJECTS).map(async (key) => {
+    const object = await env.DATA.head(key);
     return {
-      key: item.r2Key,
+      key,
       present: Boolean(object),
       size: object?.size || 0,
       uploaded: object?.uploaded || null,
@@ -46,38 +89,37 @@ async function r2Status(env) {
   }));
 }
 
-async function archiveAsset(request, env, item) {
-  const existing = await env.DATA.head(item.r2Key);
-  if (existing) return;
-
-  const assetUrl = new URL(item.path, request.url);
-  const asset = await env.ASSETS.fetch(new Request(assetUrl, { method: 'GET' }));
-  if (!asset.ok || !asset.body) {
-    throw new Error(`Unable to archive ${item.path}: HTTP ${asset.status}`);
+async function serveProtectedData(request, env, key) {
+  const access = await verifyAccess(request, env);
+  if (!access.ok) {
+    return json({ error: access.error }, { status: access.status });
   }
 
-  await env.DATA.put(item.r2Key, asset.body, {
-    httpMetadata: { contentType: 'application/javascript; charset=utf-8' },
-    customMetadata: { source: 'workers-static-assets', sourceKey: item.sourceKey },
+  const object = await env.DATA.get(key);
+  if (!object) {
+    return json({ error: 'data_object_not_found' }, { status: 404 });
+  }
+
+  const headers = new Headers({
+    'content-type': 'application/javascript; charset=utf-8',
+    'cache-control': 'private, no-store',
+    'x-content-type-options': 'nosniff',
+    'referrer-policy': 'no-referrer',
   });
+  if (object.httpEtag) headers.set('etag', object.httpEtag);
 
-  await env.DB.prepare(
-    "UPDATE data_sources SET status = 'archived', imported_at = CURRENT_TIMESTAMP WHERE source_key = ?"
-  ).bind(item.sourceKey).run();
-}
-
-async function ensureSeedArchive(request, env) {
-  for (const item of SEED_ASSETS) {
-    await archiveAsset(request, env, item);
-  }
+  return new Response(request.method === 'HEAD' ? null : object.body, { headers });
 }
 
 export default {
-  async fetch(request, env, ctx) {
+  async fetch(request, env) {
     const url = new URL(request.url);
 
     if (request.method !== 'GET' && request.method !== 'HEAD') {
-      return json({ error: 'method_not_allowed' }, { status: 405, headers: { allow: 'GET, HEAD' } });
+      return json(
+        { error: 'method_not_allowed' },
+        { status: 405, headers: { allow: 'GET, HEAD' } }
+      );
     }
 
     if (url.pathname === '/api/health') {
@@ -87,11 +129,8 @@ export default {
           readManifest(env),
           r2Status(env),
         ]);
-        if (objects.some((object) => !object.present)) {
-          ctx.waitUntil(ensureSeedArchive(request, env).catch((error) => console.error('seed archive failed', error)));
-        }
         return json({
-          status: 'ok',
+          status: objects.every((object) => object.present) ? 'ok' : 'degraded',
           service: 'amazon-keyword-intelligence',
           environment: env.APP_ENV || 'production',
           amazonApiMode: env.AMAZON_API_MODE || 'disabled',
@@ -99,7 +138,8 @@ export default {
           schemaVersion: meta.schema_version || '1',
           sourceCommit: meta.source_commit || null,
           sources: sources.length,
-          r2: objects,
+          protectedDataReady: objects.every((object) => object.present),
+          accessConfigured: Boolean(env.TEAM_DOMAIN && env.POLICY_AUD),
         });
       } catch (error) {
         console.error('health check failed', error);
@@ -108,6 +148,10 @@ export default {
     }
 
     if (url.pathname === '/api/data/manifest') {
+      const access = await verifyAccess(request, env);
+      if (!access.ok) {
+        return json({ error: access.error }, { status: access.status });
+      }
       try {
         const [meta, sources, objects] = await Promise.all([
           readMeta(env),
@@ -119,6 +163,11 @@ export default {
         console.error('manifest failed', error);
         return json({ error: 'manifest_unavailable' }, { status: 503 });
       }
+    }
+
+    const dataKey = DATA_OBJECTS[url.pathname];
+    if (dataKey) {
+      return serveProtectedData(request, env, dataKey);
     }
 
     return json({ error: 'not_found' }, { status: 404 });
