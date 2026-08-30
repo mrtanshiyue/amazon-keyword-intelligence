@@ -111,6 +111,7 @@
     if (pageTitle() !== 'Rules & Automation') return;
 
     const run = $('#run-rules');
+    if (run?.textContent.includes('Run Executable Rules')) return;
     if (run) {
       run.textContent = '▶ Run Default Thresholds';
       run.title = 'Runs built-in harvest and negative thresholds. Saved custom rule definitions are not evaluated yet.';
