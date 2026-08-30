@@ -10,7 +10,6 @@ permissions:
 
 jobs:
   patch:
-    if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -69,12 +68,12 @@ jobs:
           grep -F "function ruleExecutable(r)" app.js
           grep -F "Create Structured Rule" app.js
           grep -F "legacy/unsupported enabled rule(s) skipped" app.js
-          grep -F "source:\`Rule:${r.id}\`" app.js
-      - name: Remove one-shot workflow and commit fix
+          grep -F 'source:`Rule:${r.id}`' app.js
+      - name: Remove one-shot workflows and commit fix
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git rm .github/workflows/one-shot-rule-engine-fix.yml
+          git rm -f .github/workflows/one-shot-rule-engine-fix.yml .github/workflows/repair-rule-engine-workflow.yml
           git add app.js
           git commit -m "Use structured rule criteria for recommendation runs"
           git push origin HEAD:fix/p1-structured-rule-engine
