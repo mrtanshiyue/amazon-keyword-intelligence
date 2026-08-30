@@ -3,6 +3,10 @@ import {
   accessAuthConfigured,
   verifyAccessRequest,
 } from './access-auth.js';
+import {
+  StoreAuthorizationError,
+  readStoreMemberships,
+} from './store-authorization.js';
 
 const JSON_HEADERS = {
   'content-type': 'application/json; charset=utf-8',
@@ -81,15 +85,16 @@ async function serveTestData(request, env, key) {
 async function servePrivateSession(request, env) {
   try {
     const identity = await verifyAccessRequest(request, env);
+    const storeAuthorization = await readStoreMemberships(env, identity.sub);
     const response = json({
       authenticated: true,
       identity,
-      storeAuthorization: 'not_configured',
+      storeAuthorization,
       amazonApiMode: env.AMAZON_API_MODE || 'disabled',
     });
     return request.method === 'HEAD' ? headResponse(response) : response;
   } catch (error) {
-    if (error instanceof AccessAuthError) {
+    if (error instanceof AccessAuthError || error instanceof StoreAuthorizationError) {
       const response = json({ error: error.code }, { status: error.status });
       return request.method === 'HEAD' ? headResponse(response) : response;
     }
