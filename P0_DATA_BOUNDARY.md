@@ -1,21 +1,10 @@
 # P0 Data Boundary Hardening
 
-Status: **ACCESS AUTHENTICATION NOT YET ACTIVE IN PRODUCTION**
+Status: **CODE READY ON THIS BRANCH — DO NOT MERGE UNTIL CLOUDFLARE ACCESS IS CONFIGURED**
 
-Current `main` has already removed the two business seed files from Workers Static Assets and now serves them from private R2 through `/api/data/*`. Those routes are still in `public-test` mode, so the data remains browser-readable without authentication.
+Current `main` has already removed the two business seed files from Workers Static Assets and serves them from private R2 through `/api/data/*`, but those routes remain in `public-test` mode.
 
-This document records the remaining P0 security boundary work. Do not describe the runtime as Access-protected until the Cloudflare Zero Trust application, Worker variables, JWT validation, and browser acceptance are all complete.
-
-## Current architecture
-
-```text
-Browser
-  -> Worker /api/data/*
-  -> private R2 objects
-
-Workers Static Assets
-  -> HTML / CSS / JS application code only
-```
+This branch adds Worker-side Cloudflare Access JWT verification. It must stay out of Production until the hostname-level Access application and required Worker variables are configured, otherwise the application will fail closed and the datasets will not load.
 
 ## Target architecture
 
@@ -27,11 +16,23 @@ Browser
   -> private R2 objects
 
 Public/minimal
-  -> Workers Static Assets
+  -> Workers Static Assets (application code only)
   -> GET /api/health (capability/readiness only)
 ```
 
-## Required Cloudflare configuration
+## Branch implementation
+
+- validates `Cf-Access-Jwt-Assertion` with Cloudflare Access JWKS via `jose`
+- protects `/api/data/seed.js`
+- protects `/api/data/unified-seed.js`
+- protects `/api/data/manifest`
+- fails closed when Access configuration is missing
+- keeps `/api/health` public and non-sensitive
+- reports `protectedDataReady`, `accessConfigured`, and `dataMode=access-protected`
+- preserves R2 as the runtime data source
+- preserves `AMAZON_API_MODE=disabled`
+
+## Required Cloudflare configuration before merge
 
 Create a Cloudflare Zero Trust Access application that protects the Production hostname, then configure:
 
@@ -49,10 +50,10 @@ Worker-side JWT verification is defense in depth and is not a substitute for the
 5. Authenticated browser loads both datasets and the full application.
 6. `/api/data/manifest` requires authentication.
 7. `dist` contains no seed JS or raw CSV.
-8. `/api/health` exposes only non-sensitive readiness/capability state.
+8. `/api/health` returns `accessConfigured=true` and `protectedDataReady=true` without exposing object names/sizes.
 9. Dashboard / Analytics / Finance calculations match the current baseline.
 10. `AMAZON_API_MODE=disabled` remains unchanged.
 
-## Repository exposure
+## Repository exposure remains separate
 
 The GitHub repository is currently public and historical commits contain business-shaped data files. Changing only the latest tree does not remove historical exposure; repository privacy/history remediation is a separate P0 operation.
