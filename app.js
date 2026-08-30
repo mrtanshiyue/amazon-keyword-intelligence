@@ -4,7 +4,7 @@ const SEED = window.KEYWORDOS_SEED || {rows:[],rules:[]};
 const FIN_SEED = window.KEYWORDOS_UNIFIED_SEED || {rows:[],meta:{}};
 const STORAGE = {
   actions:'keywordos_v9_actions', negatives:'keywordos_v9_negatives', tracked:'keywordos_v9_tracked',
-  protected:'keywordos_v9_protected', rules:'keywordos_v9_rules', logs:'keywordos_v9_logs', settings:'keywordos_v9_settings', presets:'keywordos_v9_presets', presetDefault:'keywordos_v9_preset_default'
+  protected:'keywordos_v9_protected', rules:'keywordos_v9_rules', logs:'keywordos_v9_logs', settings:'keywordos_v9_settings', presets:'keywordos_v9_presets', presetDefault:'keywordos_v9_preset_default', suggestionReviews:'keywordos_v9_suggestion_reviews'
 };
 const clone = x => JSON.parse(JSON.stringify(x));
 const load = (k,d) => { try { const x=localStorage.getItem(k); return x?JSON.parse(x):d; } catch { return d; } };
@@ -26,6 +26,7 @@ const state = {
   drill:{campaign:'',adGroup:'',target:''},
   research:{query:'reading glasses',wordMin:'',wordMax:'',minClicks:'',minOrders:'',minSpend:'',maxAcos:'',contains:'',exclude:'',matchType:'all',preset:'All Keywords'},
   actions:load(STORAGE.actions,[]), negatives:load(STORAGE.negatives,[]), tracked:load(STORAGE.tracked,[]),
+  suggestionReviews:load(STORAGE.suggestionReviews,{}),
   protected:new Set(load(STORAGE.protected,DEFAULT_PROTECTED)), rules:load(STORAGE.rules,SEED.rules||[]),
   logs:load(STORAGE.logs,[{id:'seed-import',date:'2026-06-30 23:59',source:'Import',type:'Data Import',target:'202606.csv',campaign:'—',change:'Loaded 8,753 Amazon Ads rows',by:'KeywordOS'}]),
   settings:load(STORAGE.settings,{targetAcos:40,breakEvenAcos:55,currency:'USD',negativeClicks:12,negativeSpend:10,harvestOrders:2,harvestAcos:40}),
@@ -167,10 +168,20 @@ function suggestionData(){
   const budget=campaigns.filter(x=>x.spend>0).sort((a,b)=>b.sales-a.sales).slice(0,36).map(x=>({...x,suggestion:'Budget',currentBudget:25,recommendedBudget:x.acos!=null&&x.acos<=state.settings.targetAcos/100?35:20}));
   return {'AI Bids':aiBids,'Bids':bids,'New Keywords':newKeywords,'Negative Keywords':negativeKeywords,'Budget':budget};
 }
-function suggestionCount(){const d=suggestionData();return Object.values(d).reduce((n,a)=>n+a.length,0)||'';}
+function suggestionDatasetKey(){const rows=state.currentRows||[];let min='',max='';for(const r of rows){const d=r.date||'';if(d&&(!min||d<min))min=d;if(d&&d>max)max=d;}return `${rows.length}:${min}:${max}`;}
+function suggestionReviewKey(tab,x){return [suggestionDatasetKey(),tab,x.key||x.name||'',x.campaign||'',x.adGroup||'',x.matchType||''].join('|');}
+function suggestionReviewStatus(tab,x){return state.suggestionReviews[suggestionReviewKey(tab,x)]?.status||'';}
+function suggestionHidden(tab,x){return ['removed','paused'].includes(suggestionReviewStatus(tab,x));}
+function setSuggestionReview(tab,x,status){const key=suggestionReviewKey(tab,x);state.suggestionReviews[key]={status,updatedAt:new Date().toISOString()};save(STORAGE.suggestionReviews,state.suggestionReviews);logEvent('Suggestion Review',x.name||x.key||'—',`${tab} → ${status}`,'Manual','Suggestions');}
+function resetSuggestionReviews(tab){const prefix=`${suggestionDatasetKey()}|${tab}|`;let restored=0;for(const key of Object.keys(state.suggestionReviews)){if(key.startsWith(prefix)){delete state.suggestionReviews[key];restored++;}}save(STORAGE.suggestionReviews,state.suggestionReviews);if(restored)logEvent('Suggestion Review Reset',tab,`Restored ${restored} hidden suggestion(s)`,'Manual','Suggestions');return restored;}
+function suggestionCount(){const d=suggestionData();return Object.entries(d).reduce((n,[tab,a])=>n+a.filter(x=>!suggestionHidden(tab,x)).length,0)||'';}
 function renderSuggestions(){
-  const data=suggestionData(),tabs=['AI Bids','Bids','New Keywords','Negative Keywords','Budget'],items=data[state.suggestionTab]||[];
-  const tabCount=t=>data[t].length;
+  const data=suggestionData(),tabs=['AI Bids','Bids','New Keywords','Negative Keywords','Budget'],allItems=data[state.suggestionTab]||[];
+  const items=allItems.filter(x=>!suggestionHidden(state.suggestionTab,x));
+  const hiddenRemoved=allItems.filter(x=>suggestionReviewStatus(state.suggestionTab,x)==='removed').length;
+  const hiddenPaused=allItems.filter(x=>suggestionReviewStatus(state.suggestionTab,x)==='paused').length;
+  const hiddenCount=hiddenRemoved+hiddenPaused;
+  const tabCount=t=>data[t].filter(x=>!suggestionHidden(t,x)).length;
   const rows=items.slice(0,40).map((x,i)=>{
     const name=esc(x.name||x.key||'—'); const acos=x.acos==null?'—':fmtPct(x.acos);
     let change='';
@@ -183,10 +194,12 @@ function renderSuggestions(){
   $('#content').innerHTML=`<div class="h10-callout"><div><b>Suggestions</b><span>Recommendations are generated from your configured thresholds. Review before applying.</span></div><button class="btn secondary sm" data-learn-page="Suggestions">Learn</button></div>
   <div class="section-tabs h10-tabs">${tabs.map(t=>`<button class="section-tab ${state.suggestionTab===t?'active':''}" data-suggestion-tab="${t}">${t}<span class="tab-count">${tabCount(t)}</span></button>`).join('')}</div>
   <div class="data-workspace"><div class="toolbar h10-toolbar"><div class="toolbar-left"><div class="searchbox"><span>⌕</span><input class="input" placeholder="Search suggestions"></div><button class="btn secondary">Portfolio ⌄</button><button class="btn secondary">Campaign ⌄</button><button class="btn secondary">Status ⌄</button></div><div class="toolbar-right"><button class="btn secondary">⚙ Columns</button><button class="btn secondary">⇩ Export</button><button class="btn primary" id="apply-suggestion-changes">Apply 0 Changes</button></div></div>
-  <div class="suggest-settings"><span><b>Account AI Bid Settings</b> · Default Target ACoS ${state.settings.targetAcos}% · Maximum Bid $3.00</span><button class="btn ghost sm">Edit Settings</button></div>
+  <div class="suggest-settings"><span><b>Account AI Bid Settings</b> · Default Target ACoS ${state.settings.targetAcos}% · Active ${items.length} · Hidden ${hiddenCount}${hiddenCount?` (${hiddenRemoved} removed · ${hiddenPaused} paused)`:''}</span><div style="display:flex;gap:6px"><button class="btn ghost sm" id="restore-hidden-suggestions" ${hiddenCount?'':'disabled'}>Restore Hidden${hiddenCount?` (${hiddenCount})`:''}</button><button class="btn ghost sm" id="suggestion-settings">Edit Settings</button></div></div>
   <div class="table-scroll"><table class="data-table h10-table"><thead><tr><th class="check-col"><input type="checkbox"></th><th class="left">${state.suggestionTab.includes('Keyword')?'Search Term':'Target / Campaign'}</th><th>Spend</th><th>Sales</th><th>ACoS</th><th>Orders</th><th>Recommended Change</th><th class="center">Action</th></tr></thead><tbody>${rows||`<tr><td colspan="8"><div class="empty-state"><h3>No suggestions for this view</h3><p>Suggestions will appear when your thresholds are met.</p></div></td></tr>`}</tbody></table></div></div>`;
   $$('[data-suggestion-tab]').forEach(b=>b.addEventListener('click',()=>{state.suggestionTab=b.dataset.suggestionTab;render();}));
-  $$('[data-suggest-action]').forEach(b=>b.addEventListener('click',()=>{const x=items[+b.dataset.suggestIndex];if(!x)return;const type=state.suggestionTab==='Negative Keywords'?'Negative Exact':state.suggestionTab==='New Keywords'?'Add Exact Keyword':state.suggestionTab==='Budget'?'Budget Change':'Bid Change';if(b.dataset.suggestAction==='apply'){queueAction(type,x.name||x.key,{reason:`Suggestions · ${state.suggestionTab}`});toast('Suggestion staged in Action Center','success');}else if(b.dataset.suggestAction==='remove')toast('Suggestion removed from this review cycle','success');else toast('Suggestion paused','success');renderNav();}));
+  $('#restore-hidden-suggestions')?.addEventListener('click',()=>{const restored=resetSuggestionReviews(state.suggestionTab);toast(`${restored} hidden suggestion(s) restored`,restored?'success':'warn');render();});
+  $('#suggestion-settings')?.addEventListener('click',()=>{state.page='settings';resetTableState();render();});
+  $$('[data-suggest-action]').forEach(b=>b.addEventListener('click',()=>{const x=items[+b.dataset.suggestIndex];if(!x)return;const type=state.suggestionTab==='Negative Keywords'?'Negative Exact':state.suggestionTab==='New Keywords'?'Add Exact Keyword':state.suggestionTab==='Budget'?'Budget Change':'Bid Change';if(b.dataset.suggestAction==='apply'){queueAction(type,x.name||x.key,{reason:`Suggestions · ${state.suggestionTab}`});toast('Suggestion staged in Action Center','success');renderNav();return;}const status=b.dataset.suggestAction==='remove'?'removed':'paused';setSuggestionReview(state.suggestionTab,x,status);toast(status==='removed'?'Suggestion removed from this review cycle':'Suggestion paused for this review cycle','success');render();}));
 }
 function renderSchedules(){
   const days=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],hours=[0,3,6,9,12,15,18,21];
