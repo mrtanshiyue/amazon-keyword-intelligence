@@ -34,6 +34,9 @@ jobs:
           grep -q "CREATE TABLE IF NOT EXISTS access_users" migrations/0002_access_memberships.sql
           grep -q "CREATE TABLE IF NOT EXISTS store_memberships" migrations/0002_access_memberships.sql
 
+      - name: Build static assets
+        run: npm run build
+
       - name: Wrangler dry run
         run: npx wrangler deploy --dry-run
 
