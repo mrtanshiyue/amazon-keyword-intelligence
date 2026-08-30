@@ -1,0 +1,44 @@
+{
+  "meta": {
+    "source": "202606.csv",
+    "generatedFrom": "Amazon Ads search term report",
+    "currency": "USD",
+    "schemaFields": 45
+  },
+  "summary": {
+    "impressions": 1390748,
+    "clicks": 14268,
+    "spend": 13571.98,
+    "orders": 1562,
+    "sales": 30544.84,
+    "units": 1577,
+    "ctr": 0.010259227408559998,
+    "cvr": 0.10947574992991309,
+    "acos": 0.4443297133001842,
+    "roas": 2.2505809763940117,
+    "cpc": 0.9512181104569666,
+    "cpa": 8.688847631241996,
+    "rows": 8753,
+    "dateMin": "2026-06-01",
+    "dateMax": "2026-06-30",
+    "accounts": 1,
+    "campaigns": 63,
+    "adgroups": 51,
+    "searchTerms": 4973,
+    "products": [
+      "UNASSIGNED",
+      "YS004",
+      "YS005",
+      "YS009",
+      "YS012",
+      "YS015"
+    ]
+  },
+  "insights": {
+    "negativeCandidates": 9,
+    "wasteSpend": 174.7,
+    "winnerTerms": 99,
+    "winnerSales": 8526.93,
+    "conflicts": 8
+  }
+}

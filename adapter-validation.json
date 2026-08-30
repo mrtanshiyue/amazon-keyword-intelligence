@@ -1,0 +1,14 @@
+{
+  "source": "202606.csv",
+  "report_type": "Amazon Ads Search Term Performance",
+  "rows": 8753,
+  "fields": 45,
+  "recognized_fields": 45,
+  "missing_required_fields": [],
+  "campaigns": 63,
+  "ad_groups": 51,
+  "unique_search_terms": 4973,
+  "spend": 13571.98,
+  "sales": 30544.84,
+  "orders": 1562
+}

@@ -1,0 +1,113 @@
+{
+  "source": "UnifiedTransaction-202606.csv",
+  "rows": 3643,
+  "fields": 32,
+  "date_range": [
+    "2026-06-01",
+    "2026-06-30"
+  ],
+  "transaction_types": [
+    "Adjustment",
+    "FBA Inventory Fee",
+    "FBA Transaction fees",
+    "Liquidations",
+    "Order",
+    "Order_Retrocharge",
+    "Refund",
+    "Service Fee",
+    "Transfer"
+  ],
+  "gross_order_revenue": 64883.87,
+  "refund_reversal": 3727.43,
+  "promotional_rebates": 533.08,
+  "net_selling_fees": 9166.58,
+  "net_fba_fees": 13845.2,
+  "unified_advertising_cost": 13187.71,
+  "storage_fees": 304.72,
+  "subscription": 17.57,
+  "liquidation_fee": 29.22,
+  "adjustments_reimbursements": 347.32,
+  "liquidation_gross_proceeds": 91.67,
+  "operating_net_proceeds_before_cogs": 24514.95,
+  "bank_transfers": 19187.69,
+  "ledger_movement_after_transfers": 5327.26,
+  "tax_collected": 3689.51,
+  "marketplace_withheld_tax": 3689.51,
+  "tax_net": 0.0,
+  "ads_report_spend": 13571.98,
+  "advertising_reconciliation_difference": 384.27,
+  "product_summary": [
+    {
+      "oq": 2226.0,
+      "rq": 90.0,
+      "gross": 43627.03000000101,
+      "refund": 1799.4100000000012,
+      "proceeds": 26399.299999999083,
+      "product": "YS005",
+      "refund_rate": 0.04043126684636118
+    },
+    {
+      "oq": 325.0,
+      "rq": 23.0,
+      "gross": 5910.659999999985,
+      "refund": 425.1700000000001,
+      "proceeds": 3348.3599999999874,
+      "product": "YS004",
+      "refund_rate": 0.07076923076923076
+    },
+    {
+      "oq": 270.0,
+      "rq": 20.0,
+      "gross": 5010.69999999998,
+      "refund": 386.6,
+      "proceeds": 2817.4899999999966,
+      "product": "YS009",
+      "refund_rate": 0.07407407407407407
+    },
+    {
+      "oq": 273.0,
+      "rq": 24.0,
+      "gross": 4976.67999999998,
+      "refund": 453.9600000000001,
+      "proceeds": 2698.7799999999975,
+      "product": "YS012",
+      "refund_rate": 0.08791208791208792
+    },
+    {
+      "oq": 208.0,
+      "rq": 30.0,
+      "gross": 4182.189999999984,
+      "refund": 629.7000000000002,
+      "proceeds": 2144.9200000000014,
+      "product": "YS015",
+      "refund_rate": 0.14423076923076922
+    },
+    {
+      "oq": 16.0,
+      "rq": 0,
+      "gross": 323.24000000000007,
+      "refund": 0,
+      "proceeds": 209.37,
+      "product": "YS006",
+      "refund_rate": 0.0
+    },
+    {
+      "oq": 1.0,
+      "rq": 0,
+      "gross": 10.5,
+      "refund": 0,
+      "proceeds": 4.87,
+      "product": "YS026",
+      "refund_rate": 0.0
+    },
+    {
+      "oq": 1.0,
+      "rq": 0,
+      "gross": 10.5,
+      "refund": 0,
+      "proceeds": 4.57,
+      "product": "YS014",
+      "refund_rate": 0.0
+    }
+  ]
+}
