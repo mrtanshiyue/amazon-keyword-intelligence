@@ -1,0 +1,50 @@
+name: Dataset Store integrity
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run check
+      - name: Verify D1 migration constraints with SQLite
+        run: |
+          python - <<'PY'
+          import pathlib
+          import sqlite3
+
+          conn = sqlite3.connect(':memory:')
+          conn.execute('PRAGMA foreign_keys = ON')
+          for path in ['migrations/0001_init.sql', 'migrations/0002_access_memberships.sql', 'migrations/0003_dataset_versions.sql']:
+              conn.executescript(pathlib.Path(path).read_text())
+
+          conn.execute(
+              '''INSERT INTO dataset_versions(
+                   dataset_id, store_id, kind, source_file, row_count, byte_size,
+                   content_sha256, r2_key
+                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)''',
+              ('version-b', 'store-b', 'amazon_ads', 'ads.csv', 1, 1, 'a' * 64, 'imports/store-b/amazon_ads/version-b.csv')
+          )
+
+          try:
+              conn.execute(
+                  'INSERT INTO dataset_current(store_id, kind, dataset_id) VALUES (?, ?, ?)',
+                  ('store-a', 'amazon_ads', 'version-b')
+              )
+          except sqlite3.IntegrityError:
+              pass
+          else:
+              raise SystemExit('cross-store current pointer was not rejected')
+          PY
