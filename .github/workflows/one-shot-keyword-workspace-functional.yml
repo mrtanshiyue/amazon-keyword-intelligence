@@ -1,0 +1,58 @@
+name: One-shot Keyword workspace functional completion
+
+on:
+  push:
+    branches:
+      - feature/p1-keyword-workspace-functional
+
+permissions:
+  contents: write
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/p1-keyword-workspace-functional
+          fetch-depth: 0
+
+      - name: Apply Keyword workspace patch
+        run: python scripts/patch-keyword-workspace-functional.py
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Validate Keyword workspace contracts
+        run: |
+          npm run check
+          grep -q "keywordos_v9_keyword_tags" app.js
+          grep -q "kw-lifecycle-filter" app.js
+          grep -q "kw-tag-filter" app.js
+          grep -q "kw-columns" app.js
+          grep -q "tracker-tag-filter" app.js
+          grep -q "log-type-filter" app.js
+          grep -q "log-source-filter" app.js
+          grep -q "research-history" app.js
+          grep -q "data-research-history-run" app.js
+          grep -q "Exclude variations · unavailable" app.js
+          ! grep -q "Keyword tags are not implemented" ui-actions.js
+          ! grep -q "This library control is not implemented" ui-actions.js
+          ! grep -q "Advanced change-log filters are not implemented" ui-actions.js
+          ! grep -q "Research history is not persisted yet" ui-actions.js
+
+      - name: Build static assets
+        run: npm run build
+
+      - name: Wrangler dry run
+        run: npx wrangler deploy --dry-run
+
+      - name: Commit product patch and remove one-shot assets
+        run: |
+          rm scripts/patch-keyword-workspace-functional.py
+          rm .github/workflows/one-shot-keyword-workspace-functional.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app.js ui-actions.js scripts/patch-keyword-workspace-functional.py .github/workflows/one-shot-keyword-workspace-functional.yml
+          git commit -m "Complete Keyword workspace local interactions"
+          git push origin HEAD:feature/p1-keyword-workspace-functional
