@@ -21,6 +21,7 @@
 
   const $ = (selector, root = document) => root.querySelector(selector);
   const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
+  const headerActions = () => $$('.header-right .header-action');
 
   function loadShellState() {
     try {
@@ -192,7 +193,7 @@
   }
 
   function bindGlobalSearch() {
-    const button = $('.header-action[title="Search"]');
+    const button = headerActions()[0];
     if (!button || button.dataset.productivityBound === '1') return;
     button.dataset.productivityBound = '1';
     enableButton(button, 'Search KeywordOS (Ctrl/⌘ K)', 'Search KeywordOS');
@@ -201,7 +202,7 @@
 
   function bindHelp() {
     const sidebarHelp = $$('.sidebar-bottom .side-link').find((button) => !button.dataset.page && button.textContent.includes('Help Center'));
-    const headerHelp = $('.header-action[title="Help"]');
+    const headerHelp = headerActions()[2];
     [sidebarHelp, headerHelp].filter(Boolean).forEach((button) => {
       if (button.dataset.productivityBound === '1') return;
       button.dataset.productivityBound = '1';
@@ -211,7 +212,7 @@
   }
 
   function enforceNotificationTruth() {
-    const button = $('.header-action[title="Notifications"]');
+    const button = headerActions()[1];
     if (!button) return;
     const dot = $('.notification-dot', button);
     if (dot) dot.hidden = true;
