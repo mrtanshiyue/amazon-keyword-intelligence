@@ -60,13 +60,10 @@
     return error;
   }
 
-  function validateUnifiedAnalysis(result) {
-    const parsed = result?.parsed;
-    const headerIndex = result?.headerIndex;
-    const headers = result?.headers;
-    if (!Array.isArray(parsed) || !Number.isInteger(headerIndex) || !Array.isArray(headers)) return result;
-
-    const indexByHeader = new Map(headers.map((header, index) => [String(header || '').trim().toLowerCase(), index]));
+  function validateUnifiedRows(parsed, headerIndex) {
+    if (!Array.isArray(parsed) || !Number.isInteger(headerIndex) || headerIndex < 0) return;
+    const headers = parsed[headerIndex].map((header) => String(header || '').trim().toLowerCase());
+    const indexByHeader = new Map(headers.map((header, index) => [header, index]));
     const dateIndex = indexByHeader.get('date/time');
 
     for (let index = headerIndex + 1; index < parsed.length; index += 1) {
@@ -86,7 +83,7 @@
         }
       }
 
-      const dateValue = row[dateIndex];
+      const dateValue = dateIndex == null ? '' : row[dateIndex];
       if (!validTransactionDate(dateValue)) {
         throw validationError('invalid_unified_date_value', {
           rowNumber: index + 1,
@@ -95,13 +92,22 @@
         });
       }
     }
-    return result;
+  }
+
+  function validateUnifiedText(adapter, text) {
+    const parsed = adapter.parseCSV(text);
+    const headerIndex = adapter.findHeader(parsed);
+    validateUnifiedRows(parsed, headerIndex);
   }
 
   function install(adapter) {
     if (!adapter || typeof adapter.analyzeText !== 'function' || adapter.__keywordosValueGuard) return adapter;
+    if (typeof adapter.parseCSV !== 'function' || typeof adapter.findHeader !== 'function') return adapter;
     const original = adapter.analyzeText.bind(adapter);
-    adapter.analyzeText = (text) => validateUnifiedAnalysis(original(text));
+    adapter.analyzeText = (text) => {
+      validateUnifiedText(adapter, text);
+      return original(text);
+    };
     Object.defineProperty(adapter, '__keywordosValueGuard', { value: true });
     return adapter;
   }
@@ -111,7 +117,7 @@
       NUMERIC_HEADERS,
       parseSignedNumberOrBlank,
       validTransactionDate,
-      validateUnifiedAnalysis,
+      validateUnifiedRows,
       install
     };
   }
