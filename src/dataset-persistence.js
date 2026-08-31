@@ -41,12 +41,24 @@ function checksumHex(value) {
   return [...new Uint8Array(value)].map((byte) => byte.toString(16).padStart(2, '0')).join('');
 }
 
-function assertStoredObjectIntegrity(object, descriptor) {
+function assertStoredObjectIntegrity(object, descriptor, datasetId) {
   if (Number(object?.size) !== descriptor.byteSize) {
     throw new DatasetPersistenceError('dataset_object_size_mismatch', 503);
   }
   if (checksumHex(object?.checksums?.sha256) !== descriptor.contentSha256) {
     throw new DatasetPersistenceError('dataset_object_checksum_mismatch', 503);
+  }
+
+  const custom = object?.customMetadata || {};
+  if (
+    custom.datasetId !== datasetId ||
+    custom.storeId !== descriptor.storeId ||
+    custom.kind !== descriptor.kind ||
+    custom.sourceFile !== descriptor.sourceFile ||
+    custom.rowCount !== String(descriptor.rowCount) ||
+    custom.contentSha256 !== descriptor.contentSha256
+  ) {
+    throw new DatasetPersistenceError('dataset_object_metadata_mismatch', 503);
   }
 }
 
@@ -132,7 +144,7 @@ export async function persistAcceptedDataset(env, input = {}) {
   if (!stored) {
     throw new DatasetPersistenceError('dataset_object_already_exists', 409);
   }
-  assertStoredObjectIntegrity(stored, descriptor);
+  assertStoredObjectIntegrity(stored, descriptor, datasetId);
 
   try {
     await env.DB.batch([
@@ -203,21 +215,15 @@ export async function readCurrentDatasetObject(env, storeId, kind) {
     throw new DatasetPersistenceError('dataset_object_missing', 503);
   }
 
-  const descriptor = {
-    byteSize: Number(metadata.byte_size),
+  const descriptor = validateDatasetDescriptor({
+    storeId: metadata.store_id,
+    kind: metadata.kind,
+    sourceFile: metadata.source_file,
+    rowCount: metadata.row_count,
+    byteSize: metadata.byte_size,
     contentSha256: metadata.content_sha256,
-  };
-  assertStoredObjectIntegrity(object, descriptor);
-
-  const custom = object.customMetadata || {};
-  if (
-    custom.datasetId !== metadata.dataset_id ||
-    custom.storeId !== metadata.store_id ||
-    custom.kind !== metadata.kind ||
-    custom.contentSha256 !== metadata.content_sha256
-  ) {
-    throw new DatasetPersistenceError('dataset_object_metadata_mismatch', 503);
-  }
+  });
+  assertStoredObjectIntegrity(object, descriptor, metadata.dataset_id);
 
   return { metadata, object };
 }
