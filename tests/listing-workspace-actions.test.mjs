@@ -7,7 +7,8 @@ const {
   aggregateKeywordEvidence,
   composeSearchTerms,
   draftStatus,
-  chooseListingDataset
+  chooseListingDataset,
+  listingSidebarReady
 } = globalThis.KeywordOSListingWorkspaceTest;
 
 test('aggregateKeywordEvidence uses loaded Ads rows and ranks by real orders then sales', () => {
@@ -39,6 +40,13 @@ test('draftStatus reports only actual human-entered draft sections', () => {
   assert.deepEqual(draftStatus({ title: '', bullets: '', searchTerms: '' }), { completed: 0, total: 3, ready: false });
   assert.deepEqual(draftStatus({ title: 'Title', bullets: 'Bullet', searchTerms: '' }), { completed: 2, total: 3, ready: false });
   assert.deepEqual(draftStatus({ title: 'Title', bullets: 'Bullet', searchTerms: 'terms' }), { completed: 3, total: 3, ready: true });
+});
+
+test('Listing sidebar waits for the core navigation tree before injecting its page', () => {
+  assert.equal(listingSidebarReady([]), false);
+  assert.equal(listingSidebarReady(['listing-workspace']), false);
+  assert.equal(listingSidebarReady(['portfolio-overview']), true);
+  assert.equal(listingSidebarReady(['portfolio-overview', 'listing-workspace']), true);
 });
 
 test('chooseListingDataset prefers only validated browser-persisted Ads rows', () => {

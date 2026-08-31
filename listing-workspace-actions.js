@@ -66,6 +66,10 @@
     return { completed, total: 3, ready: completed === 3 };
   }
 
+  function listingSidebarReady(availablePages) {
+    return Array.isArray(availablePages) && availablePages.includes('portfolio-overview');
+  }
+
   function chooseListingDataset(record, fallbackRows, validateRows) {
     const fallback = Array.isArray(fallbackRows) ? fallbackRows : [];
     if (record?.schemaVersion === 1 && Array.isArray(record.rows) && record.rows.length && typeof validateRows === 'function') {
@@ -86,7 +90,8 @@
       aggregateKeywordEvidence,
       composeSearchTerms,
       draftStatus,
-      chooseListingDataset
+      chooseListingDataset,
+      listingSidebarReady
     };
   }
 
@@ -211,6 +216,8 @@
   function ensureSidebarEntry() {
     const nav = $('#sidebar-nav');
     if (!nav || nav.querySelector(`[data-page="${LISTING_PAGE}"]`)) return;
+    const availablePages = $$('[data-page]', nav).map((item) => item.dataset.page || '');
+    if (!listingSidebarReady(availablePages)) return;
     const section = document.createElement('div');
     section.className = 'nav-section keywordos-listing-nav-section';
     section.innerHTML = `<div class="nav-section-title">LISTING</div><button class="nav-item" data-page="${LISTING_PAGE}"><span class="nav-icon">▤</span><span class="nav-label">Listing Workspace</span></button>`;
