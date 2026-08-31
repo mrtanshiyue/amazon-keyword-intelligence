@@ -15,7 +15,7 @@ Do not restart product analysis.
 Do not redo #20.  
 Do not redesign the UI.  
 Do not recreate Worker / D1 / R2.  
-Do not enable Amazon Ads API/OAuth.  
+Do not enable Amazon Ads API/OAuth/SP-API.  
 Do not expose anonymous mutable Worker routes.
 
 ### Owner override — authentication/login verification is frozen
@@ -37,9 +37,9 @@ Preserve the existing Access configuration and fail-closed auth code without ext
 
 ## 2. GitHub authoritative state
 
-Authoritative product main before this documentation-only update:
+Authoritative product main before this docs-only synchronization:
 
-`4e2d274b896a04cb60ebfd017471ab9a0ec26e2d`
+`ff2a2cdc2a5cf957317c357c0df8079af2b8aab0`
 
 At the start of a future conversation, read current `main` and use the latest merge commit if this docs update has landed.
 
@@ -47,7 +47,7 @@ Issue state:
 
 - **#20 — CLOSED / COMPLETED**. Do not reopen or rerun it.
 - **#17 — OPEN / ACTIVE**, but its authentication/login acceptance lane is explicitly **FROZEN BY OWNER**.
-- Amazon API/OAuth remains **HARD-OFF**.
+- Amazon API/OAuth/SP-API remains **HARD-OFF**.
 
 Recent non-auth #17 merges:
 
@@ -55,6 +55,10 @@ Recent non-auth #17 merges:
 - PR #43 — server-side import validation
 - PR #44 — validate-first import persistence pipeline
 - PR #45 — current dataset restore integrity checks
+- PR #47 — Store/kind current-pointer integrity
+- PR #48 — actual R2 object size/SHA-256 integrity
+- PR #49 — Finance-critical Unified required fields
+- PR #50 — CSV row-shape validation
 
 ## 3. Completed product state — do not redo
 
@@ -132,7 +136,7 @@ Keep them unbootstrapped while authentication is frozen.
 
 ## 5. Current Worker runtime boundary
 
-`src/worker.js` was unchanged by PRs #42–#45.
+`src/worker.js` was not wired to the new server persistence pipeline by PRs #42–#50.
 
 The Worker business surface remains GET/HEAD-only. Non-GET/HEAD requests remain `405 Method Not Allowed`.
 
@@ -154,8 +158,11 @@ There is no anonymous mutable business API.
 
 - `dataset_versions` — immutable dataset version metadata
 - `dataset_current` — per-Store/per-kind current pointer
+- composite `(dataset_id, store_id, kind)` integrity binding
 - indexes for Store/kind/version lookup
 - `deployment_meta.schema_version = 3`
+
+PR #47 verified the migration sequence with SQLite and proved a Store-A current pointer cannot reference a Store-B dataset version.
 
 ### Persistence primitive
 
@@ -164,20 +171,23 @@ There is no anonymous mutable business API.
 - strict dataset descriptor validation
 - Store/kind-scoped immutable R2 keys
 - R2 conditional create using `If-None-Match: *`
-- SHA-256 checksum enforcement
+- SHA-256 checksum enforcement on `put()`
+- verification of returned R2 object `size`
+- verification of returned R2 `checksums.sha256`
 - D1 `batch()` promotion of version metadata + current pointer
-- current metadata lookup
-- current R2 object restore with size and metadata consistency checks
+- current metadata lookup joined on dataset + Store + kind
+- current R2 object restore with actual size/SHA-256 and custom metadata consistency checks
 
 Safe failure order is:
 
 ```text
 validate
 -> immutable R2 write
+-> verify actual R2 size + SHA-256
 -> D1 transactional version/current promotion
 ```
 
-A D1 failure may leave an unreachable immutable R2 orphan, but cannot promote a broken current pointer.
+A D1 failure may leave an unreachable immutable R2 orphan, but cannot promote a broken current pointer. An R2 size/checksum mismatch is rejected before any D1 batch.
 
 ### Import validation
 
@@ -186,16 +196,19 @@ A D1 failure may leave an unreachable immutable R2 orphan, but cannot promote a 
 - Amazon Ads Search Term CSV
 - Amazon Unified Transaction CSV
 - required Ads fields
-- Unified header shape
+- Finance-critical Unified fields
 - malformed CSV
 - invalid UTF-8
 - empty imports
+- inconsistent nonblank CSV row widths
 - exact raw-byte SHA-256
 
 Real fixture acceptance is covered by tests:
 
 - Ads: 8753 rows / 45 fields
 - Unified: 3643 rows / 32 fields
+
+Incomplete pseudo-Unified files and truncated Ads/Unified rows fail closed.
 
 ### Validate-first pipeline
 
@@ -212,26 +225,23 @@ None of these modules are wired into a public Worker mutation route.
 
 ## 7. Current Cloudflare blocker — remote migration only
 
-After PR #42, attempts to use the Cloudflare connector began returning tool-level:
+In the latest continuation the user explicitly invoked the Cloudflare connector, but the chat runtime did not expose a Cloudflare executable resource through the connector layer.
 
-```text
-Resource not found
-```
+This is a connector/tool-availability condition, not a login/authentication gate and not evidence of a Cloudflare runtime failure.
 
-This is a connector/tool condition, not a login/authentication gate and not evidence of a Cloudflare runtime failure.
-
-Because of that connector condition, `migrations/0003_dataset_versions.sql` has **not yet been applied remotely** in this continuation.
+Because Cloudflare execution was unavailable, `migrations/0003_dataset_versions.sql` has **not yet been applied or verified remotely** in this continuation.
 
 Do not claim remote schema v3 until it is actually applied and verified.
 
-When the Cloudflare connector works again, the next safe non-auth Cloudflare action is:
+When Cloudflare execution becomes available, the next safe non-auth Cloudflare action is:
 
 1. read current D1 state
 2. apply the authoritative exact-main `0003_dataset_versions.sql`
 3. verify `dataset_versions` exists and is empty
 4. verify `dataset_current` exists and is empty
 5. verify `deployment_meta.schema_version = 3`
-6. verify `access_users = 0` and `store_memberships = 0`
+6. verify `access_users = 0`
+7. verify `store_memberships = 0`
 
 Do **not** insert any user/membership rows during this step.
 
@@ -239,7 +249,7 @@ Do **not** insert any user/membership rows during this step.
 
 Continue only work that does not require a user identity or authorization acceptance.
 
-The server persistence primitives are now prepared, but runtime write/read wiring must not create an anonymous mutable endpoint. If a remaining task would require deciding who may read/write a Store, stop that task at the internal helper boundary and continue other independent work.
+The core internal server import/persistence/restore invariants are now prepared and tested. Runtime write/read wiring must not create an anonymous mutable endpoint. If a remaining task requires deciding who may read/write a Store, stop that task at the internal helper boundary until the owner explicitly resumes authentication.
 
 Do not use D1 direct writes or fabricated identities to simulate browser acceptance.
 
