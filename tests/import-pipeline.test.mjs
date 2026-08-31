@@ -29,6 +29,7 @@ function fakeEnv() {
           key,
           size: bodySize(body),
           checksums: { sha256: options.sha256 },
+          customMetadata: options.customMetadata,
         };
       },
     },

@@ -42,6 +42,7 @@ function fakeEnv() {
           options,
           size: bodySize(body),
           checksums: { sha256: options.sha256 },
+          customMetadata: options.customMetadata,
         };
         objects.set(key, object);
         return object;
@@ -113,6 +114,8 @@ function currentObject(overrides = {}) {
       datasetId: DATASET_ID,
       storeId: 'store-a',
       kind: 'amazon_ads',
+      sourceFile: 'ads.csv',
+      rowCount: '10',
       contentSha256: SHA256,
     },
     ...overrides,
@@ -164,11 +167,13 @@ test('persists R2 object before atomically recording version and current pointer
   assert.equal(result.r2Key, `imports/store-a/amazon_ads/${DATASET_ID}.csv`);
   assert.equal(stored.options.onlyIf.get('if-none-match'), '*');
   assert.equal(stored.options.sha256.byteLength, 32);
+  assert.equal(stored.customMetadata.sourceFile, 'ads.csv');
+  assert.equal(stored.customMetadata.rowCount, '10');
   assert.equal(env.batches.length, 1);
   assert.equal(env.batches[0].length, 2);
 });
 
-test('does not promote R2 objects with unexpected size or checksum', async () => {
+test('does not promote R2 objects with unexpected size, checksum or metadata', async () => {
   const base = {
     datasetId: DATASET_ID,
     storeId: 'store-a',
@@ -185,6 +190,7 @@ test('does not promote R2 objects with unexpected size or checksum', async () =>
     key,
     size: 9,
     checksums: { sha256: options.sha256 },
+    customMetadata: options.customMetadata,
   });
   await assert.rejects(
     persistAcceptedDataset(sizeEnv, base),
@@ -193,16 +199,30 @@ test('does not promote R2 objects with unexpected size or checksum', async () =>
   assert.equal(sizeEnv.batches.length, 0);
 
   const checksumEnv = fakeEnv();
-  checksumEnv.DATA.put = async (key, body) => ({
+  checksumEnv.DATA.put = async (key, body, options) => ({
     key,
     size: 8,
     checksums: { sha256: shaBytes('b'.repeat(64)) },
+    customMetadata: options.customMetadata,
   });
   await assert.rejects(
     persistAcceptedDataset(checksumEnv, base),
     (error) => error instanceof DatasetPersistenceError && error.code === 'dataset_object_checksum_mismatch'
   );
   assert.equal(checksumEnv.batches.length, 0);
+
+  const metadataEnv = fakeEnv();
+  metadataEnv.DATA.put = async (key, body, options) => ({
+    key,
+    size: 8,
+    checksums: { sha256: options.sha256 },
+    customMetadata: { ...options.customMetadata, rowCount: '9' },
+  });
+  await assert.rejects(
+    persistAcceptedDataset(metadataEnv, base),
+    (error) => error instanceof DatasetPersistenceError && error.code === 'dataset_object_metadata_mismatch'
+  );
+  assert.equal(metadataEnv.batches.length, 0);
 });
 
 test('refuses to overwrite an existing immutable R2 key', async () => {
@@ -226,7 +246,7 @@ test('refuses to overwrite an existing immutable R2 key', async () => {
   assert.equal(env.batches.length, 1);
 });
 
-test('restores the current R2 object only when metadata and checksum match', async () => {
+test('restores the current R2 object only when all metadata and checksum fields match', async () => {
   const metadata = currentMetadata();
   const object = currentObject();
   const env = restoreEnv(metadata, object);
@@ -265,12 +285,18 @@ test('fails closed when the current object is missing or inconsistent', async ()
     (error) => error instanceof DatasetPersistenceError && error.code === 'dataset_object_checksum_mismatch'
   );
 
-  await assert.rejects(
-    readCurrentDatasetObject(
-      restoreEnv(metadata, currentObject({ customMetadata: { ...currentObject().customMetadata, datasetId: 'wrong' } })),
-      'store-a',
-      'amazon_ads'
-    ),
-    (error) => error instanceof DatasetPersistenceError && error.code === 'dataset_object_metadata_mismatch'
-  );
+  for (const customMetadata of [
+    { ...currentObject().customMetadata, datasetId: 'wrong' },
+    { ...currentObject().customMetadata, sourceFile: 'wrong.csv' },
+    { ...currentObject().customMetadata, rowCount: '9' },
+  ]) {
+    await assert.rejects(
+      readCurrentDatasetObject(
+        restoreEnv(metadata, currentObject({ customMetadata })),
+        'store-a',
+        'amazon_ads'
+      ),
+      (error) => error instanceof DatasetPersistenceError && error.code === 'dataset_object_metadata_mismatch'
+    );
+  }
 });
