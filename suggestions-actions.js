@@ -23,8 +23,10 @@
     );
     const button = $('#apply-suggestion-changes');
     if (!button) return;
-    button.textContent = `Apply ${checked.length} Changes`;
-    button.disabled = checked.length === 0;
+    const nextText = `Apply ${checked.length} Changes`;
+    const nextDisabled = checked.length === 0;
+    if (button.textContent !== nextText) button.textContent = nextText;
+    if (button.disabled !== nextDisabled) button.disabled = nextDisabled;
   }
 
   function disableInactiveFilters() {
