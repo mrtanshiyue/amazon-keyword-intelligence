@@ -75,7 +75,7 @@
   }
 
   function isLocalTableSearch(input) {
-    if (input.id === 'log-search' || input.id === 'kw-search' || input.id === 'global-keyword-search') return true;
+    if (input.id === 'log-search' || input.id === 'kw-search') return true;
     if (pageTitle() === 'Keyword Tracker' && input.closest('.toolbar .searchbox')) return true;
     return false;
   }
