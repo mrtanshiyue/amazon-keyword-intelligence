@@ -4,6 +4,7 @@ import test from 'node:test';
 
 import {
   ImportValidationError,
+  MAX_IMPORT_BYTES,
   validateImportBody,
   validateImportText,
 } from '../src/import-validation.js';
@@ -50,6 +51,7 @@ test('validates the authoritative Amazon Ads sample', async () => {
   assert.equal(result.rowCount, 8753);
   assert.equal(result.fieldCount, 45);
   assert.equal(result.byteSize, body.byteLength);
+  assert.ok(body.byteLength < MAX_IMPORT_BYTES);
   assert.match(result.contentSha256, /^[0-9a-f]{64}$/);
 });
 
@@ -62,7 +64,21 @@ test('validates the authoritative Unified Transaction sample', async () => {
   assert.equal(result.fieldCount, 32);
   assert.deepEqual(result.missingRequiredFields, []);
   assert.equal(result.byteSize, body.byteLength);
+  assert.ok(body.byteLength < MAX_IMPORT_BYTES);
   assert.match(result.contentSha256, /^[0-9a-f]{64}$/);
+});
+
+test('rejects an import larger than the buffered parser limit before decoding', async () => {
+  const oversized = new Uint8Array(MAX_IMPORT_BYTES + 1);
+
+  await assert.rejects(
+    validateImportBody('amazon_ads', oversized),
+    (error) =>
+      error instanceof ImportValidationError &&
+      error.code === 'import_too_large' &&
+      error.details?.maxByteSize === MAX_IMPORT_BYTES &&
+      error.details?.actualByteSize === MAX_IMPORT_BYTES + 1
+  );
 });
 
 test('rejects Ads CSV missing required report fields', () => {
