@@ -6,7 +6,8 @@ await import('../listing-workspace-actions.js');
 const {
   aggregateKeywordEvidence,
   composeSearchTerms,
-  draftStatus
+  draftStatus,
+  chooseListingDataset
 } = globalThis.KeywordOSListingWorkspaceTest;
 
 test('aggregateKeywordEvidence uses loaded Ads rows and ranks by real orders then sales', () => {
@@ -38,4 +39,25 @@ test('draftStatus reports only actual human-entered draft sections', () => {
   assert.deepEqual(draftStatus({ title: '', bullets: '', searchTerms: '' }), { completed: 0, total: 3, ready: false });
   assert.deepEqual(draftStatus({ title: 'Title', bullets: 'Bullet', searchTerms: '' }), { completed: 2, total: 3, ready: false });
   assert.deepEqual(draftStatus({ title: 'Title', bullets: 'Bullet', searchTerms: 'terms' }), { completed: 3, total: 3, ready: true });
+});
+
+test('chooseListingDataset prefers only validated browser-persisted Ads rows', () => {
+  const fallback = [{ searchTerm: 'seed term' }];
+  const persisted = [{ searchTerm: 'new imported term' }];
+  const record = { schemaVersion: 1, source: '202608.csv', rows: persisted };
+
+  assert.deepEqual(
+    chooseListingDataset(record, fallback, () => ({ ok: true })),
+    { rows: persisted, source: '202608.csv', mode: 'Browser persisted' }
+  );
+
+  assert.deepEqual(
+    chooseListingDataset(record, fallback, () => ({ ok: false })),
+    { rows: fallback, source: 'Bundled Ads dataset', mode: 'Bundled fallback' }
+  );
+
+  assert.deepEqual(
+    chooseListingDataset(record, fallback, undefined),
+    { rows: fallback, source: 'Bundled Ads dataset', mode: 'Bundled fallback' }
+  );
 });
