@@ -201,7 +201,7 @@
   }
 
   function bindHelp() {
-    const sidebarHelp = $$('.sidebar-bottom .side-link').find((button) => !button.dataset.page && button.textContent.includes('Help Center'));
+    const sidebarHelp = $('.sidebar-bottom .side-link:not([data-page])');
     const headerHelp = headerActions()[2];
     [sidebarHelp, headerHelp].filter(Boolean).forEach((button) => {
       if (button.dataset.productivityBound === '1') return;
