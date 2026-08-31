@@ -1,0 +1,65 @@
+name: Local workspace scope patch v2
+on:
+  push:
+    branches: [fix/local-workspace-scope-truth]
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/local-workspace-scope-truth
+          fetch-depth: 0
+      - name: Patch ui-actions
+        shell: bash
+        run: |
+          cat > /tmp/patch.py <<'PY'
+          from pathlib import Path
+          p=Path('ui-actions.js')
+          s=p.read_text()
+          a=s.index('  function openLocalStoreWorkspace(id) {')
+          b=s.index('\n\n  function renderEmptyStoreWorkspace', a)
+          old=s[a:b]
+          new="""  function openLocalStoreWorkspace(id) {
+            const store = storeById(id);
+            if (!store) return;
+            localOpenStoreId = id;
+            const select = $('#profile-select');
+            if (store.builtIn && select) {
+              select.value = store.id;
+              select.dispatchEvent(new Event('change', { bubbles: true }));
+              return;
+            }
+            if (select) {
+              [...select.options]
+                .filter((option) => option.dataset.localWorkspace === '1')
+                .forEach((option) => option.remove());
+              const option = document.createElement('option');
+              option.value = store.id;
+              option.textContent = store.name + ' · ' + store.marketplace + ' · Local · No data';
+              option.dataset.localWorkspace = '1';
+              option.disabled = true;
+              option.selected = true;
+              select.appendChild(option);
+              select.value = store.id;
+            }
+            renderEmptyStoreWorkspace(store);
+          }"""
+          if old.count('function openLocalStoreWorkspace') != 1:
+              raise SystemExit('unexpected target')
+          p.write_text(s[:a]+new+s[b:])
+          PY
+          python /tmp/patch.py
+          node --check ui-actions.js
+          npm run check
+      - name: Commit
+        shell: bash
+        run: |
+          rm -f .github/workflows/one-shot-local-workspace-scope.yml .github/workflows/local-workspace-scope-patch-v2.yml
+          git config user.name mrtanshiyue
+          git config user.email 54257052+mrtanshiyue@users.noreply.github.com
+          git add -A
+          git commit -m "Keep local Store workspace scope display truthful"
+          git push origin HEAD:fix/local-workspace-scope-truth
