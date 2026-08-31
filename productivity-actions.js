@@ -2,6 +2,21 @@
   'use strict';
 
   const SHELL_STATE_KEY = 'keywordos_v9_shell_ui';
+  const SUITE_TARGETS = Object.freeze({
+    products: { type: 'page', page: 'store-workspace' },
+    keywords: { type: 'page', page: 'global-keywords' },
+    listing: { type: 'listing' },
+    marketing: { type: 'page', page: 'overview' },
+    operations: { type: 'page', page: 'unified-report' },
+    analytics: { type: 'page', page: 'analytics' }
+  });
+  const SUITE_PAGE_GROUPS = Object.freeze({
+    products: new Set(['store-workspace']),
+    keywords: new Set(['global-keywords', 'global-conflicts', 'cerebro', 'tracker', 'keyword-library', 'negative-library', 'conflicts']),
+    marketing: new Set(['overview', 'suggestions', 'ad-manager', 'rules', 'schedules', 'actions', 'change-log']),
+    operations: new Set(['unified-report', 'import', 'sync-center', 'data-health', 'stores-settings', 'amazon-connections', 'users-permissions', 'settings']),
+    analytics: new Set(['portfolio-overview', 'cross-store', 'analytics'])
+  });
 
   function normalizeSearch(value) {
     return String(value || '').trim().toLowerCase().replace(/\s+/g, ' ');
@@ -13,8 +28,19 @@
     return entries.filter((entry) => normalizeSearch(`${entry.section || ''} ${entry.label || ''}`).includes(needle));
   }
 
+  function suiteAction(label) {
+    return SUITE_TARGETS[normalizeSearch(label)] || null;
+  }
+
+  function suiteForPage(page) {
+    for (const [suite, pages] of Object.entries(SUITE_PAGE_GROUPS)) {
+      if (pages.has(page)) return suite;
+    }
+    return '';
+  }
+
   if (typeof globalThis !== 'undefined') {
-    globalThis.KeywordOSProductivityTest = { normalizeSearch, filterEntries };
+    globalThis.KeywordOSProductivityTest = { normalizeSearch, filterEntries, suiteAction, suiteForPage };
   }
 
   if (typeof document === 'undefined') return;
@@ -76,6 +102,7 @@
       .keywordos-command-item span{color:var(--muted);font-size:12px}
       .keywordos-command-empty{padding:22px 12px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:6px}
       #keywordos-command-search{width:100%}
+      .suite-nav button:not(:disabled){cursor:pointer}
     `;
     document.head.appendChild(style);
   }
@@ -138,12 +165,60 @@
     if (root?.querySelector('#keywordos-command-palette')) root.innerHTML = '';
   }
 
+  function closeListingWorkspace() {
+    const root = $('#modal-root');
+    if (root?.querySelector('#keywordos-listing-workspace')) root.innerHTML = '';
+  }
+
   function navigateToPage(page) {
     const target = $$('#sidebar-nav [data-page]').find((button) => button.dataset.page === page);
     if (!target) return false;
     closeCommandPalette();
+    closeListingWorkspace();
     target.click();
     return true;
+  }
+
+  function syncSuiteState() {
+    const listingOpen = Boolean($('#keywordos-listing-workspace'));
+    const activePage = $('#sidebar-nav .nav-item.active')?.dataset.page || '';
+    const currentSuite = listingOpen ? 'listing' : suiteForPage(activePage);
+    $$('.suite-nav button').forEach((button) => {
+      const suite = normalizeSearch(button.textContent);
+      button.classList.toggle('active', suite === currentSuite);
+      if (suite === currentSuite) button.setAttribute('aria-current', 'page');
+      else button.removeAttribute('aria-current');
+    });
+  }
+
+  function openListingWorkspace() {
+    const root = $('#modal-root');
+    if (!root) return;
+    root.innerHTML = `<div class="modal-wrap" id="keywordos-listing-workspace"><div class="modal" role="dialog" aria-modal="true" aria-labelledby="keywordos-listing-title"><div class="modal-header"><div><h2 id="keywordos-listing-title">Listing Workspace</h2><small>Keyword-backed listing preparation without Amazon write access</small></div><button class="drawer-close" id="keywordos-listing-close" aria-label="Close Listing Workspace">×</button></div><div class="modal-body"><div class="notice-banner"><b>Listing editing and publishing are not connected in this runtime.</b> Existing KeywordOS keyword intelligence remains available for listing research and preparation without creating Amazon credentials or write actions.</div><div class="admin-actions top-gap"><button class="btn secondary" data-listing-page="global-keywords">Global Keyword Library</button><button class="btn secondary" data-listing-page="cerebro">Cerebro</button><button class="btn secondary" data-listing-page="keyword-library">Keyword Library</button></div></div></div></div>`;
+    $('#keywordos-listing-close')?.addEventListener('click', () => {
+      closeListingWorkspace();
+      syncSuiteState();
+    });
+    $$('[data-listing-page]', root).forEach((button) => {
+      button.addEventListener('click', () => navigateToPage(button.dataset.listingPage));
+    });
+    syncSuiteState();
+  }
+
+  function bindSuiteNavigation() {
+    $$('.suite-nav button').forEach((button) => {
+      const action = suiteAction(button.textContent);
+      if (!action) return;
+      enableButton(button, `Open ${button.textContent.trim()} workspace`, `Open ${button.textContent.trim()} workspace`);
+      if (button.dataset.suiteNavigationBound === '1') return;
+      button.dataset.suiteNavigationBound = '1';
+      button.addEventListener('click', () => {
+        if (action.type === 'page') navigateToPage(action.page);
+        if (action.type === 'listing') openListingWorkspace();
+        syncSuiteState();
+      });
+    });
+    syncSuiteState();
   }
 
   function renderCommandResults(list, entries) {
@@ -222,6 +297,7 @@
 
   function refreshShell() {
     bindSidebarCollapse();
+    bindSuiteNavigation();
     bindGlobalSearch();
     bindHelp();
     enforceNotificationTruth();
@@ -232,6 +308,8 @@
     refreshShell();
     const nav = $('#sidebar-nav');
     if (nav) new MutationObserver(refreshShell).observe(nav, { childList: true, subtree: true });
+    const modalRoot = $('#modal-root');
+    if (modalRoot) new MutationObserver(syncSuiteState).observe(modalRoot, { childList: true, subtree: true });
     window.addEventListener('resize', () => {
       if (window.matchMedia('(max-width:760px)').matches) setSidebarCollapsed(false, false);
     });
