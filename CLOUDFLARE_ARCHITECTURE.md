@@ -1,17 +1,18 @@
 # KeywordOS — Current Cloudflare Native Architecture
 
-This document describes the current production architecture only. Historical migration baselines and retired V5–V9 implementation notes are intentionally omitted.
+This document describes the current architecture only. Historical V5–V9 notes and pre-#20 acceptance state are not authoritative.
 
 ## Deployment unit
 
 KeywordOS uses one Cloudflare Worker deployment unit:
 
 - **Workers Static Assets** — browser application assets from `dist/`
-- **Worker API** — `/api/*` is handled by `src/worker.js`
-- **D1 (`DB`)** — deployment/source metadata and dormant authorization schema
-- **R2 (`DATA`)** — private public-test dataset objects
+- **Worker API** — `/api/*` handled by `src/worker.js`
+- **D1 (`DB`)** — deployment/source metadata, dormant membership schema, and planned versioned-dataset metadata
+- **R2 (`DATA`)** — seed/test datasets and the prepared immutable import object namespace
 - **Workers Builds** — GitHub `main` build/deploy trigger
 - **Workers Observability** — enabled
+- **Cloudflare Access** — Worker-level application already configured; further login/session acceptance frozen by owner
 
 Production Worker: `amazon-keyword-intelligence`
 
@@ -19,16 +20,16 @@ Production URL: `https://amazon-keyword-intelligence.tanshiyuesir.workers.dev/`
 
 ## Build contract
 
-`npm run check` validates:
+`npm run check` validates Worker/security/persistence modules, browser scripts and Node tests. Current server-side modules covered include:
 
 - `src/worker.js`
 - `src/access-auth.js`
 - `src/store-authorization.js`
-- `runtime-capabilities.js`
-- `ui-actions.js`
-- `suggestions-actions.js`
+- `src/dataset-persistence.js`
+- `src/import-validation.js`
+- `src/import-pipeline.js`
 
-`npm run build` recreates `dist/` and copies exactly these 12 browser assets:
+`npm run build` recreates `dist/` and copies only the browser application assets:
 
 ```text
 index.html
@@ -45,10 +46,9 @@ report-adapter.js
 unified-report-adapter.js
 ```
 
-The following are not part of public Static Assets:
+The following are not public Static Assets:
 
-- `seed-data.js`
-- `unified-seed-data.js`
+- seed source files
 - raw/sample CSV files
 - `src/`
 - `migrations/`
@@ -56,9 +56,9 @@ The following are not part of public Static Assets:
 - repository documentation
 - dependencies
 
-## Data delivery
+## Existing data delivery
 
-The browser loads Store 01 test data through Worker routes backed by R2:
+The browser continues to load Store 01 accepted test data through read-only Worker routes backed by R2:
 
 ```text
 GET /api/data/seed.js
@@ -68,53 +68,112 @@ GET /api/data/unified-seed.js
   -> R2 seed/unified-seed-data.js
 ```
 
-This keeps the current browser calculation model compatible without exposing the large seed source files as Static Assets.
+## Current Worker endpoint boundary
 
-## Read-only Worker endpoints
+`src/worker.js` remains GET/HEAD-only. Other methods receive `405 Method Not Allowed`.
 
-The Worker currently accepts only GET/HEAD. Other methods receive `405 Method Not Allowed`.
+Existing routes include:
 
-- `/api/health` — D1/R2/runtime capability state
-- `/api/data/manifest` — deployment metadata, data-source metadata and R2 presence
-- `/api/data/seed.js` — advertising test dataset
-- `/api/data/unified-seed.js` — Unified Transaction test dataset
-- `/api/private/session` — dormant fail-closed authenticated read-only canary
+- `/api/health`
+- `/api/data/manifest`
+- `/api/data/seed.js`
+- `/api/data/unified-seed.js`
+- `/api/private/session` — existing fail-closed Access canary; do not run login acceptance while frozen
+
+PRs #42–#45 intentionally did not modify `src/worker.js`.
 
 There is no anonymous POST/PUT/PATCH/DELETE business endpoint.
 
-## Authentication foundation
+## Authentication / Access state
 
-The repository contains dormant authentication/authorization primitives:
+The Production Worker already has a Worker-level Cloudflare Access application and owner-only allow policy. The Worker also has pinned Access team-domain and audience runtime values.
 
-- Cloudflare Access JWT verification helpers
+Repository foundations include:
+
+- remote-JWKS Access JWT verification
+- canonical-sub identity handling
 - read-only `/api/private/session`
-- D1 `access_users` / `store_memberships` schema
-- per-store read authorization helpers
+- D1 `access_users` / `store_memberships`
+- per-Store authorization helpers
 
-These primitives are intentionally **not activated in Production** while #17 is deferred. No Cloudflare Access Production configuration, membership bootstrap or mutable authenticated business API should be introduced until #20 is formally accepted and #17 is explicitly resumed.
+The owner has explicitly frozen further login/authentication verification until the rest of the project is complete and the owner asks to resume it.
+
+While frozen, do not:
+
+- run session acceptance
+- capture canonical Access `sub`
+- bootstrap membership rows
+- run owner/cross-store/role authorization acceptance
+- replace the existing Access/JWT foundation
+
+Preserve the configuration as-is.
+
+## Prepared non-auth persistence internals
+
+### Repository migration 0003
+
+`migrations/0003_dataset_versions.sql` defines:
+
+- `dataset_versions` — immutable version metadata
+- `dataset_current` — per-Store/per-kind current pointer
+- `deployment_meta.schema_version = 3`
+
+The Cloudflare connector currently returns tool-level `Resource not found`, so migration `0003` has not yet been applied remotely in this continuation.
+
+### Import path
+
+The internal server path is prepared as:
+
+```text
+raw CSV bytes
+-> validateImportBody()
+-> required report-shape validation
+-> SHA-256 over exact bytes
+-> persistAcceptedDataset()
+-> R2 conditional create (If-None-Match: *)
+-> D1 batch(version metadata + current pointer)
+```
+
+Invalid imports perform no R2 or D1 writes.
+
+R2 and D1 cannot form one distributed transaction. The safe ordering intentionally writes the immutable R2 object first and only then promotes the D1 pointer transactionally. A D1 failure can leave an unreachable immutable R2 orphan but cannot point current to a failed import.
+
+### Restore path
+
+The internal restore primitive performs:
+
+```text
+D1 current pointer
+-> version metadata
+-> exact R2 object
+-> byte-size check
+-> dataset/store/kind/SHA metadata check
+```
+
+Missing or inconsistent objects fail closed.
+
+These internals are not wired into the Worker runtime while authentication is frozen.
 
 ## Amazon boundary
 
-`AMAZON_API_MODE=disabled` is authoritative.
+`AMAZON_API_MODE=disabled` remains authoritative.
 
-Current Production does not:
+Production must not:
 
 - start Amazon OAuth
-- store refresh tokens or client secrets
+- store Amazon refresh tokens/client secrets
+- call Amazon Ads API or SP-API
 - bind live advertisers
-- run live sync jobs
-- mutate Amazon Ads state
+- run live mutation/sync jobs
+- execute local staged decisions against Amazon
 
-The UI may stage browser-local decisions, but staged/approved does not mean executed remotely.
+## Current release state
 
-## Current release gate
+#20 is CLOSED / COMPLETED.
 
-Product issue #20 remains open until both are true:
+#17 remains OPEN. Its non-auth persistence internals may continue independently, but login/authentication acceptance remains frozen until explicitly resumed by the owner.
 
-1. the latest authoritative `main` is verified as the exact Cloudflare Workers Build/deployment source and the build succeeds;
-2. cumulative Production browser acceptance passes across desktop, narrow/mobile, data persistence, major product workflows, truth states and keyboard interaction.
-
-Only after #20 is formally accepted should #17 resume.
+The next safe Cloudflare task, once connector execution is available, is applying and verifying D1 migration `0003` only. Do not insert membership rows during that step.
 
 ## Commands
 
