@@ -1,0 +1,39 @@
+name: Production cumulative acceptance
+
+on:
+  push:
+    branches:
+      - acceptance/issue-20-production-724e825
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  production-browser-acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Use preinstalled Chrome and install Playwright package
+        run: |
+          echo "CHROME_BIN=$(command -v google-chrome)" >> "$GITHUB_ENV"
+          google-chrome --version
+          npm install --no-save playwright@1.55.0
+
+      - name: Run exact Production cumulative acceptance
+        run: node .github/acceptance/run-fast.mjs
+
+      - name: Upload acceptance evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: keywordos-production-cumulative-acceptance
+          path: acceptance-output/
+          if-no-files-found: error
+          retention-days: 30
