@@ -37,7 +37,7 @@
     return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
   }
 
-  const ADS_PERSISTED_NUMERIC_FIELDS = ['impressions', 'clicks', 'cost', 'orders', 'sales'];
+  const ADS_PERSISTED_NUMERIC_FIELDS = ['impressions', 'clicks', 'cost', 'orders', 'sales', 'bid'];
   const FINANCE_PERSISTED_NUMERIC_FIELDS = [
     'quantity',
     'productSales',
