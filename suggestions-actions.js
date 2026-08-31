@@ -23,7 +23,7 @@
     );
     const button = $('#apply-suggestion-changes');
     if (!button) return;
-    const nextText = `Apply ${checked.length} Changes`;
+    const nextText = `Stage ${checked.length} Selected`;
     const nextDisabled = checked.length === 0;
     if (button.textContent !== nextText) button.textContent = nextText;
     if (button.disabled !== nextDisabled) button.disabled = nextDisabled;
