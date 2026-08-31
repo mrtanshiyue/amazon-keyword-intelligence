@@ -17,6 +17,19 @@ jobs:
           ref: feature/p1-keyword-workspace-functional
           fetch-depth: 0
 
+      - name: Normalize compressed function boundary
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('scripts/patch-keyword-workspace-functional.py')
+          text = path.read_text(encoding='utf-8')
+          old = r'r"function renderChangeLog\\(\\)\\{.*?\\n\\}\\n\\nfunction researchTerms"'
+          new = r'r"function renderChangeLog\\(\\)\\{.*?\\}\\n\\nfunction researchTerms"'
+          if old not in text:
+              raise SystemExit('Change Log regex marker not found')
+          path.write_text(text.replace(old, new, 1), encoding='utf-8')
+          PY
+
       - name: Apply Keyword workspace patch
         run: python scripts/patch-keyword-workspace-functional.py
 
