@@ -14,6 +14,7 @@ const ADS_REQUIRED_HEADERS = {
 };
 
 const ADS_NUMERIC_FIELDS = ['impressions', 'clicks', 'cost', 'orders', 'sales'];
+const UNIFIED_MONTH = { Jan: 1, Feb: 2, Mar: 3, Apr: 4, May: 5, Jun: 6, Jul: 7, Aug: 8, Sep: 9, Oct: 10, Nov: 11, Dec: 12 };
 
 const UNIFIED_REQUIRED_HEADERS = [
   'date/time',
@@ -169,6 +170,18 @@ function validAdsDate(value) {
   return !Number.isNaN(Date.parse(raw));
 }
 
+function validUnifiedDate(value) {
+  const raw = String(value ?? '').trim();
+  if (!raw) return false;
+  let match = raw.match(/^([A-Za-z]{3})\s+(\d{1,2}),\s+(\d{4})(?:\s|$)/);
+  if (match) {
+    const month = UNIFIED_MONTH[match[1]];
+    return Boolean(month) && validCalendarDate(Number(match[3]), month, Number(match[2]));
+  }
+  match = raw.match(/^(\d{4})[-\/]([0-9]{1,2})[-\/]([0-9]{1,2})(?:\s|$)/);
+  return Boolean(match) && validCalendarDate(Number(match[1]), Number(match[2]), Number(match[3]));
+}
+
 function validateAdsValues(rows, headers) {
   const numericIndexes = Object.fromEntries(
     ADS_NUMERIC_FIELDS.map((field) => [field, headerIndex(headers, ADS_REQUIRED_HEADERS[field])])
@@ -259,7 +272,7 @@ function validateUnifiedValues(rows, headerIndex, headers) {
     }
 
     const dateValue = row[dateIndex];
-    if (!String(dateValue ?? '').trim() || Number.isNaN(Date.parse(String(dateValue)))) {
+    if (!validUnifiedDate(dateValue)) {
       throw new ImportValidationError('invalid_unified_date_value', {
         rowNumber: index + 1,
         field: 'date/time',
