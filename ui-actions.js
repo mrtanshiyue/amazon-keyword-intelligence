@@ -689,43 +689,31 @@
   function markRuleTruth() {
     if (pageTitle() !== 'Rules & Automation') return;
 
-    const run = $('#run-rules');
-    if (run?.textContent.includes('Run Executable Rules')) return;
-    if (run) {
-      run.textContent = '▶ Run Default Thresholds';
-      run.title = 'Runs built-in harvest and negative thresholds. Saved custom rule definitions are not evaluated yet.';
-    }
-
-    const create = $('#create-rule');
-    if (create) {
-      create.textContent = '＋ Save Rule Definition';
-      create.title = 'Stores a local rule definition for review; it does not create a live Amazon automation.';
-    }
-
     const head = $('.rules-head');
     if (head && !$('#rule-engine-truth')) {
       const notice = document.createElement('div');
       notice.id = 'rule-engine-truth';
       notice.className = 'notice-banner';
       notice.style.margin = '0 0 10px';
-      notice.innerHTML = '<b>Rule engine status:</b> Run Default Thresholds evaluates the built-in Harvest and Negative thresholds. Saved custom rule definitions are configuration-only in the current test runtime.';
+      notice.innerHTML = '<b>Rule engine status:</b> Structured Keyword Harvest and Negative Targeting rules execute locally into Action Center. Bid/Budget and legacy free-text rules remain Draft. Nothing is executed on Amazon.';
       head.insertAdjacentElement('afterend', notice);
     }
 
     const activeTab = $('.section-tab.active')?.textContent.trim();
     if (activeTab === 'Apply Rules') {
       $$('.rule-page .toolbar button').forEach((button) => {
-        disableButton(button, 'Campaign-level automation controls are not active in the current test runtime.');
+        disableButton(button, 'Campaign-level bid automation is not active in the current local runtime.');
       });
       $$('.rule-page .table-scroll input[type="checkbox"]').forEach((input) => {
         input.disabled = true;
-        input.title = 'Campaign rule assignment is not active in the current test runtime.';
+        input.setAttribute('aria-disabled', 'true');
+        input.title = 'Campaign rule assignment is not active in the current local runtime.';
       });
       $$('.rule-page .table-scroll .toggle').forEach((toggle) => {
         toggle.setAttribute('aria-disabled', 'true');
         toggle.style.pointerEvents = 'none';
         toggle.style.opacity = '.45';
-        toggle.title = 'Bid automation is not active in the current test runtime.';
+        toggle.title = 'Bid automation is not active in the current local runtime.';
       });
     }
   }
@@ -782,8 +770,8 @@
 
     if (button.dataset.page) localOpenStoreId = '';
 
-    if ((button.dataset.view || button.dataset.segmentView) && $('#content [data-bulk="clear"]')) {
-      $('#content [data-bulk="clear"]')?.click();
+    if (button.dataset.view || button.dataset.segmentView) {
+      setTimeout(() => $('#content [data-bulk="clear"]')?.click(), 0);
     }
 
     if (button.dataset.bulk === 'inspect') {
@@ -873,11 +861,19 @@
   });
 
   const observer = new MutationObserver(() => markKnownInactiveControls());
+  const overlayObserver = new MutationObserver(() => {
+    enhanceFinance();
+    prepareOverlayAccessibility();
+  });
 
   function start() {
     markStaticShellTruth();
     markKnownInactiveControls();
     observer.observe($('#content') || document.body, { childList: true, subtree: true });
+    const modalRoot = $('#modal-root');
+    const drawerRoot = $('#drawer-root');
+    if (modalRoot) overlayObserver.observe(modalRoot, { childList: true, subtree: true });
+    if (drawerRoot) overlayObserver.observe(drawerRoot, { childList: true, subtree: true });
   }
 
   if (document.readyState === 'loading') {
