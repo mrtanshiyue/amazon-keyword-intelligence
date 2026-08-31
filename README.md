@@ -14,7 +14,9 @@ KeywordOS 是一个面向 Amazon 广告、关键词与经营分析的多 Store �
 - Authentication/login acceptance: **FROZEN BY OWNER until explicitly resumed**
 - Amazon Ads API / OAuth / SP-API: **disabled / HARD-OFF**
 - Amazon remote mutation: **disabled**
-- Authoritative main before this final docs synchronization: `9d8f5543fc60b6f2e8dac841bc888425c0cedc03`
+- GitHub-only Cloudflare read-only operations: **ACTIVE via Issue #63**
+
+At the start of future work, read the repository's current `main`; do not rely on an exact SHA embedded in documentation. The last verified product baseline before the current docs-only synchronization series is `09d3ad9353395f7a4031a2518bafebeb84a98e16` (PR #65).
 
 The authoritative continuation instructions are in [`CURRENT_HANDOFF.md`](./CURRENT_HANDOFF.md).
 
@@ -60,15 +62,45 @@ The owner has explicitly frozen further login/authentication verification. Until
 
 Existing auth code/config should be preserved, not rebuilt.
 
+## GitHub-only Cloudflare operations
+
+Basic Cloudflare observability no longer depends on a ChatGPT Cloudflare connector.
+
+Issue #63 accepts the exact owner command:
+
+```text
+/cloudflare status
+```
+
+The permanent GitHub Actions workflow verifies, read-only:
+
+- configured Cloudflare repository secrets
+- API token validity
+- Workers Scripts access
+- D1 database access
+- R2 bucket access
+
+It emits PASS/FAIL only. It must not be silently expanded into Access identity/session acceptance, Access app/policy writes, deployment mutation, D1/R2 mutation, or Amazon API work.
+
 ## Product truth
 
 - Global pages are analytics-only and cannot write to Amazon.
-- Store 01 has the accepted loaded/test dataset.
+- Store 01 has the accepted loaded/test dataset: Ads Search Term `8,753` rows; Unified Transaction `3,643` rows.
 - Store 02 / Store 03 remain `No data`.
 - Browser-local Store workspace metadata may be created/edited without implying an Amazon connection.
 - Local `Staged` / `Approved` states never mean executed on Amazon.
 
 Completed product workflows include Dashboard/Analytics, Ad Manager, Suggestions, supported local Rules, Action Center/Change Log, Cerebro, Keyword Tracker, Keyword/Negative libraries, Conflict Guard, Protected Keywords, Unified Transaction analytics, browser-local Ads/Unified imports, Local Data Operations, Store management, mobile hardening, and keyboard accessibility.
+
+Recent product-integrity hardening includes:
+
+- #59 Ads import value validation
+- #60 Unified Transaction value validation
+- #61 loaded-data recency awareness
+- #62 Bid Suggestions source truth
+- #65 backup restore row validation before IndexedDB writes
+
+Backup restore now rejects malformed normalized Ads/Unified rows, impossible dates, stringified numeric values, and negative Ads core metrics while preserving legitimate signed finance values.
 
 ## Non-auth server persistence foundation
 
@@ -83,7 +115,7 @@ The code-side foundation is ready and intentionally unexposed.
 - composite dataset/Store/kind foreign-key integrity
 - schema metadata version `3`
 
-The exact-main migration has now been applied to Production D1 and verified remotely.
+The migration is applied to Production D1 and verified remotely.
 
 ### Import validation
 
@@ -125,20 +157,13 @@ validateImportBody()
 
 Invalid imports perform zero R2/D1 writes; R2 integrity mismatch cannot promote the D1 current pointer.
 
-A final narrow audit after PR #53 found no additional clear non-auth P1/P2 persistence defect. Further speculative validation/abstraction is intentionally omitted.
+Do not add speculative persistence validation or abstractions without a concrete defect.
 
 ## Remote D1 migration verification
 
-On 2026-08-31, exact-main `migrations/0003_dataset_versions.sql` was applied to Production D1 `amazon-keyword-intelligence-db` (`e38981da-fbeb-412e-ac8c-936bf16adb36`).
+On 2026-08-31, `migrations/0003_dataset_versions.sql` was applied to Production D1 `amazon-keyword-intelligence-db` (`e38981da-fbeb-412e-ac8c-936bf16adb36`).
 
-Preflight was read-only and confirmed:
-
-- `dataset_versions` / `dataset_current` were not yet present
-- `deployment_meta.schema_version = 1`
-- `access_users = 0`
-- `store_memberships = 0`
-
-Postflight confirmed:
+Verified state:
 
 - `dataset_versions` exists and `count = 0`
 - `dataset_current` exists and `count = 0`
