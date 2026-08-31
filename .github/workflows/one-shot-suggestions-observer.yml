@@ -1,0 +1,61 @@
+name: One-shot Suggestions observer regression
+
+on:
+  push:
+    branches:
+      - fix/suggestions-observer-loop
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Syntax gate
+        run: npm run check
+      - name: Install Chromium test runtime
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Verify Suggestions observer remains quiescent and interactive
+        run: |
+          node --input-type=module <<'EOF'
+          import { chromium } from 'playwright';
+          const browser = await chromium.launch({headless:true});
+          const page = await browser.newPage();
+          page.setDefaultTimeout(3000);
+          await page.setContent(`
+            <h1 id="page-title">Suggestions</h1>
+            <section id="content">
+              <div class="h10-toolbar"><div class="searchbox"><input></div><button>Portfolio ⌄</button><button>Campaign ⌄</button><button>Status ⌄</button><button>⚙ Columns</button></div>
+              <table class="h10-table"><thead><tr><th><input type="checkbox"></th></tr></thead><tbody><tr><td><input data-suggest-select type="checkbox"></td><td><button data-suggest-action="apply">Apply</button></td></tr></tbody></table>
+              <button id="apply-suggestion-changes">Apply 0 Changes</button>
+              <button id="suggestion-settings">Settings</button>
+            </section>
+          `);
+          await page.addScriptTag({path:'suggestions-actions.js'});
+          await page.waitForTimeout(150);
+          let state = await page.evaluate(() => ({
+            text: document.querySelector('#apply-suggestion-changes').textContent,
+            disabled: document.querySelector('#apply-suggestion-changes').disabled,
+            alive: true
+          }));
+          if (state.text !== 'Apply 0 Changes' || !state.disabled) throw new Error(`Initial state invalid: ${JSON.stringify(state)}`);
+          await page.evaluate(() => document.querySelector('#content').append(document.createElement('span')));
+          await page.waitForTimeout(150);
+          state = await page.evaluate(() => ({text: document.querySelector('#apply-suggestion-changes').textContent, disabled: document.querySelector('#apply-suggestion-changes').disabled}));
+          if (state.text !== 'Apply 0 Changes' || !state.disabled) throw new Error(`Post-mutation state invalid: ${JSON.stringify(state)}`);
+          await page.locator('input[data-suggest-select]').check();
+          await page.waitForTimeout(100);
+          state = await page.evaluate(() => ({text: document.querySelector('#apply-suggestion-changes').textContent, disabled: document.querySelector('#apply-suggestion-changes').disabled}));
+          if (state.text !== 'Apply 1 Changes' || state.disabled) throw new Error(`Selection state invalid: ${JSON.stringify(state)}`);
+          await browser.close();
+          console.log('Suggestions observer regression PASS');
+          EOF
