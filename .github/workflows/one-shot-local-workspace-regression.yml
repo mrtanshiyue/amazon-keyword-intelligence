@@ -1,0 +1,56 @@
+name: One-shot local workspace scope regression
+on:
+  push:
+    branches: [fix/local-workspace-scope-truth]
+permissions:
+  contents: read
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Use preinstalled Chrome
+        run: |
+          echo "CHROME_BIN=$(command -v google-chrome)" >> "$GITHUB_ENV"
+          npm install --no-save playwright@1.55.0
+      - name: Verify local workspace scope truth
+        run: |
+          node --input-type=module <<'EOF'
+          import fs from 'node:fs';
+          import { chromium } from 'playwright';
+          const PROD='https://amazon-keyword-intelligence.tanshiyuesir.workers.dev/';
+          const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME_BIN});
+          const page=await browser.newPage({viewport:{width:1440,height:1000}});
+          page.setDefaultTimeout(7000);
+          let intercepted=false;
+          await page.route(`${PROD}ui-actions.js`,async route=>{intercepted=true;await route.fulfill({status:200,contentType:'text/javascript',body:fs.readFileSync('ui-actions.js','utf8')});});
+          await page.goto(`${PROD}?local-scope=${Date.now()}`,{waitUntil:'domcontentloaded',timeout:30000});
+          await page.waitForFunction(()=>document.querySelectorAll('#sidebar-nav [data-page]').length>=26&&(document.querySelector('#content')?.children.length||0)>0);
+          if(!intercepted)throw new Error('Feature ui-actions.js was not used');
+          const en=page.locator('[data-lang="en"]'); if(await en.count())await en.click();
+          await page.locator('#sidebar-nav [data-page="stores-settings"]').click();
+          await page.waitForFunction(()=>Boolean(document.querySelector('#local-store-workspace-admin')));
+          await page.locator('.admin-store-card').filter({hasText:'STORE-US-02'}).locator('[data-local-store-open]').click();
+          await page.waitForFunction(()=>document.querySelector('#page-title')?.textContent?.trim()==='Store Workspace');
+          if(await page.locator('#profile-select').inputValue()!=='store-b')throw new Error('Store 02 Data scope did not synchronize');
+          await page.locator('#sidebar-nav [data-page="stores-settings"]').click();
+          await page.waitForFunction(()=>Boolean(document.querySelector('#local-store-workspace-admin')));
+          await page.locator('#local-add-store').click();
+          await page.locator('#local-store-name').fill('REGRESSION-US-04');
+          await page.locator('#local-store-save').click();
+          await page.locator('.admin-store-card').filter({hasText:'REGRESSION-US-04'}).locator('[data-local-store-open]').click();
+          await page.waitForFunction(()=>document.querySelector('#content')?.textContent?.includes('REGRESSION-US-04'));
+          const custom=await page.locator('#profile-select').evaluate(s=>({value:s.value,text:s.selectedOptions[0]?.textContent||'',disabled:s.selectedOptions[0]?.disabled||false}));
+          if(!custom.value.startsWith('local-store-')||!custom.text.includes('REGRESSION-US-04')||!custom.text.includes('Local')||!custom.text.includes('No data')||!custom.disabled)throw new Error('Custom Data scope mismatch: '+JSON.stringify(custom));
+          const body=(await page.locator('#content').textContent()||'').toLowerCase();
+          if(!body.includes('no business data')||!body.includes('amazon api')||!body.includes('disabled'))throw new Error('Custom local boundary truth missing');
+          await page.locator('#sidebar-nav [data-page="portfolio-overview"]').click();
+          await page.waitForFunction(()=>document.querySelector('#page-title')?.textContent?.trim()==='Portfolio Overview');
+          if(await page.locator('#profile-select').inputValue()!=='store-b')throw new Error('Temporary custom scope polluted core Store state');
+          await browser.close();
+          console.log('Local workspace scope regression PASS');
+          EOF
