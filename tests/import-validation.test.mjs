@@ -24,6 +24,21 @@ const ADS_HEADER = [
   'Sales',
 ].join(',');
 
+const ADS_ROW = [
+  'Account A',
+  'Campaign A',
+  'Group A',
+  'readers',
+  '2026-06-01',
+  'readers',
+  'EXACT',
+  '100',
+  '10',
+  '5',
+  '2',
+  '20',
+];
+
 const UNIFIED_HEADER = [
   'Date/Time',
   'Settlement Id',
@@ -85,6 +100,43 @@ test('rejects Ads CSV missing required report fields', () => {
   assert.throws(
     () => validateImportText('amazon_ads', 'Date,Campaign Name\n2026-06-01,Campaign A\n'),
     (error) => error instanceof ImportValidationError && error.code === 'missing_required_fields'
+  );
+});
+
+test('rejects malformed required Ads numeric values', () => {
+  const row = [...ADS_ROW];
+  row[9] = 'not-a-number';
+  assert.throws(
+    () => validateImportText('amazon_ads', `${ADS_HEADER}\n${row.join(',')}\n`),
+    (error) =>
+      error instanceof ImportValidationError &&
+      error.code === 'invalid_numeric_value' &&
+      error.details?.field === 'cost' &&
+      error.details?.rowNumber === 2
+  );
+});
+
+test('rejects negative required Ads numeric values', () => {
+  const row = [...ADS_ROW];
+  row[8] = '-1';
+  assert.throws(
+    () => validateImportText('amazon_ads', `${ADS_HEADER}\n${row.join(',')}\n`),
+    (error) =>
+      error instanceof ImportValidationError &&
+      error.code === 'invalid_numeric_value' &&
+      error.details?.field === 'clicks'
+  );
+});
+
+test('rejects invalid Ads dates', () => {
+  const row = [...ADS_ROW];
+  row[4] = '2026-02-30';
+  assert.throws(
+    () => validateImportText('amazon_ads', `${ADS_HEADER}\n${row.join(',')}\n`),
+    (error) =>
+      error instanceof ImportValidationError &&
+      error.code === 'invalid_date_value' &&
+      error.details?.rowNumber === 2
   );
 });
 
