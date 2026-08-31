@@ -172,3 +172,31 @@ export async function readCurrentDataset(env, storeId, kind) {
     WHERE c.store_id = ? AND c.kind = ?
   `).bind(descriptor.storeId, descriptor.kind).first();
 }
+
+export async function readCurrentDatasetObject(env, storeId, kind) {
+  const metadata = await readCurrentDataset(env, storeId, kind);
+  if (!metadata) return null;
+  if (!env?.DATA?.get) {
+    throw new DatasetPersistenceError('persistence_not_configured', 503);
+  }
+
+  const object = await env.DATA.get(metadata.r2_key);
+  if (!object) {
+    throw new DatasetPersistenceError('dataset_object_missing', 503);
+  }
+  if (Number(object.size) !== Number(metadata.byte_size)) {
+    throw new DatasetPersistenceError('dataset_object_size_mismatch', 503);
+  }
+
+  const custom = object.customMetadata || {};
+  if (
+    custom.datasetId !== metadata.dataset_id ||
+    custom.storeId !== metadata.store_id ||
+    custom.kind !== metadata.kind ||
+    custom.contentSha256 !== metadata.content_sha256
+  ) {
+    throw new DatasetPersistenceError('dataset_object_metadata_mismatch', 503);
+  }
+
+  return { metadata, object };
+}

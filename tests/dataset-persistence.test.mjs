@@ -5,6 +5,7 @@ import {
   DatasetPersistenceError,
   buildDatasetObjectKey,
   persistAcceptedDataset,
+  readCurrentDatasetObject,
   validateDatasetDescriptor,
 } from '../src/dataset-persistence.js';
 
@@ -38,6 +39,61 @@ function fakeEnv() {
         return statements.map(() => ({ success: true }));
       },
     },
+  };
+}
+
+function restoreEnv(metadata, object) {
+  const gets = [];
+  return {
+    gets,
+    DATA: {
+      async get(key) {
+        gets.push(key);
+        return object;
+      },
+    },
+    DB: {
+      prepare() {
+        return {
+          bind() {
+            return {
+              async first() {
+                return metadata;
+              },
+            };
+          },
+        };
+      },
+    },
+  };
+}
+
+function currentMetadata() {
+  return {
+    dataset_id: DATASET_ID,
+    store_id: 'store-a',
+    kind: 'amazon_ads',
+    source_file: 'ads.csv',
+    row_count: 10,
+    byte_size: 8,
+    content_sha256: SHA256,
+    r2_key: `imports/store-a/amazon_ads/${DATASET_ID}.csv`,
+    imported_at: '2026-08-31 00:00:00',
+    current_since: '2026-08-31 00:00:00',
+  };
+}
+
+function currentObject(overrides = {}) {
+  return {
+    size: 8,
+    body: 'csv-body',
+    customMetadata: {
+      datasetId: DATASET_ID,
+      storeId: 'store-a',
+      kind: 'amazon_ads',
+      contentSha256: SHA256,
+    },
+    ...overrides,
   };
 }
 
@@ -109,4 +165,44 @@ test('refuses to overwrite an existing immutable R2 key', async () => {
     (error) => error instanceof DatasetPersistenceError && error.code === 'dataset_object_already_exists'
   );
   assert.equal(env.batches.length, 1);
+});
+
+test('restores the current R2 object only when metadata matches', async () => {
+  const metadata = currentMetadata();
+  const object = currentObject();
+  const env = restoreEnv(metadata, object);
+  const result = await readCurrentDatasetObject(env, 'store-a', 'amazon_ads');
+
+  assert.equal(result.metadata.dataset_id, DATASET_ID);
+  assert.equal(result.object, object);
+  assert.deepEqual(env.gets, [metadata.r2_key]);
+});
+
+test('returns null when no current dataset exists without reading R2', async () => {
+  const env = restoreEnv(null, null);
+  assert.equal(await readCurrentDatasetObject(env, 'store-a', 'amazon_ads'), null);
+  assert.equal(env.gets.length, 0);
+});
+
+test('fails closed when the current object is missing or inconsistent', async () => {
+  const metadata = currentMetadata();
+
+  await assert.rejects(
+    readCurrentDatasetObject(restoreEnv(metadata, null), 'store-a', 'amazon_ads'),
+    (error) => error instanceof DatasetPersistenceError && error.code === 'dataset_object_missing'
+  );
+
+  await assert.rejects(
+    readCurrentDatasetObject(restoreEnv(metadata, currentObject({ size: 9 })), 'store-a', 'amazon_ads'),
+    (error) => error instanceof DatasetPersistenceError && error.code === 'dataset_object_size_mismatch'
+  );
+
+  await assert.rejects(
+    readCurrentDatasetObject(
+      restoreEnv(metadata, currentObject({ customMetadata: { ...currentObject().customMetadata, datasetId: 'wrong' } })),
+      'store-a',
+      'amazon_ads'
+    ),
+    (error) => error instanceof DatasetPersistenceError && error.code === 'dataset_object_metadata_mismatch'
+  );
 });
