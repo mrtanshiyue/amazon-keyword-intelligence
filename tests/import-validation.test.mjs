@@ -8,6 +8,40 @@ import {
   validateImportText,
 } from '../src/import-validation.js';
 
+const ADS_HEADER = [
+  'Advertiser Account Name',
+  'Campaign Name',
+  'Ad Group Name',
+  'Customer Search Term',
+  'Date',
+  'Targeting',
+  'Match Type',
+  'Impressions',
+  'Clicks',
+  'Spend',
+  'Orders',
+  'Sales',
+].join(',');
+
+const UNIFIED_HEADER = [
+  'Date/Time',
+  'Settlement Id',
+  'Type',
+  'Order Id',
+  'SKU',
+  'Description',
+  'Quantity',
+  'Marketplace',
+  'Product Sales',
+  'Promotional Rebates',
+  'Marketplace Withheld Tax',
+  'Selling Fees',
+  'FBA Fees',
+  'Other Transaction Fees',
+  'Other',
+  'Total',
+].join(',');
+
 test('validates the authoritative Amazon Ads sample', async () => {
   const body = await readFile(new URL('../sample-data/202606.csv', import.meta.url));
   const result = await validateImportBody('amazon_ads', body);
@@ -46,6 +80,30 @@ test('rejects incomplete Unified CSV that only resembles a transaction report', 
       error.code === 'missing_required_fields' &&
       error.details?.missingRequiredFields?.includes('product sales') &&
       error.details?.missingRequiredFields?.includes('selling fees')
+  );
+});
+
+test('rejects nonblank Ads rows whose field count differs from the header', () => {
+  const shortRow = 'Account A,Campaign A,Group A,readers,2026-06-01,readers,EXACT,100,10,5,2';
+  assert.throws(
+    () => validateImportText('amazon_ads', `${ADS_HEADER}\n${shortRow}\n`),
+    (error) =>
+      error instanceof ImportValidationError &&
+      error.code === 'inconsistent_row_width' &&
+      error.details?.expectedFieldCount === 12 &&
+      error.details?.actualFieldCount === 11
+  );
+});
+
+test('rejects nonblank Unified rows whose field count differs from the header', () => {
+  const shortRow = '2026-06-01,1,Order,ORDER-1,SKU-1,Sale,1,Amazon.com,10,0,0,-1,-2,0,0';
+  assert.throws(
+    () => validateImportText('unified_transaction', `${UNIFIED_HEADER}\n${shortRow}\n`),
+    (error) =>
+      error instanceof ImportValidationError &&
+      error.code === 'inconsistent_row_width' &&
+      error.details?.expectedFieldCount === 16 &&
+      error.details?.actualFieldCount === 15
   );
 });
 
