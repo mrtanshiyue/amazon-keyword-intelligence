@@ -1,0 +1,57 @@
+name: One-shot bid source truth patch
+
+on:
+  push:
+    branches:
+      - fix/bid-suggestion-source-truth
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/bid-suggestion-source-truth
+      - name: Patch bid suggestion source truth
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const path = 'app.js';
+          let source = fs.readFileSync(path, 'utf8');
+
+          const replacements = [
+            ['targets.filter(x=>x.clicks>=8&&x.spend>=4)', 'targets.filter(x=>Number.isFinite(x.bid)&&x.bid>0&&x.clicks>=8&&x.spend>=4)'],
+            ['targets.filter(x=>x.clicks>=5)', 'targets.filter(x=>Number.isFinite(x.bid)&&x.bid>0&&x.clicks>=5)'],
+          ];
+
+          for (const [before, after] of replacements) {
+            const matches = source.split(before).length - 1;
+            if (matches !== 1) throw new Error(`Expected one match for ${before}, found ${matches}`);
+            source = source.replace(before, after);
+          }
+
+          for (const [before, expected] of [['x.bid||.65', 2], ['x.bid||.6', 2]]) {
+            const matches = source.split(before).length - 1;
+            if (matches !== expected) throw new Error(`Expected ${expected} matches for ${before}, found ${matches}`);
+            source = source.split(before).join('x.bid');
+          }
+
+          if (source.includes('x.bid||.65') || source.includes('x.bid||.6')) {
+            throw new Error('Synthetic bid fallback remains');
+          }
+          fs.writeFileSync(path, source);
+          NODE
+          node --check app.js
+      - name: Commit patched app
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app.js
+          git diff --cached --quiet && exit 0
+          git commit -m "Fix bid suggestion source truth"
+          git push origin HEAD:fix/bid-suggestion-source-truth
