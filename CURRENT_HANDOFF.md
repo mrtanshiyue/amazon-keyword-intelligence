@@ -3,150 +3,130 @@
 **Updated:** 2026-08-31 (Asia/Singapore)  
 **Repository:** `mrtanshiyue/amazon-keyword-intelligence`
 
-This is the single authoritative continuation checkpoint. Retired V5/V6/V7/V8/V9 notes and older #20 handoffs are historical only.
+This is the single authoritative continuation checkpoint for Amazon Keyword Intelligence / KeywordOS.
 
-## 1. Next conversation: execute directly
+## 1. Start every future conversation this way
 
-Continue:
+Do one short read-only drift check first:
 
-**Amazon Keyword Intelligence — #17 auth-frozen continuation**
+1. Read the repository's current `main` SHA.
+2. Treat current `main` as authoritative.
+3. Read this file and Issue #17 only for continuation rules/state; do not restart analysis from old V5/V6/V7/V8/V9 handoffs.
+4. If current `main` is newer than the verified product baseline below only because of documentation synchronization, do not mistake that docs-only SHA change for new product work.
 
-The non-auth server persistence foundation is now **GITHUB + D1 READY**. There is no remaining non-auth persistence implementation or remote-migration gate to invent work for.
+Verified product baseline immediately before this handoff synchronization:
 
-Do not restart product analysis.  
-Do not redo #20.  
-Do not redesign the UI.  
-Do not recreate Worker / D1 / R2.  
-Do not enable Amazon Ads API/OAuth/SP-API.  
-Do not expose anonymous mutable Worker routes.  
-Do not add speculative persistence features merely to keep development moving.
+`09d3ad9353395f7a4031a2518bafebeb84a98e16`
 
-### Authentication/login verification remains frozen
+That baseline passed:
 
-The owner explicitly instructed that login/authentication verification must remain frozen until the rest of the project is complete and the owner explicitly asks to resume it.
+- GitHub `check-and-build`
+- Cloudflare Production Workers Build
+  - Build ID: `0e3f7490-84bb-44eb-bd6f-eecfdb7ad961`
+  - Version ID: `1e64a5b2-419e-4068-bb2e-3e3b521f7533`
+- GitHub-only `/cloudflare status` acceptance on Issue #63
 
-Until that explicit instruction arrives, do **not**:
+Do not pin future work to the baseline SHA when current `main` is newer. Always read current `main` first.
 
-- run `/api/private/session` acceptance
-- request or capture a canonical Cloudflare Access `sub`
+## 2. Permanent owner boundaries
+
+### Authentication / Cloudflare Access acceptance is FROZEN
+
+Until the owner explicitly resumes authentication/login verification, do **not**:
+
+- run `/api/private/session` authentication acceptance
+- request or capture canonical Cloudflare Access `sub`
 - bootstrap `access_users`
 - bootstrap `store_memberships`
-- perform owner/unrelated/cross-store/role authorization acceptance
-- add a public bootstrap endpoint
+- run intended-owner, unrelated-identity, cross-store, or role authorization acceptance
+- add login UI or username/password authentication
+- fabricate identity or use D1 membership writes to simulate acceptance
 - replace or extend the existing Access/JWT foundation
-- treat the frozen auth lane as a blocker for unrelated owner-directed product work
+- treat the external redirect gate as a reason to reopen authentication work
 
-Preserve the existing Access configuration and fail-closed auth code.
+Preserve the existing fail-closed Access/JWT foundation unchanged.
 
-## 2. GitHub authoritative state
+### Amazon is permanently HARD-OFF unless separately authorized
 
-Authoritative main before this final docs-only synchronization:
+Keep:
 
-`9d8f5543fc60b6f2e8dac841bc888425c0cedc03`
+```text
+AMAZON_API_MODE = disabled
+```
 
-At the start of a future conversation, read current `main` and use the latest merge commit if this final docs update has landed.
+Do not start Amazon OAuth, Amazon Ads API, SP-API, credential storage, live advertiser binding, automatic report sync, or Amazon mutation.
 
-Issue state:
+### No anonymous mutable Worker API
 
-- **#20 — CLOSED / COMPLETED**. Do not reopen or rerun it.
-- **#17 — OPEN**.
-- #17 non-auth server persistence foundation: **GITHUB + D1 READY**.
-- #17 remote D1 migration `0003`: **APPLIED / VERIFIED**.
-- #17 authentication/login acceptance: **FROZEN BY OWNER**.
-- Amazon API/OAuth/SP-API: **HARD-OFF**.
+Current business surface remains GET/HEAD-only. Do not add anonymous mutable routes such as:
 
-Merged non-auth work includes PRs #42, #43, #44, #45, #47, #48, #49, #50, #52, #53 and docs synchronization PR #54.
+```text
+POST /api/import
+POST /api/data
+PUT /api/*
+PATCH /api/*
+```
 
-A final narrow audit after #53 found no additional clear non-auth P1/P2 persistence defect. Do not keep adding speculative validation or abstractions merely to continue coding.
+The prepared server persistence pipeline remains intentionally unwired to runtime while authentication is frozen.
 
-## 3. Completed non-auth persistence work
+## 3. Completed work — do not redo
 
-### PR #42 — Versioned Dataset Persistence Foundation
+`#20` is **CLOSED / COMPLETED**. Do not reopen or rerun it.
 
-- `migrations/0003_dataset_versions.sql`
-- `dataset_versions`
-- `dataset_current`
-- immutable/versioned R2 object model
-- Store/kind-scoped object key
-- `If-None-Match: *`
-- SHA-256 write enforcement
-- D1 version metadata + current pointer promotion
+Do not redo or redesign:
 
-### PR #43 — Server-side Import Validation
+- Dashboard / Analytics
+- Ad Manager
+- Suggestions already completed except a newly evidenced defect
+- Local Data / Data Health
+- Store Workspace / Store Management
+- Users truth
+- Amazon Connections truth
+- Mobile / responsive work
+- Accessibility
+- existing Access/JWT foundation
+- D1 migration `0003`
+- Worker / D1 / R2 resource creation
+- persistence architecture
+- authorization architecture
 
-- Amazon Ads Search Term required fields
-- Unified Transaction validation
-- malformed CSV fail-closed
-- invalid UTF-8 fail-closed
-- empty import fail-closed
-- raw-byte SHA-256
-- authoritative fixtures: Ads 8753 rows / 45 fields; Unified 3643 rows / 32 fields
+Do not introduce React/Vue, a second persistence system, a second authorization system, or speculative service/repository/factory layers merely to continue coding.
 
-### PR #44 — Validate-first Pipeline
+## 4. Non-auth server persistence foundation — COMPLETE
+
+The non-auth persistence foundation is:
+
+```text
+GITHUB + D1 READY
+```
+
+Completed implementation includes:
+
+- #42 — versioned dataset persistence foundation
+- #43 — server-side import validation
+- #44 — validate-first pipeline
+- #45 — current dataset restore integrity
+- #47 — Store/kind current-pointer integrity
+- #48 — actual R2 size/SHA-256 integrity
+- #49 — finance-critical Unified fields
+- #50 — CSV row-shape validation
+- #52 — 16 MiB buffered import bound
+- #53 — complete R2 custom-metadata integrity
+- #54 / #55 — authoritative documentation synchronization
+
+Core safe order remains:
 
 ```text
 validateImportBody()
 -> persistAcceptedDataset()
+-> immutable R2 write
+-> verify actual R2 integrity
+-> D1 transactional version/current promotion
 ```
 
-Invalid input performs zero R2 writes and zero D1 batches.
+Do not invent further persistence architecture unless a concrete defect is demonstrated.
 
-### PR #45 — Current Dataset Restore Integrity
-
-- D1 current/version lookup
-- exact R2 object restore
-- missing-object fail-closed
-- size/metadata integrity
-
-### PR #47 — Store / Kind Current Pointer Integrity
-
-- composite `(dataset_id, store_id, kind)` binding
-- Store/kind-safe current lookup
-- SQLite migration acceptance `0001 -> 0002 -> 0003`
-- deliberate Store-A -> Store-B pointer violation correctly rejected by FK
-
-### PR #48 — Actual R2 Size + SHA-256 Integrity
-
-- verify returned `R2Object.size`
-- verify returned `R2Object.checksums.sha256`
-- reject mismatch before D1 promotion
-- repeat actual R2 size/SHA verification during restore
-
-### PR #49 — Finance-critical Unified Fields
-
-Require the finance/ledger fields actually used by the product rather than accepting a three-column pseudo-Unified file.
-
-### PR #50 — CSV Row Shape Validation
-
-Every nonblank data row must have the same field count as the header; truncated/overwide rows fail closed.
-
-### PR #52 — Buffered Import Size Bound
-
-`MAX_IMPORT_BYTES = 16 MiB`.
-
-Current fixture sizes:
-
-- Ads: `3,202,495` bytes
-- Unified: `1,566,578` bytes
-
-Do not simply raise this limit indefinitely. If real reports outgrow it, move large imports to a streaming parser.
-
-### PR #53 — Complete R2 Custom Metadata Integrity
-
-One shared integrity helper verifies:
-
-- size
-- stored SHA-256
-- dataset id
-- Store id
-- kind
-- source file
-- row count
-- custom SHA-256
-
-The same helper runs after R2 put before D1 promotion and again during current dataset restore.
-
-## 4. Production D1 schema v3 — applied and verified
+## 5. Production D1 state
 
 Production D1:
 
@@ -155,31 +135,9 @@ amazon-keyword-intelligence-db
 e38981da-fbeb-412e-ac8c-936bf16adb36
 ```
 
-The migration used was read directly from authoritative exact-main `9d8f5543fc60b6f2e8dac841bc888425c0cedc03`:
+Migration `0003_dataset_versions.sql` is **APPLIED / VERIFIED**.
 
-```text
-migrations/0003_dataset_versions.sql
-```
-
-### Read-only preflight
-
-Before migration:
-
-```text
-dataset_versions = absent
-dataset_current = absent
-deployment_meta.schema_version = 1
-access_users = 0
-store_memberships = 0
-```
-
-### Migration
-
-Exact-main `0003_dataset_versions.sql` was applied successfully to Production D1.
-
-### Postflight
-
-Verified after migration:
+Verified state:
 
 ```text
 dataset_versions exists, count = 0
@@ -191,72 +149,75 @@ access_users = 0
 store_memberships = 0
 ```
 
-No `access_users` or `store_memberships` rows were inserted. No owner bootstrap or identity acceptance occurred.
+No owner/member bootstrap has occurred. Keep `access_users` and `store_memberships` empty while authentication is frozen.
 
-The non-auth persistence foundation is therefore:
+## 6. Product hardening completed while auth is frozen
+
+Merged work:
+
+- #56 — shell productivity controls: sidebar collapse, global page search, current-page help, notification truth
+- #57 — minimal repository CI: Node 22, `npm ci`, `npm run check`, `npm run build`
+- #58 — local workspace resilience: versioned browser backup/restore, Unified import entry, synthetic Budget/hourly/default-schedule surfaces neutralized
+- #59 — Amazon Ads import value integrity: malformed/negative required metrics and invalid dates rejected
+- #60 — Unified Transaction value integrity: malformed nonblank finance values and invalid dates rejected while legitimate signed finance values remain supported
+- #61 — loaded-data recency awareness: exact dataset age and readiness scoped to loaded period
+- #62 — Bid Suggestions source truth: recommendations require a real positive imported Target Bid; no fabricated `$0.65` / `$0.60` current bid
+- #65 — local backup restore value integrity: normalized Ads/Unified rows are validated before IndexedDB writes, closing the backup path around #59/#60 guards while preserving legitimate signed finance values
+
+A targeted truth audit after #62 found the existing Budget, Dayparting, Users, Amazon Connections and Store Workspace truth layers already prevent legacy synthetic surfaces from being represented as real data. Do not reopen those areas without new evidence.
+
+## 7. GitHub-only Cloudflare operations
+
+The project no longer depends on a ChatGPT Cloudflare connector for basic read-only Cloudflare status checks.
+
+Permanent channel:
+
+- Issue #63 — `Cloudflare GitHub Ops — read-only status channel`
+- PR #64 — `.github/workflows/cloudflare-readonly-ops.yml`
+- exact owner command on Issue #63: `/cloudflare status`
+
+Accepted probes:
+
+- configured GitHub secrets present
+- Cloudflare API token verify
+- Workers Scripts read
+- D1 databases read
+- R2 buckets read
+
+The workflow emits PASS/FAIL only and must not print token values, account IDs, resource IDs/names, database contents, bucket contents, or application data.
+
+This path is **read-only observability**. Do not silently extend it into:
+
+- Cloudflare Access identity/session acceptance
+- Access app/policy writes
+- deployments
+- D1/R2 mutation
+- Amazon API work
+
+Use GitHub for project operations unless the owner explicitly changes this instruction.
+
+## 8. Store / local data truth
+
+Accepted loaded/test data:
 
 ```text
-GITHUB + D1 READY
+Store 01
+Ads Search Term rows: 8,753
+Unified Transaction rows: 3,643
 ```
 
-## 5. Import validation prepared
+Store truth:
 
-`src/import-validation.js` currently enforces:
+- Store 01 has the accepted imported/test dataset
+- Store 02 and Store 03 have no real data and must not display fabricated metrics
+- custom Store workspace metadata is browser-local only
+- local `Staged` / `Approved` states never mean an action was executed on Amazon
 
-- supported kinds: Ads Search Term / Unified Transaction
-- required Ads report fields
-- Finance-critical Unified fields
-- malformed CSV rejection
-- invalid UTF-8 rejection
-- empty input rejection
-- exact row-width consistency for nonblank rows
-- exact raw-byte SHA-256
-- `MAX_IMPORT_BYTES = 16 MiB`
+## 9. Runtime boundary
 
-Current authoritative fixture sizes:
+`src/worker.js` is still not wired to the prepared persistence pipeline.
 
-- Ads: `3,202,495` bytes — 8753 rows / 45 fields
-- Unified: `1,566,578` bytes — 3643 rows / 32 fields
-
-## 6. Persistence and restore integrity prepared
-
-`src/import-pipeline.js` remains minimal:
-
-```text
-validateImportBody()
--> persistAcceptedDataset()
-```
-
-`src/dataset-persistence.js` enforces:
-
-- Store/kind-scoped immutable R2 keys
-- `If-None-Match: *` create-only writes
-- SHA-256 supplied to R2 `put()`
-- returned R2 size verification
-- returned R2 stored SHA-256 verification
-- complete R2 custom metadata verification
-- D1 `batch()` version/current promotion only after R2 integrity passes
-- current metadata lookup joined on dataset + Store + kind
-- the same R2 integrity checks again on restore
-
-Safe order:
-
-```text
-validate
--> immutable R2 write
--> verify actual R2 object metadata
--> D1 transactional version/current promotion
-```
-
-A D1 failure may leave an unreachable immutable R2 orphan, but cannot promote a broken current pointer.
-
-## 7. Current Worker runtime boundary
-
-`src/worker.js` has not been wired to the persistence pipeline.
-
-The Worker business surface remains GET/HEAD-only. Non-GET/HEAD requests remain `405 Method Not Allowed`.
-
-Existing read routes include:
+Existing read-only routes include:
 
 - `/api/health`
 - `/api/data/manifest`
@@ -264,100 +225,36 @@ Existing read routes include:
 - `/api/data/unified-seed.js`
 - `/api/private/session` — existing fail-closed canary; do not run auth acceptance while frozen
 
-There is no anonymous mutable business API.
+Anonymous runtime smoke has previously reached an external redirect gate before KeywordOS product HTML/static assets. Do not pursue identity/authentication through that gate while the owner freeze remains active.
 
-Do not add `POST /api/import`, `POST /api/data`, `PUT /api/*`, `PATCH /api/*`, or any other public mutable business route while authentication remains frozen.
+## 10. Current execution rule
 
-## 8. Existing Cloudflare Access state — preserve only
+Continue only **real P1/P2 product defects** that can be demonstrated from existing imported/local data and fixed without authentication, Amazon API access, or anonymous mutable server routes.
 
-Known Production Access configuration from the last successful read:
+Good audit targets when continued product hardening is requested:
 
-- Access app: `amazon-keyword-intelligence production access`
-- app id: `de10640f-a231-4829-ad2b-164362756666`
-- audience: `96cb83b4c8dbc5a40fa7ab4a6104f546e05035814943bd7d5b76cf251095eb64`
-- team domain: `https://tanshiyuesir.cloudflareaccess.com`
-- owner-only policy for `tanshiyuesir@gmail.com`
-- `ACCESS_TEAM_DOMAIN` configured
-- `ACCESS_POLICY_AUD` configured
-- `AMAZON_API_MODE=disabled`
+- data correctness and source lineage
+- restore/import integrity
+- local state consistency and recovery
+- operator usability regressions
+- regression coverage around already-supported local workflows
+- hardcoded performance/money/state values only when not already neutralized by truth layers
 
-Migration `0002_access_memberships.sql` was applied previously.
+If a targeted audit finds no real P1/P2 defect, state that the current product-hardening surface is clean and stop. Do not manufacture work.
 
-Current verified auth table counts after the D1 v3 migration remain:
+## 11. Authentication resume condition
 
-```text
-access_users = 0
-store_memberships = 0
-```
+`#17` remains **OPEN** only because authentication/authorization acceptance is intentionally frozen.
 
-Keep those tables unbootstrapped while authentication is frozen.
-
-## 9. Non-auth phase stop condition reached
-
-The previous non-auth continuation required:
+Authentication resumes only after the owner explicitly asks for it. At that future point, continue from the existing foundation rather than rebuilding it:
 
 ```text
-docs-only GitHub synchronization merged
-+
-remote D1 0003 applied and verified
+Cloudflare Access external configuration gate
+-> /api/private/session identity acceptance
+-> canonical intended-owner Access sub
+-> exact Store 01 owner bootstrap
+-> authorization acceptance
+-> only then authenticated server-side persistence wiring
 ```
 
-Both conditions are now satisfied.
-
-Therefore:
-
-- do not invent new persistence work
-- do not wire protected runtime Store read/write routes yet
-- do not start authentication acceptance
-- wait for the owner's next explicit product task, or an explicit instruction to resume authentication
-
-This does **not** mean #17 is complete. #17 remains OPEN because its authentication/authorization lane is intentionally frozen.
-
-## 10. Completed product state — do not redo
-
-#20 Production cumulative acceptance is complete. Existing product work already includes:
-
-- Dashboard / Analytics
-- Ad Manager local drill-down
-- Suggestions local review/staging
-- supported local Rules evaluation
-- Action Center / Change Log
-- Cerebro / Keyword Tracker / Keyword and Negative libraries
-- Conflict Guard / Protected Keywords
-- Unified Transaction analytics
-- Ads and Unified CSV browser-local import/persistence
-- Local Data Operations / Data Health
-- Store workspace management
-- mobile/responsive hardening
-- keyboard accessibility hardening
-
-Store truth:
-
-- Store 01 has the accepted loaded/test dataset
-- Store 02 / Store 03 remain `No data`
-- custom Store workspaces are browser-local metadata only
-- local `Staged` / `Approved` never means executed on Amazon
-
-## 11. Permanent Amazon boundary
-
-Keep:
-
-```text
-AMAZON_API_MODE = disabled
-```
-
-Do not start Amazon OAuth, call Amazon Ads API/SP-API, store Amazon credentials, bind live advertisers, or execute staged local actions against Amazon.
-
-## 12. Authentication resume condition
-
-Authentication/login verification resumes **only** after the owner explicitly asks for it.
-
-At that future point, continue from the existing foundation rather than rebuilding it:
-
-- real `/api/private/session`
-- canonical Access `sub`
-- exact intended-owner bootstrap for `store-a`
-- authorization acceptance
-- only then wire protected runtime persistence routes
-
-Until then, leave this lane frozen and keep #17 open.
+Until then, leave the authentication lane frozen and continue only legitimate non-auth product work.
