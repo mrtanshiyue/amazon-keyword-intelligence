@@ -4,6 +4,8 @@
   const LISTING_PAGE = 'listing-workspace';
   const LISTING_HASH = '#page=listing-workspace';
   const MAX_EVIDENCE_ROWS = 16;
+  const WORKSPACE_DB_NAME = 'keywordos_v9_workspace';
+  const WORKSPACE_DATASET_STORE = 'datasets';
 
   function number(value) {
     const parsed = Number(value);
@@ -64,11 +66,27 @@
     return { completed, total: 3, ready: completed === 3 };
   }
 
+  function chooseListingDataset(record, fallbackRows, validateRows) {
+    const fallback = Array.isArray(fallbackRows) ? fallbackRows : [];
+    if (record?.schemaVersion === 1 && Array.isArray(record.rows) && record.rows.length && typeof validateRows === 'function') {
+      const validation = validateRows('ads', record.rows);
+      if (validation?.ok) {
+        return {
+          rows: record.rows,
+          source: String(record.source || 'Browser persisted Ads dataset'),
+          mode: 'Browser persisted'
+        };
+      }
+    }
+    return { rows: fallback, source: 'Bundled Ads dataset', mode: 'Bundled fallback' };
+  }
+
   if (typeof globalThis !== 'undefined') {
     globalThis.KeywordOSListingWorkspaceTest = {
       aggregateKeywordEvidence,
       composeSearchTerms,
-      draftStatus
+      draftStatus,
+      chooseListingDataset
     };
   }
 
@@ -139,8 +157,55 @@
     document.head.appendChild(style);
   }
 
-  function evidenceRows() {
-    return aggregateKeywordEvidence(window.KEYWORDOS_SEED?.rows || []).slice(0, MAX_EVIDENCE_ROWS);
+  function readPersistedAdsRecord() {
+    if (!('indexedDB' in window)) return Promise.resolve(null);
+    return new Promise((resolve) => {
+      let request;
+      try {
+        request = indexedDB.open(WORKSPACE_DB_NAME);
+      } catch {
+        resolve(null);
+        return;
+      }
+      let abortedUpgrade = false;
+      request.onupgradeneeded = () => {
+        abortedUpgrade = true;
+        try { request.transaction?.abort(); } catch {}
+      };
+      request.onerror = () => resolve(null);
+      request.onblocked = () => resolve(null);
+      request.onsuccess = () => {
+        const db = request.result;
+        if (abortedUpgrade || !db.objectStoreNames.contains(WORKSPACE_DATASET_STORE)) {
+          db.close();
+          resolve(null);
+          return;
+        }
+        try {
+          const transaction = db.transaction(WORKSPACE_DATASET_STORE, 'readonly');
+          const get = transaction.objectStore(WORKSPACE_DATASET_STORE).get('ads');
+          get.onsuccess = () => resolve(get.result || null);
+          get.onerror = () => resolve(null);
+          transaction.oncomplete = () => db.close();
+          transaction.onabort = () => { db.close(); resolve(null); };
+          transaction.onerror = () => { db.close(); resolve(null); };
+        } catch {
+          db.close();
+          resolve(null);
+        }
+      };
+    });
+  }
+
+  async function resolveListingDataset() {
+    const fallbackRows = window.KEYWORDOS_SEED?.rows || [];
+    const record = await readPersistedAdsRecord();
+    const validateRows = (kind, rows) => window.KeywordOSPersistedDatasetGuard?.validateDatasetRows?.(kind, rows);
+    return chooseListingDataset(record, fallbackRows, validateRows);
+  }
+
+  function evidenceRows(dataset) {
+    return aggregateKeywordEvidence(dataset?.rows || []).slice(0, MAX_EVIDENCE_ROWS);
   }
 
   function ensureSidebarEntry() {
@@ -172,7 +237,7 @@
     const breadcrumb = $('#breadcrumb');
     if (eyebrow) eyebrow.textContent = 'LISTING';
     if (title) title.textContent = 'Listing Workspace';
-    if (subtitle) subtitle.textContent = 'Prepare listing copy from loaded keyword evidence without Amazon write access.';
+    if (subtitle) subtitle.textContent = 'Prepare listing copy from validated keyword evidence without Amazon write access.';
     if (breadcrumb) breadcrumb.textContent = 'LISTING / Listing Workspace';
   }
 
@@ -201,16 +266,19 @@
     if (element) element.textContent = String(selectedTerms.size);
   }
 
-  function renderListingWorkspace({ writeHistory = true } = {}) {
+  async function renderListingWorkspace({ writeHistory = true } = {}) {
     listingActive = true;
     installStyles();
     ensureSidebarEntry();
     const content = $('#content');
     if (!content) return;
-    const rows = evidenceRows();
-    const status = draftStatus(listingDraft);
     setHeader();
     $('#modal-root').innerHTML = '';
+    content.innerHTML = '<div class="notice-banner"><b>Loading validated Listing evidence…</b> KeywordOS is checking the browser-persisted Ads dataset before using it.</div>';
+    const dataset = await resolveListingDataset();
+    if (!listingActive) return;
+    const rows = evidenceRows(dataset);
+    const status = draftStatus(listingDraft);
     content.innerHTML = `
       <div class="notice-banner"><b>Preparation only.</b> This workspace does not edit or publish Amazon listings, create credentials, or call Amazon APIs. Draft text remains in this browser session only.</div>
       <div class="keywordos-listing-source-actions">
@@ -219,15 +287,15 @@
         <button class="btn secondary" data-listing-nav="keyword-library">Keyword Library</button>
       </div>
       <div class="keywordos-listing-kpis top-gap">
-        <div class="keywordos-listing-kpi"><span>Evidence candidates</span><b>${formatInt(rows.length)}</b><small>Top loaded search terms by orders / sales</small></div>
+        <div class="keywordos-listing-kpi"><span>Evidence candidates</span><b>${formatInt(rows.length)}</b><small>${escapeHtml(dataset.mode)} · top search terms by orders / sales</small></div>
         <div class="keywordos-listing-kpi"><span>Selected keywords</span><b id="listing-selected-count">${selectedTerms.size}</b><small>Used only in the local preparation session</small></div>
         <div class="keywordos-listing-kpi"><span>Draft progress</span><b id="listing-draft-state">${status.completed} / 3</b><small>Title · bullets · search terms</small></div>
       </div>
       <div class="keywordos-listing-layout">
         <div class="card">
-          <div class="card-head"><div class="card-title"><h3>Keyword Evidence</h3><small>Derived only from the currently bundled Amazon Ads search-term dataset</small></div></div>
+          <div class="card-head"><div class="card-title"><h3>Keyword Evidence</h3><small>${escapeHtml(dataset.source)} · ${escapeHtml(dataset.mode)}</small></div></div>
           <div class="card-body keywordos-listing-evidence">
-            ${rows.length ? rows.map((row, index) => `
+            ${rows.length ? rows.map((row) => `
               <label class="keywordos-listing-evidence-row">
                 <input type="checkbox" data-listing-term="${encodeURIComponent(row.term)}" ${selectedTerms.has(row.term) ? 'checked' : ''} aria-label="Select ${escapeHtml(row.term)}">
                 <b>${escapeHtml(row.term)}</b>
@@ -236,7 +304,7 @@
                 <span class="listing-sales">${formatMoney(row.sales)}</span>
                 <span class="listing-acos">${formatPct(row.acos)}</span>
               </label>
-            `).join('') : '<div class="empty-state"><h3>No keyword evidence available</h3><p>Load a valid Amazon Ads dataset before preparing listing keyword inputs.</p></div>'}
+            `).join('') : '<div class="empty-state"><h3>No keyword evidence available</h3><p>Load and persist a valid Amazon Ads dataset before preparing listing keyword inputs.</p></div>'}
           </div>
         </div>
         <div class="card">
