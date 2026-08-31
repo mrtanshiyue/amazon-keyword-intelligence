@@ -58,6 +58,25 @@ const UNIFIED_HEADER = [
   'Total',
 ].join(',');
 
+const UNIFIED_ROW = [
+  '2026-06-01',
+  '1',
+  'Order',
+  'ORDER-1',
+  'SKU-1',
+  'Sale',
+  '1',
+  'Amazon.com',
+  '20',
+  '0',
+  '-1.2',
+  '-3',
+  '-4',
+  '0',
+  '',
+  '11.8',
+];
+
 test('validates the authoritative Amazon Ads sample', async () => {
   const body = await readFile(new URL('../sample-data/202606.csv', import.meta.url));
   const result = await validateImportBody('amazon_ads', body);
@@ -148,6 +167,36 @@ test('rejects incomplete Unified CSV that only resembles a transaction report', 
       error.code === 'missing_required_fields' &&
       error.details?.missingRequiredFields?.includes('product sales') &&
       error.details?.missingRequiredFields?.includes('selling fees')
+  );
+});
+
+test('accepts signed and blank Unified numeric values', () => {
+  const result = validateImportText('unified_transaction', `${UNIFIED_HEADER}\n${UNIFIED_ROW.join(',')}\n`);
+  assert.equal(result.rowCount, 1);
+});
+
+test('rejects malformed nonblank Unified numeric values', () => {
+  const row = [...UNIFIED_ROW];
+  row[15] = 'not-a-number';
+  assert.throws(
+    () => validateImportText('unified_transaction', `${UNIFIED_HEADER}\n${row.join(',')}\n`),
+    (error) =>
+      error instanceof ImportValidationError &&
+      error.code === 'invalid_unified_numeric_value' &&
+      error.details?.field === 'total' &&
+      error.details?.rowNumber === 2
+  );
+});
+
+test('rejects invalid Unified transaction dates', () => {
+  const row = [...UNIFIED_ROW];
+  row[0] = 'Foo 99 2026';
+  assert.throws(
+    () => validateImportText('unified_transaction', `${UNIFIED_HEADER}\n${row.join(',')}\n`),
+    (error) =>
+      error instanceof ImportValidationError &&
+      error.code === 'invalid_unified_date_value' &&
+      error.details?.rowNumber === 2
   );
 });
 
