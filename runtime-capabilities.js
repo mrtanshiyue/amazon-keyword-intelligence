@@ -116,7 +116,6 @@
         if (node.nodeType === Node.ELEMENT_NODE) applyCapabilityTruth(node);
       });
     }
-    renderBanner();
   });
 
   function start() {
