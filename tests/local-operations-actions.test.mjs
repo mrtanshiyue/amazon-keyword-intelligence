@@ -24,7 +24,7 @@ test('validateBackupObject accepts supported local state and dataset records', (
       unrelated_key: 'ignored'
     },
     datasets: [
-      { key: 'ads', schemaVersion: 1, rows: [{ date: '2026-06-01' }], source: 'ads.csv', importedAt: '2026-08-31', rowCount: 99 }
+      { key: 'ads', schemaVersion: 1, rows: [{ date: '2026-06-01', impressions: 100, clicks: 5, cost: 2.5, orders: 1, sales: 10 }], source: 'ads.csv', importedAt: '2026-08-31', rowCount: 99 }
     ]
   });
 
@@ -41,6 +41,33 @@ test('validateBackupObject rejects unsupported dataset keys and duplicate datase
     { key: 'ads', schemaVersion: 1, rows: [] },
     { key: 'ads', schemaVersion: 1, rows: [] }
   ] }).ok, false);
+});
+
+test('validateBackupObject rejects corrupted normalized dataset rows before restore', () => {
+  const base = { format: BACKUP_FORMAT, version: BACKUP_VERSION, localStorage: {} };
+  const adsRow = { date: '2026-06-01', impressions: 100, clicks: 5, cost: 2.5, orders: 1, sales: 10 };
+  const financeRow = {
+    date: '2026-06-01', quantity: 1, productSales: 20, productSalesTax: 0, shippingCredits: 0,
+    shippingTax: 0, giftWrapCredits: 0, giftWrapTax: 0, regulatoryFee: 0, regulatoryTax: 0,
+    promo: 0, promoTax: 0, withheldTax: 0, sellingFees: -3, fbaFees: -4, otherTxnFees: 0,
+    other: 0, total: 13
+  };
+
+  assert.equal(validateBackupObject({ ...base, datasets: [
+    { key: 'ads', schemaVersion: 1, rows: [{ ...adsRow, cost: -1 }] }
+  ] }).ok, false);
+  assert.equal(validateBackupObject({ ...base, datasets: [
+    { key: 'ads', schemaVersion: 1, rows: [{ ...adsRow, clicks: '5' }] }
+  ] }).ok, false);
+  assert.equal(validateBackupObject({ ...base, datasets: [
+    { key: 'ads', schemaVersion: 1, rows: [{ ...adsRow, date: '2026-02-30' }] }
+  ] }).ok, false);
+  assert.equal(validateBackupObject({ ...base, datasets: [
+    { key: 'finance', schemaVersion: 1, rows: [{ ...financeRow, total: '13' }] }
+  ] }).ok, false);
+  assert.equal(validateBackupObject({ ...base, datasets: [
+    { key: 'finance', schemaVersion: 1, rows: [financeRow] }
+  ] }).ok, true);
 });
 
 test('sanitizeScheduleStorage removes the retired synthetic default draft', () => {

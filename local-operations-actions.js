@@ -37,6 +37,58 @@
     return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
   }
 
+  const ADS_PERSISTED_NUMERIC_FIELDS = ['impressions', 'clicks', 'cost', 'orders', 'sales'];
+  const FINANCE_PERSISTED_NUMERIC_FIELDS = [
+    'quantity',
+    'productSales',
+    'productSalesTax',
+    'shippingCredits',
+    'shippingTax',
+    'giftWrapCredits',
+    'giftWrapTax',
+    'regulatoryFee',
+    'regulatoryTax',
+    'promo',
+    'promoTax',
+    'withheldTax',
+    'sellingFees',
+    'fbaFees',
+    'otherTxnFees',
+    'other',
+    'total'
+  ];
+
+  function validNormalizedDate(value) {
+    const match = String(value ?? '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!match) return false;
+    const year = Number(match[1]);
+    const month = Number(match[2]);
+    const day = Number(match[3]);
+    const date = new Date(Date.UTC(year, month - 1, day));
+    return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
+  }
+
+  function validateDatasetRows(key, rows) {
+    const fields = key === 'ads' ? ADS_PERSISTED_NUMERIC_FIELDS : FINANCE_PERSISTED_NUMERIC_FIELDS;
+    const nonNegative = key === 'ads';
+    for (let index = 0; index < rows.length; index += 1) {
+      const row = rows[index];
+      if (!isRecord(row)) {
+        return { ok: false, error: `Dataset ${key} row ${index + 1} must be an object.` };
+      }
+      if (!validNormalizedDate(row.date)) {
+        return { ok: false, error: `Dataset ${key} row ${index + 1} has an invalid normalized date.` };
+      }
+      for (const field of fields) {
+        const value = row[field];
+        if (typeof value !== 'number' || !Number.isFinite(value) || (nonNegative && value < 0)) {
+          return { ok: false, error: `Dataset ${key} row ${index + 1} has an invalid ${field} value.` };
+        }
+      }
+    }
+    return { ok: true };
+  }
+
   function sanitizeScheduleStorage(raw) {
     try {
       const value = JSON.parse(raw);
@@ -72,6 +124,8 @@
       if (record.schemaVersion !== 1 || !Array.isArray(record.rows) || record.rows.length > MAX_DATASET_ROWS) {
         return { ok: false, error: `Dataset ${record.key} has an unsupported schema or row count.` };
       }
+      const rowValidation = validateDatasetRows(record.key, record.rows);
+      if (!rowValidation.ok) return rowValidation;
       seen.add(record.key);
       datasets.push({
         ...record,
@@ -101,6 +155,8 @@
       BACKUP_FORMAT,
       BACKUP_VERSION,
       sanitizeScheduleStorage,
+      validNormalizedDate,
+      validateDatasetRows,
       validateBackupObject
     };
   }
