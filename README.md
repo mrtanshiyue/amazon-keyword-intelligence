@@ -1,19 +1,18 @@
 # KeywordOS — Amazon Keyword Intelligence
 
-KeywordOS 是一个面向 Amazon 广告、关键词与经营分析的多 Store 工作台。当前产品运行在 Cloudflare Workers Static Assets + Worker API + D1 + R2 上。
+KeywordOS 是一个面向 Amazon 广告、关键词与经营分析的多 Store 工作台，运行在 Cloudflare Workers Static Assets + Worker API + D1 + R2 上。
 
 ## Current authoritative status
 
 - Repository: `mrtanshiyue/amazon-keyword-intelligence`
 - Production Worker: `amazon-keyword-intelligence`
 - Production URL: `https://amazon-keyword-intelligence.tanshiyuesir.workers.dev/`
-- Product completion issue: **#20 OPEN**
-- Security/authentication issue: **#17 DEFERRED**
-- Amazon Ads API / OAuth: **disabled**
+- Product completion issue #20: **CLOSED / COMPLETED**
+- Security/persistence issue #17: **OPEN / ACTIVE**
+- Authentication/login acceptance: **FROZEN BY OWNER until explicitly resumed**
+- Amazon Ads API / OAuth: **disabled / HARD-OFF**
 - Amazon remote mutation: **disabled**
-- Current product baseline before this docs-only cleanup: `78d69cde0d49578ca7a7a3c690e9b17e490ee5d1`
-
-Do not close #20 or resume #17 until the current exact-main Cloudflare Workers Build is verified successful and cumulative Production browser acceptance passes.
+- Product main before the current docs-only refresh: `4e2d274b896a04cb60ebfd017471ab9a0ec26e2d`
 
 The authoritative continuation instructions are in [`CURRENT_HANDOFF.md`](./CURRENT_HANDOFF.md).
 
@@ -33,13 +32,13 @@ Cloudflare Workers Builds
 │ /api/* ─────► Worker API                    │
 │                    │                         │
 │                    ├────► D1 metadata        │
-│                    └────► R2 test datasets   │
+│                    └────► R2 datasets        │
 └──────────────────────────────────────────────┘
 ```
 
-### Browser application assets
+## Browser application assets
 
-`npm run build` currently copies these 12 application assets into `dist/`:
+`npm run build` publishes only the browser application assets in `dist/`:
 
 ```text
 index.html
@@ -56,71 +55,92 @@ report-adapter.js
 unified-report-adapter.js
 ```
 
-Seed datasets are **not** copied into `dist/`. The browser loads them through read-only Worker routes backed by R2:
+Raw/sample CSVs, seed source files, Worker source, migrations, Wrangler configuration, repository documentation and dependencies are not public Static Assets.
 
+## Runtime API boundary
+
+The current Worker business surface remains GET/HEAD-only. Non-GET/HEAD requests are rejected with `405`.
+
+Existing read routes include:
+
+- `GET /api/health`
+- `GET /api/data/manifest`
 - `GET /api/data/seed.js`
 - `GET /api/data/unified-seed.js`
-
-Raw CSV files, seed source files, Worker source, migrations, Wrangler configuration, documentation and dependencies are not public Static Assets.
-
-## Runtime API
-
-The Worker is GET/HEAD only. Non-GET/HEAD requests are rejected with `405`.
-
-- `GET /api/health` — D1/R2/runtime capability state
-- `GET /api/data/manifest` — deployment/data-source metadata and R2 object state
-- `GET /api/data/seed.js` — Store 01 advertising test dataset from R2
-- `GET /api/data/unified-seed.js` — Store 01 Unified Transaction test dataset from R2
-- `GET /api/private/session` — dormant fail-closed authenticated read-only canary; usable only after the deferred Access configuration exists
+- `GET /api/private/session` — existing fail-closed Access canary; login/session acceptance is currently frozen
 
 There is no anonymous mutable business API.
 
+## Cloudflare Access state
+
+A Worker-level Cloudflare Access application and owner-only allow policy are already configured, and the Worker has pinned `ACCESS_TEAM_DOMAIN` / `ACCESS_POLICY_AUD` runtime values.
+
+The owner has explicitly frozen further login/authentication verification. Until explicitly resumed, do not run session acceptance, capture canonical Access identity, bootstrap memberships, or extend the login flow.
+
+Existing auth code/config should be preserved, not rebuilt.
+
 ## Product truth
 
-### Global
+### Global and Store workspaces
 
-Global pages are analytics-only. They cannot write to Amazon. Cross-store numbers are shown only for Stores with real loaded datasets.
-
-### Store workspaces
-
-- Store 01 has the current imported/test dataset.
-- Store 02 / Store 03 remain `No data` until a real store-scoped data path exists.
+- Global pages are analytics-only and cannot write to Amazon.
+- Store 01 has the accepted loaded/test dataset.
+- Store 02 / Store 03 remain `No data`.
 - Browser-local Store workspace metadata may be created/edited without implying an Amazon connection.
-- Amazon connection, advertiser binding, live sync and remote execution remain disabled/deferred.
+- Local `Staged` / `Approved` states never mean executed on Amazon.
 
-### Local product workflows
+### Completed local product workflows
 
-The current local/browser product includes:
+The current product includes:
 
 - Dashboard and Analytics
 - Ad Manager drill-down
 - Suggestions review and batch staging
-- Rules evaluation for supported local rule types
+- supported local Rules evaluation
 - Action Center lifecycle and Change Log
-- Cerebro, Keyword Tracker and Keyword/Negative libraries
+- Cerebro, Keyword Tracker, Keyword/Negative libraries
 - Conflict Guard and Protected Keywords
 - Unified Transaction analytics
 - Ads / Unified CSV local import and browser persistence
 - Local Data Operations / Data Health
 - Store workspace management
 - responsive/mobile hardening
-- keyboard reachability for dynamic actions
+- keyboard accessibility for dynamic actions
 
-A local `Approved`/`Staged` state never means executed on Amazon.
+## Non-auth server persistence foundation
+
+The repository now contains dormant, unexposed server-side persistence internals:
+
+- `migrations/0003_dataset_versions.sql`
+  - immutable `dataset_versions`
+  - per-Store/per-kind `dataset_current`
+  - schema metadata version `3`
+- `src/import-validation.js`
+  - fail-closed Ads/Unified CSV validation
+  - exact raw-byte SHA-256
+- `src/dataset-persistence.js`
+  - immutable R2 create semantics
+  - D1 version/current promotion
+  - current-object restore integrity checks
+- `src/import-pipeline.js`
+  - validate first, persist only after validation succeeds
+
+These modules are not wired into `src/worker.js`, so they do not expose mutable runtime endpoints.
+
+Remote D1 migration `0003` is still pending because the Cloudflare connector began returning tool-level `Resource not found`. Do not claim schema v3 is live until it is applied and verified.
 
 ## Data boundary
 
-Current mode is public-test/local-product mode:
+Current boundary:
 
-- Authentication configuration: deferred
-- Cloudflare Access production policy: not enabled
+- Cloudflare Access configuration: present; login acceptance frozen
+- D1 membership tables: present but intentionally unbootstrapped
+- server persistence code: prepared internally but not exposed through Worker mutation routes
+- product mutable state: browser-local where implemented
 - Amazon Ads OAuth/API: disabled
 - Amazon mutation: disabled
-- D1: deployment/source metadata plus dormant membership schema
-- R2: test dataset objects
-- browser: intended local mutable workspace state
 
-See [`P0_DATA_BOUNDARY.md`](./P0_DATA_BOUNDARY.md) for the current boundary contract.
+See [`P0_DATA_BOUNDARY.md`](./P0_DATA_BOUNDARY.md).
 
 ## Development
 
@@ -131,6 +151,12 @@ npm run build
 npm run dev
 ```
 
+D1 migrations:
+
+```bash
+npm run db:migrate
+```
+
 Manual production deployment, when intentionally needed:
 
 ```bash
@@ -139,21 +165,15 @@ npm run build
 npm run deploy
 ```
 
-D1 migrations:
-
-```bash
-npm run db:migrate
-```
-
-Normal Production flow is GitHub `main` → Cloudflare Workers Builds → Wrangler deploy.
+Normal Production flow remains GitHub `main` -> Cloudflare Workers Builds -> Wrangler deploy.
 
 ## Repository documentation
 
-Keep only current operating documentation in the root:
+Current root documentation:
 
 - `README.md` — current product/runtime truth
 - `CURRENT_HANDOFF.md` — authoritative continuation checkpoint
 - `CLOUDFLARE_ARCHITECTURE.md` — current deployment architecture
 - `P0_DATA_BOUNDARY.md` — current security/data boundary
 
-Historical V5/V6/V7/V8/V9 implementation notes have been retired because they no longer represent authoritative product state.
+Historical V5/V6/V7/V8/V9 implementation notes are retired and are not authoritative.
