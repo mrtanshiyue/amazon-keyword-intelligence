@@ -7,7 +7,8 @@ CREATE TABLE IF NOT EXISTS dataset_versions (
   byte_size INTEGER NOT NULL CHECK (byte_size > 0),
   content_sha256 TEXT NOT NULL,
   r2_key TEXT NOT NULL UNIQUE,
-  imported_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+  imported_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE (dataset_id, store_id, kind)
 );
 
 CREATE INDEX IF NOT EXISTS idx_dataset_versions_store_kind_imported
@@ -19,7 +20,9 @@ CREATE TABLE IF NOT EXISTS dataset_current (
   dataset_id TEXT NOT NULL,
   updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (store_id, kind),
-  FOREIGN KEY (dataset_id) REFERENCES dataset_versions(dataset_id) ON DELETE RESTRICT
+  FOREIGN KEY (dataset_id, store_id, kind)
+    REFERENCES dataset_versions(dataset_id, store_id, kind)
+    ON DELETE RESTRICT
 );
 
 CREATE INDEX IF NOT EXISTS idx_dataset_current_dataset
