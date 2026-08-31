@@ -11,7 +11,7 @@ import {
 const SHA256 = 'a'.repeat(64);
 const DATASET_ID = '123e4567-e89b-42d3-a456-426614174000';
 
-function fakeEnv({ failBatch = false } = {}) {
+function fakeEnv() {
   const objects = new Map();
   const batches = [];
   return {
@@ -19,7 +19,7 @@ function fakeEnv({ failBatch = false } = {}) {
     batches,
     DATA: {
       async put(key, body, options) {
-        if (objects.has(key) && options?.onlyIf?.etagDoesNotMatch === '*') return null;
+        if (objects.has(key) && options?.onlyIf?.get?.('if-none-match') === '*') return null;
         const object = { key, body, options };
         objects.set(key, object);
         return object;
@@ -34,7 +34,6 @@ function fakeEnv({ failBatch = false } = {}) {
         };
       },
       async batch(statements) {
-        if (failBatch) throw new Error('batch failed');
         batches.push(statements);
         return statements.map(() => ({ success: true }));
       },
@@ -83,8 +82,10 @@ test('persists R2 object before atomically recording version and current pointer
     body: 'csv-body',
   });
 
+  const stored = env.objects.get(result.r2Key);
   assert.equal(result.r2Key, `imports/store-a/amazon_ads/${DATASET_ID}.csv`);
-  assert.equal(env.objects.size, 1);
+  assert.equal(stored.options.onlyIf.get('if-none-match'), '*');
+  assert.equal(stored.options.sha256.byteLength, 32);
   assert.equal(env.batches.length, 1);
   assert.equal(env.batches[0].length, 2);
 });
