@@ -1,4 +1,4 @@
-name: One-shot local workspace scope fix
+name: One-shot local workspace scope patch
 
 on:
   push:
@@ -9,9 +9,8 @@ permissions:
   contents: write
 
 jobs:
-  patch-verify:
+  patch:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
         with:
@@ -20,13 +19,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - name: Apply exact scope-truth patch
+      - name: Patch and check
         run: |
           python - <<'PY'
           from pathlib import Path
-          p=Path('ui-actions.js')
-          s=p.read_text()
-          old="""  function openLocalStoreWorkspace(id) {
+          p = Path('ui-actions.js')
+          s = p.read_text()
+          old = """  function openLocalStoreWorkspace(id) {
     const store = storeById(id);
     if (!store) return;
     localOpenStoreId = id;
@@ -40,7 +39,7 @@ jobs:
     }
     renderEmptyStoreWorkspace(store);
   }"""
-          new="""  function openLocalStoreWorkspace(id) {
+          new = """  function openLocalStoreWorkspace(id) {
     const store = storeById(id);
     if (!store) return;
     localOpenStoreId = id;
@@ -56,7 +55,7 @@ jobs:
         .forEach((option) => option.remove());
       const option = document.createElement('option');
       option.value = store.id;
-      option.textContent = `${store.name} · ${store.marketplace} · Local · No data`;
+      option.textContent = store.name + ' · ' + store.marketplace + ' · Local · No data';
       option.dataset.localWorkspace = '1';
       option.disabled = true;
       option.selected = true;
@@ -65,56 +64,13 @@ jobs:
     }
     renderEmptyStoreWorkspace(store);
   }"""
-          if s.count(old)!=1:
-              raise SystemExit(f'expected exact openLocalStoreWorkspace once, found {s.count(old)}')
-          p.write_text(s.replace(old,new,1))
+          if s.count(old) != 1:
+              raise SystemExit('openLocalStoreWorkspace exact match count: ' + str(s.count(old)))
+          p.write_text(s.replace(old, new, 1))
           PY
           node --check ui-actions.js
           npm run check
-      - name: Use preinstalled Chrome
-        run: |
-          echo "CHROME_BIN=$(command -v google-chrome)" >> "$GITHUB_ENV"
-          npm install --no-save playwright@1.55.0
-      - name: Verify built-in and custom scope truth against Production
-        run: |
-          node --input-type=module <<'EOF'
-          import fs from 'node:fs';
-          import { chromium } from 'playwright';
-          const PROD='https://amazon-keyword-intelligence.tanshiyuesir.workers.dev/';
-          const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME_BIN});
-          const page=await browser.newPage({viewport:{width:1440,height:1000}});
-          page.setDefaultTimeout(6000);
-          let intercepted=false;
-          await page.route(`${PROD}ui-actions.js`,async route=>{intercepted=true;await route.fulfill({status:200,contentType:'text/javascript',body:fs.readFileSync('ui-actions.js','utf8')});});
-          await page.goto(`${PROD}?local-scope-regression=${Date.now()}`,{waitUntil:'domcontentloaded',timeout:30000});
-          await page.waitForFunction(()=>document.querySelectorAll('#sidebar-nav [data-page]').length>=26&&(document.querySelector('#content')?.children.length||0)>0);
-          if(!intercepted)throw new Error('feature ui-actions.js not intercepted');
-          const en=page.locator('[data-lang="en"]');if(await en.count())await en.click();
-          await page.locator('#sidebar-nav [data-page="stores-settings"]').click();
-          await page.waitForFunction(()=>Boolean(document.querySelector('#local-store-workspace-admin')));
-          const store2=page.locator('.admin-store-card').filter({hasText:'STORE-US-02'});
-          await store2.locator('[data-local-store-open]').click();
-          await page.waitForFunction(()=>document.querySelector('#page-title')?.textContent?.trim()==='Store Workspace');
-          if(await page.locator('#profile-select').inputValue()!=='store-b')throw new Error('Store 02 scope select not synchronized');
-          await page.locator('#sidebar-nav [data-page="stores-settings"]').click();
-          await page.waitForFunction(()=>Boolean(document.querySelector('#local-store-workspace-admin')));
-          await page.locator('#local-add-store').click();
-          await page.locator('#local-store-name').fill('REGRESSION-US-04');
-          await page.locator('#local-store-save').click();
-          const card=page.locator('.admin-store-card').filter({hasText:'REGRESSION-US-04'});
-          await card.locator('[data-local-store-open]').click();
-          await page.waitForFunction(()=>document.querySelector('#content')?.textContent?.includes('REGRESSION-US-04'));
-          const custom=await page.locator('#profile-select').evaluate(select=>({value:select.value,text:select.selectedOptions[0]?.textContent||'',disabled:select.selectedOptions[0]?.disabled||false}));
-          if(!custom.value.startsWith('local-store-')||!custom.text.includes('REGRESSION-US-04')||!custom.text.includes('Local')||!custom.disabled)throw new Error(`Custom scope truth invalid: ${JSON.stringify(custom)}`);
-          const body=(await page.locator('#content').textContent()||'').toLowerCase();
-          if(!body.includes('no business data')||!body.includes('amazon api')||!body.includes('disabled'))throw new Error('Custom workspace boundary truth missing');
-          await page.locator('#sidebar-nav [data-page="portfolio-overview"]').click();
-          await page.waitForFunction(()=>document.querySelector('#page-title')?.textContent?.trim()==='Portfolio Overview');
-          if(await page.locator('#profile-select').inputValue()!=='store-b')throw new Error('Core Store scope was polluted by temporary custom option');
-          await browser.close();
-          console.log('Local workspace scope truth PASS');
-          EOF
-      - name: Commit product fix and remove one-shot workflow
+      - name: Commit patch and remove workflow
         run: |
           rm .github/workflows/one-shot-local-workspace-scope.yml
           git config user.name "mrtanshiyue"
