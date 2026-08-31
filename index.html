@@ -87,7 +87,7 @@
 
   <div id="drawer-root"></div>
   <div id="modal-root"></div>
-  <div id="toast-root"></div>
+  <div id="toast-root" role="status" aria-live="polite" aria-atomic="true"></div>
   <input id="hidden-file" type="file" accept=".csv,text/csv" hidden>
   <input id="hidden-unified-file" type="file" accept=".csv,text/csv" hidden>
 
@@ -100,5 +100,77 @@
   <script src="runtime-capabilities.js"></script>
   <script src="ui-actions.js"></script>
   <script src="suggestions-actions.js"></script>
+  <script>
+    (() => {
+      'use strict';
+
+      const hasDataAction = (element) =>
+        element instanceof Element && [...element.attributes].some((attribute) => attribute.name.startsWith('data-'));
+
+      const actionLabel = (element) => {
+        const own = element.textContent?.trim();
+        if (own) return own;
+        const row = element.closest('tr,.rule-row');
+        return row?.querySelector('.entity-link,b')?.textContent?.trim() || 'item';
+      };
+
+      const enhance = (root) => {
+        if (!(root instanceof Element || root instanceof Document)) return;
+        const elements = [];
+        if (root instanceof Element && root.matches('.entity-link,.toggle')) elements.push(root);
+        elements.push(...root.querySelectorAll('.entity-link,.toggle'));
+        elements.filter(hasDataAction).forEach((element) => {
+          if (!element.hasAttribute('tabindex')) element.tabIndex = 0;
+          if (element.classList.contains('toggle')) {
+            element.setAttribute('role', 'switch');
+            element.setAttribute('aria-checked', element.classList.contains('on') ? 'true' : 'false');
+            if (!element.hasAttribute('aria-label')) element.setAttribute('aria-label', `Toggle ${actionLabel(element)}`);
+          } else {
+            if (!element.hasAttribute('role')) element.setAttribute('role', 'button');
+            if (!element.hasAttribute('aria-label')) element.setAttribute('aria-label', actionLabel(element));
+          }
+        });
+
+        const checkboxes = [];
+        if (root instanceof HTMLInputElement && root.type === 'checkbox') checkboxes.push(root);
+        checkboxes.push(...root.querySelectorAll('table input[type="checkbox"]'));
+        checkboxes.forEach((input) => {
+          if (input.hasAttribute('aria-label')) return;
+          if (input.closest('thead')) {
+            input.setAttribute('aria-label', 'Select all visible rows');
+            return;
+          }
+          const row = input.closest('tr');
+          const label = row?.querySelector('.entity-link,.keyword-main,b')?.textContent?.trim();
+          input.setAttribute('aria-label', label ? `Select ${label}` : 'Select row');
+        });
+      };
+
+      document.addEventListener('keydown', (event) => {
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        const target = event.target instanceof Element ? event.target.closest('.entity-link,.toggle') : null;
+        if (!target || !hasDataAction(target)) return;
+        event.preventDefault();
+        target.click();
+      });
+
+      const observer = new MutationObserver((records) => {
+        records.forEach((record) => record.addedNodes.forEach((node) => {
+          if (node instanceof Element) enhance(node);
+        }));
+      });
+
+      const start = () => {
+        enhance(document);
+        ['content', 'drawer-root', 'modal-root'].forEach((id) => {
+          const root = document.getElementById(id);
+          if (root) observer.observe(root, { childList: true, subtree: true });
+        });
+      };
+
+      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, { once: true });
+      else start();
+    })();
+  </script>
 </body>
 </html>
