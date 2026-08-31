@@ -3,7 +3,15 @@ import assert from 'node:assert/strict';
 
 await import('../productivity-actions.js');
 
-const { normalizeSearch, filterEntries, suiteAction, suiteForPage, suiteWorkspace } = globalThis.KeywordOSProductivityTest;
+const {
+  normalizeSearch,
+  filterEntries,
+  suiteAction,
+  suiteForPage,
+  suiteWorkspace,
+  pageHash,
+  pageFromHash
+} = globalThis.KeywordOSProductivityTest;
 
 test('normalizeSearch makes command matching case and whitespace insensitive', () => {
   assert.equal(normalizeSearch('  Data   HEALTH  '), 'data health');
@@ -61,4 +69,14 @@ test('suite active state follows the actual current workspace page without absor
   assert.equal(suiteForPage('settings'), '');
   assert.equal(suiteForPage('users-permissions'), '');
   assert.equal(suiteForPage('missing-page'), '');
+});
+
+test('page hash helpers round-trip valid sidebar page ids', () => {
+  for (const page of ['portfolio-overview', 'keyword-library', 'unified-report', 'data-health']) {
+    assert.equal(pageFromHash(pageHash(page)), page);
+  }
+  assert.equal(pageHash(''), '');
+  assert.equal(pageFromHash(''), '');
+  assert.equal(pageFromHash('#other=keyword-library'), '');
+  assert.equal(pageFromHash('#page=%E0%A4%A'), '');
 });
