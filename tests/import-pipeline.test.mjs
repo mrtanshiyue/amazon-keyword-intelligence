@@ -9,6 +9,13 @@ const ADS_CSV = [
   'Account A,Campaign A,Group A,reading glasses,2026-06-01,reading glasses,EXACT,100,10,5.00,2,20.00',
 ].join('\n');
 
+function bodySize(body) {
+  if (typeof body === 'string') return new TextEncoder().encode(body).byteLength;
+  if (body instanceof ArrayBuffer) return body.byteLength;
+  if (ArrayBuffer.isView(body)) return body.byteLength;
+  return Number.NaN;
+}
+
 function fakeEnv() {
   const writes = [];
   const batches = [];
@@ -18,7 +25,11 @@ function fakeEnv() {
     DATA: {
       async put(key, body, options) {
         writes.push({ key, body, options });
-        return { key };
+        return {
+          key,
+          size: bodySize(body),
+          checksums: { sha256: options.sha256 },
+        };
       },
     },
     DB: {

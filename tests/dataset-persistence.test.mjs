@@ -12,6 +12,21 @@ import {
 const SHA256 = 'a'.repeat(64);
 const DATASET_ID = '123e4567-e89b-42d3-a456-426614174000';
 
+function shaBytes(hex = SHA256) {
+  const bytes = new Uint8Array(32);
+  for (let index = 0; index < bytes.length; index += 1) {
+    bytes[index] = Number.parseInt(hex.slice(index * 2, index * 2 + 2), 16);
+  }
+  return bytes.buffer;
+}
+
+function bodySize(body) {
+  if (typeof body === 'string') return new TextEncoder().encode(body).byteLength;
+  if (body instanceof ArrayBuffer) return body.byteLength;
+  if (ArrayBuffer.isView(body)) return body.byteLength;
+  return Number.NaN;
+}
+
 function fakeEnv() {
   const objects = new Map();
   const batches = [];
@@ -21,7 +36,13 @@ function fakeEnv() {
     DATA: {
       async put(key, body, options) {
         if (objects.has(key) && options?.onlyIf?.get?.('if-none-match') === '*') return null;
-        const object = { key, body, options };
+        const object = {
+          key,
+          body,
+          options,
+          size: bodySize(body),
+          checksums: { sha256: options.sha256 },
+        };
         objects.set(key, object);
         return object;
       },
@@ -87,6 +108,7 @@ function currentObject(overrides = {}) {
   return {
     size: 8,
     body: 'csv-body',
+    checksums: { sha256: shaBytes() },
     customMetadata: {
       datasetId: DATASET_ID,
       storeId: 'store-a',
@@ -133,7 +155,7 @@ test('persists R2 object before atomically recording version and current pointer
     kind: 'amazon_ads',
     sourceFile: 'ads.csv',
     rowCount: 10,
-    byteSize: 200,
+    byteSize: 8,
     contentSha256: SHA256,
     body: 'csv-body',
   });
@@ -146,6 +168,43 @@ test('persists R2 object before atomically recording version and current pointer
   assert.equal(env.batches[0].length, 2);
 });
 
+test('does not promote R2 objects with unexpected size or checksum', async () => {
+  const base = {
+    datasetId: DATASET_ID,
+    storeId: 'store-a',
+    kind: 'amazon_ads',
+    sourceFile: 'ads.csv',
+    rowCount: 10,
+    byteSize: 8,
+    contentSha256: SHA256,
+    body: 'csv-body',
+  };
+
+  const sizeEnv = fakeEnv();
+  sizeEnv.DATA.put = async (key, body, options) => ({
+    key,
+    size: 9,
+    checksums: { sha256: options.sha256 },
+  });
+  await assert.rejects(
+    persistAcceptedDataset(sizeEnv, base),
+    (error) => error instanceof DatasetPersistenceError && error.code === 'dataset_object_size_mismatch'
+  );
+  assert.equal(sizeEnv.batches.length, 0);
+
+  const checksumEnv = fakeEnv();
+  checksumEnv.DATA.put = async (key, body) => ({
+    key,
+    size: 8,
+    checksums: { sha256: shaBytes('b'.repeat(64)) },
+  });
+  await assert.rejects(
+    persistAcceptedDataset(checksumEnv, base),
+    (error) => error instanceof DatasetPersistenceError && error.code === 'dataset_object_checksum_mismatch'
+  );
+  assert.equal(checksumEnv.batches.length, 0);
+});
+
 test('refuses to overwrite an existing immutable R2 key', async () => {
   const env = fakeEnv();
   const input = {
@@ -154,7 +213,7 @@ test('refuses to overwrite an existing immutable R2 key', async () => {
     kind: 'amazon_ads',
     sourceFile: 'ads.csv',
     rowCount: 10,
-    byteSize: 200,
+    byteSize: 8,
     contentSha256: SHA256,
     body: 'csv-body',
   };
@@ -167,7 +226,7 @@ test('refuses to overwrite an existing immutable R2 key', async () => {
   assert.equal(env.batches.length, 1);
 });
 
-test('restores the current R2 object only when metadata matches', async () => {
+test('restores the current R2 object only when metadata and checksum match', async () => {
   const metadata = currentMetadata();
   const object = currentObject();
   const env = restoreEnv(metadata, object);
@@ -195,6 +254,15 @@ test('fails closed when the current object is missing or inconsistent', async ()
   await assert.rejects(
     readCurrentDatasetObject(restoreEnv(metadata, currentObject({ size: 9 })), 'store-a', 'amazon_ads'),
     (error) => error instanceof DatasetPersistenceError && error.code === 'dataset_object_size_mismatch'
+  );
+
+  await assert.rejects(
+    readCurrentDatasetObject(
+      restoreEnv(metadata, currentObject({ checksums: { sha256: shaBytes('b'.repeat(64)) } })),
+      'store-a',
+      'amazon_ads'
+    ),
+    (error) => error instanceof DatasetPersistenceError && error.code === 'dataset_object_checksum_mismatch'
   );
 
   await assert.rejects(
