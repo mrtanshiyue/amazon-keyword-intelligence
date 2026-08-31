@@ -37,6 +37,10 @@ jobs:
           ! grep -q "History · Preview" app.js
           ! grep -q "Search-term history view is not implemented yet" app.js
 
+      - name: Enforce deferred-auth boundary
+        run: |
+          git diff --exit-code origin/main -- src/worker.js src/access-auth.js src/store-authorization.js migrations
+
       - name: Build static assets
         run: npm run build
 
