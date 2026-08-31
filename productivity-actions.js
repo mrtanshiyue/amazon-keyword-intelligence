@@ -2,19 +2,77 @@
   'use strict';
 
   const SHELL_STATE_KEY = 'keywordos_v9_shell_ui';
-  const SUITE_TARGETS = Object.freeze({
-    products: { type: 'page', page: 'store-workspace' },
-    keywords: { type: 'page', page: 'global-keywords' },
-    listing: { type: 'listing' },
-    marketing: { type: 'page', page: 'overview' },
-    operations: { type: 'page', page: 'unified-report' },
-    analytics: { type: 'page', page: 'analytics' }
+  const SUITE_WORKSPACES = Object.freeze({
+    products: {
+      title: 'Products Workspace',
+      subtitle: 'Store-scoped product and workspace operations',
+      notice: 'Product catalog editing and Amazon listing mutation are not connected in this runtime.',
+      items: [
+        { page: 'store-workspace', label: 'Store Workspace', detail: 'Open the selected Store workspace and its loaded data state.' },
+        { page: 'stores-settings', label: 'Stores', detail: 'Manage browser-local Store workspace metadata.' }
+      ]
+    },
+    keywords: {
+      title: 'Keywords Workspace',
+      subtitle: 'Research, library, tracking and conflict intelligence',
+      notice: 'Keyword analysis uses loaded/local data. Amazon keyword writes remain disabled.',
+      items: [
+        { page: 'global-keywords', label: 'Global Keyword Library', detail: 'Review shared keyword intelligence across Store workspaces.' },
+        { page: 'cerebro', label: 'Cerebro', detail: 'Research keyword opportunities from loaded advertising data.' },
+        { page: 'keyword-library', label: 'Keyword Library', detail: 'Manage Store-scoped keyword assets and lifecycle state.' },
+        { page: 'tracker', label: 'Keyword Tracker', detail: 'Track strategic keyword groups in the current Store context.' },
+        { page: 'negative-library', label: 'Negative Library', detail: 'Review active and suggested negative targets.' }
+      ]
+    },
+    listing: {
+      title: 'Listing Workspace',
+      subtitle: 'Keyword-backed listing preparation without Amazon write access',
+      notice: 'Listing editing and publishing are not connected. Use existing keyword intelligence to prepare titles, bullets and search-term inputs without creating Amazon credentials or write actions.',
+      items: [
+        { page: 'global-keywords', label: 'Keyword Research', detail: 'Start from the Global Keyword Library to identify relevant search demand.' },
+        { page: 'cerebro', label: 'Keyword Selection', detail: 'Qualify candidate terms using existing advertising search-term evidence.' },
+        { page: 'keyword-library', label: 'Listing Keyword Set', detail: 'Review protected, tracked and lifecycle-tagged keyword assets.' }
+      ]
+    },
+    marketing: {
+      title: 'Marketing Workspace',
+      subtitle: 'Advertising analysis, recommendations and controlled local actions',
+      notice: 'Amazon execution remains disabled. Marketing actions stay local/review-only unless separately authorized.',
+      items: [
+        { page: 'overview', label: 'Dashboard', detail: 'Review advertising performance for the current Store scope.' },
+        { page: 'suggestions', label: 'Suggestions', detail: 'Review source-backed bid, keyword and negative recommendations.' },
+        { page: 'ad-manager', label: 'Ad Manager', detail: 'Drill through campaign, ad group, target and search-term data.' },
+        { page: 'rules', label: 'Rules & Automation', detail: 'Define local decision rules without Amazon mutation.' },
+        { page: 'actions', label: 'Action Center', detail: 'Review proposed advertising actions before any future execution path.' }
+      ]
+    },
+    operations: {
+      title: 'Operations Workspace',
+      subtitle: 'Finance, imports, synchronization status and data health',
+      notice: 'Operations are limited to loaded/local data and read-only runtime status. No anonymous mutable Worker API is exposed.',
+      items: [
+        { page: 'unified-report', label: 'Unified Report', detail: 'Analyze transaction-level income, refunds, fees and settlements.' },
+        { page: 'import', label: 'Import Center', detail: 'Validate and load Amazon Ads or Unified Transaction CSV data.' },
+        { page: 'sync-center', label: 'Sync Center', detail: 'Review synchronization readiness and connection truth.' },
+        { page: 'data-health', label: 'Data Health', detail: 'Inspect loaded-period readiness, integrity and recency.' }
+      ]
+    },
+    analytics: {
+      title: 'Analytics Workspace',
+      subtitle: 'Portfolio, cross-store and advertising performance analysis',
+      notice: 'Analytics is read-only and operates on the currently loaded Store/local datasets.',
+      items: [
+        { page: 'portfolio-overview', label: 'Portfolio Overview', detail: 'Review consolidated intelligence across Store workspaces.' },
+        { page: 'cross-store', label: 'Cross-store Intelligence', detail: 'Compare Store performance without sharing credentials or write actions.' },
+        { page: 'analytics', label: 'Advertising Analytics', detail: 'Analyze performance across campaign, target, search term and product levels.' }
+      ]
+    }
   });
   const SUITE_PAGE_GROUPS = Object.freeze({
-    products: new Set(['store-workspace']),
+    products: new Set(['store-workspace', 'stores-settings']),
     keywords: new Set(['global-keywords', 'global-conflicts', 'cerebro', 'tracker', 'keyword-library', 'negative-library', 'conflicts']),
     marketing: new Set(['overview', 'suggestions', 'ad-manager', 'rules', 'schedules', 'actions', 'change-log']),
-    operations: new Set(['unified-report', 'import', 'sync-center', 'data-health', 'stores-settings', 'amazon-connections', 'users-permissions', 'settings']),
+    operations: new Set(['unified-report', 'import', 'sync-center', 'data-health']),
     analytics: new Set(['portfolio-overview', 'cross-store', 'analytics'])
   });
 
@@ -29,7 +87,8 @@
   }
 
   function suiteAction(label) {
-    return SUITE_TARGETS[normalizeSearch(label)] || null;
+    const suite = normalizeSearch(label);
+    return SUITE_WORKSPACES[suite] ? { type: 'workspace', suite } : null;
   }
 
   function suiteForPage(page) {
@@ -39,8 +98,12 @@
     return '';
   }
 
+  function suiteWorkspace(suite) {
+    return SUITE_WORKSPACES[suite] || null;
+  }
+
   if (typeof globalThis !== 'undefined') {
-    globalThis.KeywordOSProductivityTest = { normalizeSearch, filterEntries, suiteAction, suiteForPage };
+    globalThis.KeywordOSProductivityTest = { normalizeSearch, filterEntries, suiteAction, suiteForPage, suiteWorkspace };
   }
 
   if (typeof document === 'undefined') return;
@@ -103,6 +166,23 @@
       .keywordos-command-empty{padding:22px 12px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:6px}
       #keywordos-command-search{width:100%}
       .suite-nav button:not(:disabled){cursor:pointer}
+      .keywordos-suite-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:12px}
+      .keywordos-suite-card{width:100%;border:1px solid var(--line);background:#fff;border-radius:8px;padding:12px;text-align:left;display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+      .keywordos-suite-card:hover,.keywordos-suite-card:focus-visible{background:var(--blue-soft);border-color:var(--blue-line)}
+      .keywordos-suite-card b{display:block;color:var(--text-strong);font-size:13px}
+      .keywordos-suite-card small{display:block;color:var(--muted);font-size:11px;line-height:1.45;margin-top:4px}
+      .keywordos-suite-card span{color:var(--muted);font-size:12px;flex:0 0 auto}
+      @media (max-width:900px){
+        .header-left{min-width:0;flex:1 1 auto!important}
+        .suite-nav{display:flex!important;overflow-x:auto;overflow-y:hidden;flex-wrap:nowrap;max-width:calc(100vw - var(--sidebar) - 220px);scrollbar-width:none;-webkit-overflow-scrolling:touch}
+        .suite-nav::-webkit-scrollbar{display:none}
+        .suite-nav button{flex:0 0 auto;white-space:nowrap}
+      }
+      @media (max-width:760px){
+        .suite-nav{max-width:calc(100vw - var(--sidebar) - 94px);gap:2px}
+        .suite-nav button{padding:6px 8px;font-size:10px}
+        .keywordos-suite-grid{grid-template-columns:1fr}
+      }
     `;
     document.head.appendChild(style);
   }
@@ -165,24 +245,24 @@
     if (root?.querySelector('#keywordos-command-palette')) root.innerHTML = '';
   }
 
-  function closeListingWorkspace() {
+  function closeSuiteWorkspace() {
     const root = $('#modal-root');
-    if (root?.querySelector('#keywordos-listing-workspace')) root.innerHTML = '';
+    if (root?.querySelector('#keywordos-suite-workspace')) root.innerHTML = '';
   }
 
   function navigateToPage(page) {
     const target = $$('#sidebar-nav [data-page]').find((button) => button.dataset.page === page);
     if (!target) return false;
     closeCommandPalette();
-    closeListingWorkspace();
+    closeSuiteWorkspace();
     target.click();
     return true;
   }
 
   function syncSuiteState() {
-    const listingOpen = Boolean($('#keywordos-listing-workspace'));
+    const openWorkspace = $('#keywordos-suite-workspace');
     const activePage = $('#sidebar-nav .nav-item.active')?.dataset.page || '';
-    const currentSuite = listingOpen ? 'listing' : suiteForPage(activePage);
+    const currentSuite = openWorkspace?.dataset.suite || suiteForPage(activePage);
     $$('.suite-nav button').forEach((button) => {
       const suite = normalizeSearch(button.textContent);
       button.classList.toggle('active', suite === currentSuite);
@@ -191,16 +271,17 @@
     });
   }
 
-  function openListingWorkspace() {
+  function openSuiteWorkspace(suite) {
+    const workspace = suiteWorkspace(suite);
     const root = $('#modal-root');
-    if (!root) return;
-    root.innerHTML = `<div class="modal-wrap" id="keywordos-listing-workspace"><div class="modal" role="dialog" aria-modal="true" aria-labelledby="keywordos-listing-title"><div class="modal-header"><div><h2 id="keywordos-listing-title">Listing Workspace</h2><small>Keyword-backed listing preparation without Amazon write access</small></div><button class="drawer-close" id="keywordos-listing-close" aria-label="Close Listing Workspace">×</button></div><div class="modal-body"><div class="notice-banner"><b>Listing editing and publishing are not connected in this runtime.</b> Existing KeywordOS keyword intelligence remains available for listing research and preparation without creating Amazon credentials or write actions.</div><div class="admin-actions top-gap"><button class="btn secondary" data-listing-page="global-keywords">Global Keyword Library</button><button class="btn secondary" data-listing-page="cerebro">Cerebro</button><button class="btn secondary" data-listing-page="keyword-library">Keyword Library</button></div></div></div></div>`;
-    $('#keywordos-listing-close')?.addEventListener('click', () => {
-      closeListingWorkspace();
+    if (!workspace || !root) return;
+    root.innerHTML = `<div class="modal-wrap" id="keywordos-suite-workspace" data-suite="${suite}"><div class="modal" role="dialog" aria-modal="true" aria-labelledby="keywordos-suite-title"><div class="modal-header"><div><h2 id="keywordos-suite-title">${workspace.title}</h2><small>${workspace.subtitle}</small></div><button class="drawer-close" id="keywordos-suite-close" aria-label="Close ${workspace.title}">×</button></div><div class="modal-body"><div class="notice-banner">${workspace.notice}</div><div class="keywordos-suite-grid">${workspace.items.map((item) => `<button class="keywordos-suite-card" type="button" data-suite-page="${item.page}"><div><b>${item.label}</b><small>${item.detail}</small></div><span>Open →</span></button>`).join('')}</div></div></div></div>`;
+    $('#keywordos-suite-close')?.addEventListener('click', () => {
+      closeSuiteWorkspace();
       syncSuiteState();
     });
-    $$('[data-listing-page]', root).forEach((button) => {
-      button.addEventListener('click', () => navigateToPage(button.dataset.listingPage));
+    $$('[data-suite-page]', root).forEach((button) => {
+      button.addEventListener('click', () => navigateToPage(button.dataset.suitePage));
     });
     syncSuiteState();
   }
@@ -213,8 +294,7 @@
       if (button.dataset.suiteNavigationBound === '1') return;
       button.dataset.suiteNavigationBound = '1';
       button.addEventListener('click', () => {
-        if (action.type === 'page') navigateToPage(action.page);
-        if (action.type === 'listing') openListingWorkspace();
+        openSuiteWorkspace(action.suite);
         syncSuiteState();
       });
     });
