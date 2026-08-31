@@ -580,7 +580,14 @@ function closeModal(){$('#modal-root').innerHTML='';}
 function toast(msg,type=''){$('#toast-root').innerHTML=`<div class="toast ${type}">${esc(msg)}</div>`;window.KeywordOSI18N?.apply($('#toast-root'));setTimeout(()=>{$('#toast-root').innerHTML=''},2600);}
 
 function bindGlobalPageEvents(){
-  $$('[data-page]').forEach(b=>b.addEventListener('click',()=>go(b.dataset.page)));
+  const sidebarNav = $('#sidebar-nav');
+if(sidebarNav&&!sidebarNav.dataset.pageNavBound){
+  sidebarNav.dataset.pageNavBound='1';
+  sidebarNav.addEventListener('click',event=>{
+    const button=event.target instanceof Element?event.target.closest('[data-page]'):null;
+    if(button&&sidebarNav.contains(button))go(button.dataset.page);
+  });
+}
   $$('[data-nav]').forEach(b=>b.addEventListener('click',()=>{if(b.dataset.analytics){state.analyticsView=b.dataset.analytics;state.page='analytics'}else state.page=b.dataset.nav;resetTableState();render();}));
   $$('[data-campaign]').forEach(a=>a.addEventListener('click',()=>{state.page='ad-manager';state.adView='adgroup';state.drill={campaign:a.dataset.campaign,adGroup:'',target:''};resetTableState(false);render();}));
   $$('[data-switch-store]').forEach(b=>b.addEventListener('click',()=>{state.scope=b.dataset.switchStore;state.page='store-workspace';resetTableState();render();}));
