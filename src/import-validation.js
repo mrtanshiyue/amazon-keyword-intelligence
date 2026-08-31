@@ -13,6 +13,8 @@ const ADS_REQUIRED_HEADERS = {
   sales: ['销售额', 'Sales', 'Attributed Sales'],
 };
 
+const ADS_NUMERIC_FIELDS = ['impressions', 'clicks', 'cost', 'orders', 'sales'];
+
 const UNIFIED_REQUIRED_HEADERS = [
   'date/time',
   'settlement id',
@@ -111,6 +113,65 @@ function validateRowWidths(rows, startIndex, expectedFieldCount) {
   }
 }
 
+function headerIndex(headers, aliases) {
+  return headers.findIndex((header) => aliases.some((alias) => header === alias.toLowerCase()));
+}
+
+function parseNonNegativeNumber(value) {
+  const raw = String(value ?? '').trim();
+  if (!raw) return null;
+  const normalized = raw.replace(/[$,\s]/g, '');
+  if (!/^(?:\d+(?:\.\d+)?|\.\d+)$/.test(normalized)) return null;
+  const number = Number(normalized);
+  return Number.isFinite(number) && number >= 0 ? number : null;
+}
+
+function validCalendarDate(year, month, day) {
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
+}
+
+function validAdsDate(value) {
+  const raw = String(value ?? '').trim();
+  if (!raw) return false;
+  let match = raw.match(/^(\d{4})年(\d{1,2})月(\d{1,2})日$/);
+  if (!match) match = raw.match(/^(\d{4})[\/-](\d{1,2})[\/-](\d{1,2})(?:\s.*)?$/);
+  if (match) return validCalendarDate(Number(match[1]), Number(match[2]), Number(match[3]));
+  return !Number.isNaN(Date.parse(raw));
+}
+
+function validateAdsValues(rows, headers) {
+  const numericIndexes = Object.fromEntries(
+    ADS_NUMERIC_FIELDS.map((field) => [field, headerIndex(headers, ADS_REQUIRED_HEADERS[field])])
+  );
+  const dateIndex = headerIndex(headers, ADS_REQUIRED_HEADERS.date);
+
+  for (let index = 1; index < rows.length; index += 1) {
+    const row = rows[index];
+    if (!nonBlank(row)) continue;
+
+    for (const field of ADS_NUMERIC_FIELDS) {
+      const value = row[numericIndexes[field]];
+      if (parseNonNegativeNumber(value) === null) {
+        throw new ImportValidationError('invalid_numeric_value', {
+          rowNumber: index + 1,
+          field,
+          value: String(value ?? '').slice(0, 120),
+        });
+      }
+    }
+
+    const dateValue = row[dateIndex];
+    if (!validAdsDate(dateValue)) {
+      throw new ImportValidationError('invalid_date_value', {
+        rowNumber: index + 1,
+        field: 'date',
+        value: String(dateValue ?? '').slice(0, 120),
+      });
+    }
+  }
+}
+
 function validateAdsCsv(text) {
   const rows = parseCsv(text);
   if (!rows.length || !nonBlank(rows[0])) throw new ImportValidationError('empty_csv');
@@ -126,6 +187,7 @@ function validateAdsCsv(text) {
   }
 
   validateRowWidths(rows, 1, rows[0].length);
+  validateAdsValues(rows, headers);
   const rowCount = rows.slice(1).filter(nonBlank).length;
   if (!rowCount) throw new ImportValidationError('empty_dataset');
 
