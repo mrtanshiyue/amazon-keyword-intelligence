@@ -102,8 +102,31 @@
     return SUITE_WORKSPACES[suite] || null;
   }
 
+  function pageHash(page) {
+    const normalized = String(page || '').trim();
+    return normalized ? `#page=${encodeURIComponent(normalized)}` : '';
+  }
+
+  function pageFromHash(hash) {
+    const match = String(hash || '').match(/^#page=([^&]+)$/);
+    if (!match) return '';
+    try {
+      return decodeURIComponent(match[1]).trim();
+    } catch {
+      return '';
+    }
+  }
+
   if (typeof globalThis !== 'undefined') {
-    globalThis.KeywordOSProductivityTest = { normalizeSearch, filterEntries, suiteAction, suiteForPage, suiteWorkspace };
+    globalThis.KeywordOSProductivityTest = {
+      normalizeSearch,
+      filterEntries,
+      suiteAction,
+      suiteForPage,
+      suiteWorkspace,
+      pageHash,
+      pageFromHash
+    };
   }
 
   if (typeof document === 'undefined') return;
@@ -111,6 +134,7 @@
   const $ = (selector, root = document) => root.querySelector(selector);
   const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
   const headerActions = () => $$('.header-right .header-action');
+  let applyingHistoryRoute = false;
 
   function loadShellState() {
     try {
@@ -250,19 +274,56 @@
     if (root?.querySelector('#keywordos-suite-workspace')) root.innerHTML = '';
   }
 
-  function navigateToPage(page) {
+  function activePage() {
+    return $('#sidebar-nav .nav-item.active')?.dataset.page || '';
+  }
+
+  function writePageHistory(page, replace = false) {
+    const hash = pageHash(page);
+    if (!hash || window.location.hash === hash) return;
+    const method = replace ? 'replaceState' : 'pushState';
+    window.history[method]({ keywordOSPage: page }, '', hash);
+  }
+
+  function navigateToPage(page, { fromHistory = false } = {}) {
     const target = $$('#sidebar-nav [data-page]').find((button) => button.dataset.page === page);
     if (!target) return false;
     closeCommandPalette();
     closeSuiteWorkspace();
+    if (fromHistory) applyingHistoryRoute = true;
     target.click();
+    if (fromHistory) setTimeout(() => { applyingHistoryRoute = false; }, 0);
     return true;
+  }
+
+  function applyPageHistoryRoute() {
+    const page = pageFromHash(window.location.hash);
+    if (!page) return false;
+    if (activePage() === page) return true;
+    return navigateToPage(page, { fromHistory: true });
+  }
+
+  function bindPageHistory() {
+    $$('#sidebar-nav [data-page]').forEach((button) => {
+      if (button.dataset.pageHistoryBound === '1') return;
+      button.dataset.pageHistoryBound = '1';
+      button.addEventListener('click', () => {
+        if (applyingHistoryRoute) return;
+        const page = button.dataset.page || '';
+        if (page) writePageHistory(page, false);
+      });
+    });
+  }
+
+  function syncPassivePageHash() {
+    if (applyingHistoryRoute) return;
+    const page = activePage();
+    if (page && pageFromHash(window.location.hash) !== page) writePageHistory(page, true);
   }
 
   function syncSuiteState() {
     const openWorkspace = $('#keywordos-suite-workspace');
-    const activePage = $('#sidebar-nav .nav-item.active')?.dataset.page || '';
-    const currentSuite = openWorkspace?.dataset.suite || suiteForPage(activePage);
+    const currentSuite = openWorkspace?.dataset.suite || suiteForPage(activePage());
     $$('.suite-nav button').forEach((button) => {
       const suite = normalizeSearch(button.textContent);
       button.classList.toggle('active', suite === currentSuite);
@@ -375,21 +436,28 @@
     button.setAttribute('aria-label', button.title);
   }
 
-  function refreshShell() {
+  function refreshShell(syncHistory = true) {
     bindSidebarCollapse();
+    bindPageHistory();
     bindSuiteNavigation();
     bindGlobalSearch();
     bindHelp();
     enforceNotificationTruth();
+    if (syncHistory) syncPassivePageHash();
   }
 
   function start() {
     installStyles();
-    refreshShell();
+    const requestedPage = pageFromHash(window.location.hash);
+    refreshShell(false);
+    if (requestedPage && !navigateToPage(requestedPage, { fromHistory: true })) syncPassivePageHash();
+    else if (!requestedPage) syncPassivePageHash();
     const nav = $('#sidebar-nav');
-    if (nav) new MutationObserver(refreshShell).observe(nav, { childList: true, subtree: true });
+    if (nav) new MutationObserver(() => refreshShell(true)).observe(nav, { childList: true, subtree: true });
     const modalRoot = $('#modal-root');
     if (modalRoot) new MutationObserver(syncSuiteState).observe(modalRoot, { childList: true, subtree: true });
+    window.addEventListener('popstate', applyPageHistoryRoute);
+    window.addEventListener('hashchange', applyPageHistoryRoute);
     window.addEventListener('resize', () => {
       if (window.matchMedia('(max-width:760px)').matches) setSidebarCollapsed(false, false);
     });
