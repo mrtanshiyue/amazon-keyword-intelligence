@@ -24,3 +24,6 @@ CREATE TABLE IF NOT EXISTS dataset_current (
 
 CREATE INDEX IF NOT EXISTS idx_dataset_current_dataset
   ON dataset_current(dataset_id);
+
+INSERT OR REPLACE INTO deployment_meta(key, value, updated_at)
+VALUES ('schema_version', '3', CURRENT_TIMESTAMP);
