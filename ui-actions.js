@@ -381,6 +381,55 @@
     });
   }
 
+  function markPageMetaTruth() {
+    const subtitle = $('#page-subtitle');
+    if (!subtitle) return;
+    const copy = {
+      'Store Workspace': 'Local Store workspace and imported-data state. Amazon authorization and remote writes are disabled.',
+      'Portfolio Overview': 'Consolidated intelligence from loaded Store datasets. Global mode is local analytics only.',
+      'Cross-store Intelligence': 'Compare only loaded Store datasets. Empty Store workspaces remain No data.',
+      'Global Conflict Center': 'Cross-store conflicts require multiple real Store datasets; Store 01 internal signals remain local.',
+      'Dashboard': 'Advertising performance from the current imported Store 01 dataset.',
+      'Suggestions': 'Review local recommendations and stage decisions to Action Center; nothing is applied to Amazon.',
+      'Dayparting Schedules': 'Create browser-local schedule drafts. Hourly Amazon execution is unavailable.',
+      'Ad Manager': 'Analyze imported campaign data and stage local decisions; Amazon writes are disabled.',
+      'Analytics': 'Analyze imported advertising performance across the available dataset dimensions.',
+      'Rules & Automation': 'Structured harvest and negative rules run locally into Action Center; Amazon execution is disabled.',
+      'Action Center': 'Review browser-local decisions. Approved means approved locally, not executed on Amazon.',
+      'Keyword Tracker': 'Track paid performance and local keyword metadata. Organic and Sponsored Rank are unavailable.',
+      'Import Center': 'Validate and replace the Store 01 browser dataset from local Amazon Ads CSV imports.',
+      'Sync Center': 'Inspect browser datasets and persistence status. Amazon live sync is disabled.',
+      'Data Health': 'Inspect loaded rows, schema coverage and browser persistence before local decisions are generated.',
+      'Stores': 'Manage browser-local Store workspaces independently from Amazon authorization.',
+      'Amazon Connections': 'Amazon OAuth, advertiser binding, refresh tokens and live sync are deferred.',
+      'Users & Permissions': 'Authentication, user invitations and server-enforced Store roles are deferred.'
+    }[pageTitle()];
+    if (copy) setText(subtitle, copy);
+  }
+
+  function markKeywordRankTruth() {
+    if (pageTitle() !== 'Keyword Tracker') return;
+    const label = $('.notice-banner b');
+    if (label?.textContent.trim() === 'Rank data connection:') setText(label, 'Rank data source:');
+    $$('.data-table .locked').forEach((cell) => {
+      if (cell.childElementCount === 0 && cell.textContent.trim() === 'Not connected') setText(cell, 'Unavailable');
+    });
+  }
+
+  function markImportTruth() {
+    if (pageTitle() !== 'Import Center') return;
+    setLeafText($('#content'), 'Import & Merge', 'Import & Replace');
+    const layout = $('.import-layout');
+    if (layout && !$('#store01-import-truth')) {
+      const notice = document.createElement('div');
+      notice.id = 'store01-import-truth';
+      notice.className = 'notice-banner';
+      notice.style.marginBottom = '12px';
+      notice.innerHTML = '<b>Import destination:</b> Store 01 browser workspace only. Store 02 / 03 and custom Store workspaces remain No data until a real store-scoped dataset path exists.';
+      layout.insertAdjacentElement('beforebegin', notice);
+    }
+  }
+
   function setText(node, value) {
     if (node && node.textContent !== value) node.textContent = value;
   }
@@ -742,6 +791,9 @@
     renderUsersTruth();
     markDataHealthTruth();
     markSettingsTruth();
+    markPageMetaTruth();
+    markKeywordRankTruth();
+    markImportTruth();
     enhanceActionCenter();
     enhanceAdAnalytics();
     enhanceSuggestions();
