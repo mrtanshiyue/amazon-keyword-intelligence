@@ -34,6 +34,10 @@ const UNIFIED_REQUIRED_HEADERS = [
 
 const IMPORT_KINDS = new Set(['amazon_ads', 'unified_transaction']);
 
+// The parser materializes bytes, decoded text, rows and fields at once. Increase this
+// only after moving large imports to a streaming parser.
+export const MAX_IMPORT_BYTES = 16 * 1024 * 1024;
+
 export class ImportValidationError extends Error {
   constructor(code, details = null) {
     super(code);
@@ -194,6 +198,12 @@ function hex(buffer) {
 export async function validateImportBody(kind, body) {
   const bytes = bodyBytes(body);
   if (!bytes.byteLength) throw new ImportValidationError('empty_import_body');
+  if (bytes.byteLength > MAX_IMPORT_BYTES) {
+    throw new ImportValidationError('import_too_large', {
+      maxByteSize: MAX_IMPORT_BYTES,
+      actualByteSize: bytes.byteLength,
+    });
+  }
 
   let text;
   try {
