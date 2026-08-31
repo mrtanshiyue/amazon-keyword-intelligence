@@ -3,87 +3,87 @@
 **Updated:** 2026-08-31 (Asia/Singapore)  
 **Repository:** `mrtanshiyue/amazon-keyword-intelligence`
 
-This is the single authoritative handoff for the next conversation. Do not use retired V5/V6/V7/V8/V9 notes as current product state.
+This is the single authoritative continuation checkpoint. Retired V5/V6/V7/V8/V9 notes and older #20 handoffs are historical only.
 
 ## 1. Next conversation: execute directly
 
 Continue:
 
-**KeywordOS #20 Full Product Completion — exact-main Cloudflare Build + Production Cumulative Acceptance Finalization**
+**Amazon Keyword Intelligence — #17 non-auth server persistence finalization**
 
 Do not restart product analysis.  
+Do not redo #20.  
 Do not redesign the UI.  
-Do not redo Local Data Operations, Store Workspace, Control Completion, Shell Truth, Mobile Hardening or Keyboard Accessibility.  
-Do not resume authentication/server-side persistence yet.  
+Do not recreate Worker / D1 / R2.  
 Do not enable Amazon Ads API/OAuth.  
-Do not add Worker mutation endpoints.  
-Do not fabricate Cloudflare Build or Production-browser evidence.
+Do not expose anonymous mutable Worker routes.
 
-The only remaining product lane is:
+### Owner override — authentication/login verification is frozen
 
-> Verify the latest authoritative `main` is the exact Cloudflare Workers Build/deployment source, confirm the Build succeeds, run cumulative Production browser acceptance, then close #20 only if every acceptance gate passes. After #20 is formally accepted, resume #17.
+The owner explicitly instructed that login/authentication verification must remain frozen until the rest of the project is complete and the owner explicitly asks to resume it.
+
+Until that explicit instruction arrives, do **not**:
+
+- run `/api/private/session` acceptance
+- request or capture a canonical Cloudflare Access `sub`
+- bootstrap `access_users`
+- bootstrap `store_memberships`
+- perform owner/unrelated/cross-store/role authorization acceptance
+- add a public bootstrap endpoint
+- modify or replace the existing Access/JWT foundation merely to continue other work
+- treat the frozen auth lane as a blocker for independent non-auth work
+
+Preserve the existing Access configuration and fail-closed auth code without extending the login flow.
 
 ## 2. GitHub authoritative state
 
-Product baseline immediately before this docs-only cleanup:
+Authoritative product main before this documentation-only update:
 
-`78d69cde0d49578ca7a7a3c690e9b17e490ee5d1`
+`4e2d274b896a04cb60ebfd017471ab9a0ec26e2d`
 
-That baseline already contains all product work through:
+At the start of a future conversation, read current `main` and use the latest merge commit if this docs update has landed.
 
-- PR #29 — Local Data Operations
-- PR #30 — Store Workspace / Store Management
-- PR #31 — Control Completion
-- PR #32 — Shell Truth Completion
-- PR #33 — Mobile Hardening Final
-- PR #34 — Keyboard Accessibility Final
+Issue state:
 
-This documentation cleanup branch is intentionally docs-only. At the start of the next conversation, read current `main` and treat the merge commit of this cleanup PR as authoritative if it has landed.
+- **#20 — CLOSED / COMPLETED**. Do not reopen or rerun it.
+- **#17 — OPEN / ACTIVE**, but its authentication/login acceptance lane is explicitly **FROZEN BY OWNER**.
+- Amazon API/OAuth remains **HARD-OFF**.
 
-Expected repository state after cleanup:
+Recent non-auth #17 merges:
 
-- #20: OPEN until final Production acceptance
-- #17: OPEN but explicitly DEFERRED
-- Amazon API mode: disabled
-- no open product PRs other than this docs-cleanup PR while it is being finalized
+- PR #42 — versioned dataset persistence foundation
+- PR #43 — server-side import validation
+- PR #44 — validate-first import persistence pipeline
+- PR #45 — current dataset restore integrity checks
 
 ## 3. Completed product state — do not redo
 
-### Local data / persistence
+#20 Production cumulative acceptance is complete.
 
-- Ads CSV local import is real.
-- Unified Transaction local import is real.
-- intended browser workspace persistence is implemented.
-- Local Data Operations validates current browser datasets; it does not fake live Amazon sync.
+The existing product already includes:
 
-### Store truth
+- Dashboard / Analytics
+- Ad Manager local drill-down
+- Suggestions local review/staging
+- Rules local evaluation where supported
+- Action Center / Change Log
+- Cerebro / Keyword Tracker / Keyword and Negative libraries
+- Conflict Guard / Protected Keywords
+- Unified Transaction analytics
+- Ads and Unified CSV browser-local import/persistence
+- Local Data Operations / Data Health
+- Store workspace management
+- mobile/responsive hardening
+- keyboard accessibility hardening
 
-- Store 01 has the real loaded/test dataset.
-- Store 02 / Store 03 remain `No data`.
-- local Store workspace metadata can be created/edited without claiming Amazon connection.
-- Amazon connection/advertiser/live-sync semantics are explicitly disabled/deferred.
+Store truth remains:
 
-### Advertising workflows
+- Store 01 has the accepted loaded/test dataset
+- Store 02 / Store 03 remain `No data`
+- custom Store workspaces are browser-local metadata only
+- local `Staged` / `Approved` does not mean executed on Amazon
 
-- Ad Manager / Analytics local drill-down and bulk Open behavior are completed.
-- Suggestions local search/select/batch staging is completed.
-- Action Center local search/status lifecycle is completed.
-- supported local structured rules stage decisions locally.
-- Dayparting hourly execution remains dependency-disabled; local schedule drafts are truthful.
-
-### Finance
-
-- Unified Finance tabs, filters, pagination, exports and drill-downs are implemented from imported data.
-- unsupported Settlement drawer behavior is not presented as a working action.
-
-### UI truth / mobile / accessibility
-
-- shell copy reflects local/browser capability, not fake live connectivity.
-- mobile/narrow layout hardening is merged.
-- dynamic entity/toggle actions are keyboard reachable with Enter/Space.
-- table checkbox labeling and toast live-region support are merged.
-
-## 4. Cloudflare / Production
+## 4. Current Cloudflare / security state
 
 Production Worker:
 
@@ -96,95 +96,180 @@ Production URL:
 Architecture:
 
 - Workers Static Assets
-- Worker read-only API
-- D1 metadata
-- R2 public-test datasets
-- GitHub `main` → Cloudflare Workers Builds → Wrangler deploy
+- Worker API
+- D1 `DB`
+- R2 `DATA`
+- GitHub `main` -> Cloudflare Workers Builds -> Wrangler deploy
 
-`npm run build` currently publishes 12 browser application assets and does **not** publish seed-data source files or raw CSVs.
+### Existing Access configuration — preserve, do not continue acceptance
 
-Current Worker business surface is GET/HEAD-only. `AMAZON_API_MODE=disabled` must remain unchanged.
+A Worker-level Cloudflare Access application already exists for the Production Worker.
 
-### Previous blocker
+Known configuration from the last successful Cloudflare read:
 
-The last session could discover the Cloudflare connector but execution calls intermittently returned `Resource not found`. This was treated as a connector/tool failure, **not** as a Cloudflare Build failure.
+- Access app: `amazon-keyword-intelligence production access`
+- app id: `de10640f-a231-4829-ad2b-164362756666`
+- audience: `96cb83b4c8dbc5a40fa7ab4a6104f546e05035814943bd7d5b76cf251095eb64`
+- team domain: `https://tanshiyuesir.cloudflareaccess.com`
+- policy: owner-only allow for `tanshiyuesir@gmail.com`
+- `ACCESS_TEAM_DOMAIN` and `ACCESS_POLICY_AUD` are configured
+- `AMAZON_API_MODE=disabled`
 
-Do not assume Build success from historical runs. Read the latest Build for the current exact `main`.
+The Access/JWT foundation remains fail-closed. Do not perform login/session acceptance while the owner freeze is active.
 
-## 5. Final #20 acceptance sequence
+### Membership state
 
-Execute in this order:
+Migration `0002_access_memberships.sql` was applied previously.
 
-1. **Read-only drift check once**
-   - current GitHub `main`
-   - #20 still OPEN
-   - #17 still DEFERRED
-   - no unexpected open product PR
+Last verified counts before the auth freeze:
 
-2. **Cloudflare exact-main verification**
-   - locate latest Workers Build for `amazon-keyword-intelligence`
-   - confirm its commit SHA equals current GitHub `main`
-   - confirm build command/check/build/deploy outcome is successful
-   - do not manually deploy an older SHA
+```text
+access_users = 0
+store_memberships = 0
+```
 
-3. **Production runtime/basic API acceptance**
-   - Production root renders
-   - `/api/health` works
-   - `/api/data/manifest` works
-   - data seed routes work
-   - Amazon API mode remains disabled
-   - no mutable Worker business API is exposed
+Keep them unbootstrapped while authentication is frozen.
 
-4. **Production cumulative browser acceptance**
-   Cover at minimum:
-   - Global read-only boundary
-   - Store 01 workspace
-   - Store 02/03 No-data truth
-   - Dashboard
-   - Ad Manager
-   - Analytics
-   - Suggestions
-   - Rules & Automation
-   - Action Center / Change Log
-   - Cerebro / Tracker / Keyword Library / Negative Library / Conflict Guard
-   - Unified Finance
-   - Ads/Unified import + reload persistence where browser testing safely permits
-   - Local Data Operations / Data Health
-   - Store management truth
-   - desktop viewport
-   - narrow/mobile viewport
-   - keyboard focus/activation for dynamic actions
-   - no false Connected / Live / Sync / Executed semantics
+## 5. Current Worker runtime boundary
 
-5. **Closure rule**
-   - If any confirmed product defect remains, fix only that root cause through a narrow PR and repeat exact-main acceptance.
-   - If all gates pass, record evidence on #20 and close #20 as completed.
-   - Only then resume #17.
+`src/worker.js` was unchanged by PRs #42–#45.
 
-## 6. #17 security phase — frozen until #20 closes
+The Worker business surface remains GET/HEAD-only. Non-GET/HEAD requests remain `405 Method Not Allowed`.
 
-Issue #17 already contains dormant fail-closed foundations:
+Existing read routes include:
 
-- Access JWT verification helpers
-- read-only `/api/private/session`
-- D1 membership schema
-- read-only per-store authorization helpers
+- `/api/health`
+- `/api/data/manifest`
+- `/api/data/seed.js`
+- `/api/data/unified-seed.js`
+- `/api/private/session` — existing fail-closed canary; **do not run auth acceptance while frozen**
 
-While #17 is deferred, do not:
+There is no anonymous mutable business API.
 
-- configure Production Cloudflare Access
-- bootstrap memberships
-- add mutable server-side import endpoints
-- create anonymous Worker writes
-- enable Amazon OAuth/API
+## 6. Non-auth server persistence foundation now merged
 
-## 7. Documentation policy after this cleanup
+### D1 migration in repository
 
-Root documentation intended to remain authoritative:
+`migrations/0003_dataset_versions.sql` defines:
 
-- `README.md`
-- `CURRENT_HANDOFF.md`
-- `CLOUDFLARE_ARCHITECTURE.md`
-- `P0_DATA_BOUNDARY.md`
+- `dataset_versions` — immutable dataset version metadata
+- `dataset_current` — per-Store/per-kind current pointer
+- indexes for Store/kind/version lookup
+- `deployment_meta.schema_version = 3`
 
-Retired V5/V6/V7/V8/V9 stage documents are deliberately removed because they contained historical implementation assumptions and stale acceptance claims.
+### Persistence primitive
+
+`src/dataset-persistence.js` provides:
+
+- strict dataset descriptor validation
+- Store/kind-scoped immutable R2 keys
+- R2 conditional create using `If-None-Match: *`
+- SHA-256 checksum enforcement
+- D1 `batch()` promotion of version metadata + current pointer
+- current metadata lookup
+- current R2 object restore with size and metadata consistency checks
+
+Safe failure order is:
+
+```text
+validate
+-> immutable R2 write
+-> D1 transactional version/current promotion
+```
+
+A D1 failure may leave an unreachable immutable R2 orphan, but cannot promote a broken current pointer.
+
+### Import validation
+
+`src/import-validation.js` provides fail-closed validation for:
+
+- Amazon Ads Search Term CSV
+- Amazon Unified Transaction CSV
+- required Ads fields
+- Unified header shape
+- malformed CSV
+- invalid UTF-8
+- empty imports
+- exact raw-byte SHA-256
+
+Real fixture acceptance is covered by tests:
+
+- Ads: 8753 rows / 45 fields
+- Unified: 3643 rows / 32 fields
+
+### Validate-first pipeline
+
+`src/import-pipeline.js` composes only existing primitives:
+
+```text
+validateImportBody()
+-> persistAcceptedDataset()
+```
+
+Tests prove invalid input performs zero R2 writes and zero D1 batches.
+
+None of these modules are wired into a public Worker mutation route.
+
+## 7. Current Cloudflare blocker — remote migration only
+
+After PR #42, attempts to use the Cloudflare connector began returning tool-level:
+
+```text
+Resource not found
+```
+
+This is a connector/tool condition, not a login/authentication gate and not evidence of a Cloudflare runtime failure.
+
+Because of that connector condition, `migrations/0003_dataset_versions.sql` has **not yet been applied remotely** in this continuation.
+
+Do not claim remote schema v3 until it is actually applied and verified.
+
+When the Cloudflare connector works again, the next safe non-auth Cloudflare action is:
+
+1. read current D1 state
+2. apply the authoritative exact-main `0003_dataset_versions.sql`
+3. verify `dataset_versions` exists and is empty
+4. verify `dataset_current` exists and is empty
+5. verify `deployment_meta.schema_version = 3`
+6. verify `access_users = 0` and `store_memberships = 0`
+
+Do **not** insert any user/membership rows during this step.
+
+## 8. What remains before auth is resumed
+
+Continue only work that does not require a user identity or authorization acceptance.
+
+The server persistence primitives are now prepared, but runtime write/read wiring must not create an anonymous mutable endpoint. If a remaining task would require deciding who may read/write a Store, stop that task at the internal helper boundary and continue other independent work.
+
+Do not use D1 direct writes or fabricated identities to simulate browser acceptance.
+
+## 9. Permanent Amazon boundary
+
+Keep:
+
+```text
+AMAZON_API_MODE = disabled
+```
+
+Do not:
+
+- start Amazon OAuth
+- call Amazon Ads API
+- call SP-API
+- store Amazon credentials
+- bind live advertisers
+- execute staged local actions against Amazon
+
+## 10. Resume condition for authentication
+
+Authentication/login verification resumes **only** after the owner explicitly asks for it.
+
+At that future point, continue from the existing foundation rather than rebuilding it:
+
+- real `/api/private/session`
+- canonical Access `sub`
+- exact intended-owner bootstrap for `store-a`
+- authorization acceptance
+- only then wire protected runtime persistence routes
+
+Until then, leave this lane frozen and keep #17 open.
