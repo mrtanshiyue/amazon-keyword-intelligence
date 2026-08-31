@@ -117,6 +117,16 @@
     }
   }
 
+  function initialHistoryDecision(requestedPage, availablePages, currentPage) {
+    const requested = String(requestedPage || '').trim();
+    const available = new Set(Array.isArray(availablePages) ? availablePages : []);
+    if (!requested) return { action: 'sync' };
+    if (!available.size) return { action: 'wait', page: requested };
+    if (!available.has(requested)) return { action: 'sync' };
+    if (requested === currentPage) return { action: 'done', page: requested };
+    return { action: 'navigate', page: requested };
+  }
+
   if (typeof globalThis !== 'undefined') {
     globalThis.KeywordOSProductivityTest = {
       normalizeSearch,
@@ -125,7 +135,8 @@
       suiteForPage,
       suiteWorkspace,
       pageHash,
-      pageFromHash
+      pageFromHash,
+      initialHistoryDecision
     };
   }
 
@@ -135,6 +146,7 @@
   const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
   const headerActions = () => $$('.header-right .header-action');
   let applyingHistoryRoute = false;
+  let pendingInitialHistoryPage = '';
 
   function loadShellState() {
     try {
@@ -298,9 +310,14 @@
 
   function applyPageHistoryRoute() {
     const page = pageFromHash(window.location.hash);
-    if (!page) return false;
+    if (!page) {
+      syncPassivePageHash();
+      return false;
+    }
     if (activePage() === page) return true;
-    return navigateToPage(page, { fromHistory: true });
+    if (navigateToPage(page, { fromHistory: true })) return true;
+    syncPassivePageHash();
+    return false;
   }
 
   function bindPageHistory() {
@@ -319,6 +336,16 @@
     if (applyingHistoryRoute) return;
     const page = activePage();
     if (page && pageFromHash(window.location.hash) !== page) writePageHistory(page, true);
+  }
+
+  function settleInitialHistoryRoute() {
+    const availablePages = currentPageEntries().map((entry) => entry.page);
+    const decision = initialHistoryDecision(pendingInitialHistoryPage, availablePages, activePage());
+    if (decision.action === 'wait') return false;
+    pendingInitialHistoryPage = '';
+    if (decision.action === 'navigate') return navigateToPage(decision.page, { fromHistory: true });
+    if (decision.action === 'sync') syncPassivePageHash();
+    return true;
   }
 
   function syncSuiteState() {
@@ -448,12 +475,14 @@
 
   function start() {
     installStyles();
-    const requestedPage = pageFromHash(window.location.hash);
+    pendingInitialHistoryPage = pageFromHash(window.location.hash);
     refreshShell(false);
-    if (requestedPage && !navigateToPage(requestedPage, { fromHistory: true })) syncPassivePageHash();
-    else if (!requestedPage) syncPassivePageHash();
+    settleInitialHistoryRoute();
     const nav = $('#sidebar-nav');
-    if (nav) new MutationObserver(() => refreshShell(true)).observe(nav, { childList: true, subtree: true });
+    if (nav) new MutationObserver(() => {
+      refreshShell(false);
+      settleInitialHistoryRoute();
+    }).observe(nav, { childList: true, subtree: true });
     const modalRoot = $('#modal-root');
     if (modalRoot) new MutationObserver(syncSuiteState).observe(modalRoot, { childList: true, subtree: true });
     window.addEventListener('popstate', applyPageHistoryRoute);

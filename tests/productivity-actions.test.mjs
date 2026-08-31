@@ -10,7 +10,8 @@ const {
   suiteForPage,
   suiteWorkspace,
   pageHash,
-  pageFromHash
+  pageFromHash,
+  initialHistoryDecision
 } = globalThis.KeywordOSProductivityTest;
 
 test('normalizeSearch makes command matching case and whitespace insensitive', () => {
@@ -79,4 +80,13 @@ test('page hash helpers round-trip valid sidebar page ids', () => {
   assert.equal(pageFromHash(''), '');
   assert.equal(pageFromHash('#other=keyword-library'), '');
   assert.equal(pageFromHash('#page=%E0%A4%A'), '');
+});
+
+
+test('initial history waits for async sidebar render before resolving requested page', () => {
+  assert.deepEqual(initialHistoryDecision('keyword-library', [], ''), { action: 'wait', page: 'keyword-library' });
+  assert.deepEqual(initialHistoryDecision('keyword-library', ['portfolio-overview', 'keyword-library'], 'portfolio-overview'), { action: 'navigate', page: 'keyword-library' });
+  assert.deepEqual(initialHistoryDecision('keyword-library', ['portfolio-overview', 'keyword-library'], 'keyword-library'), { action: 'done', page: 'keyword-library' });
+  assert.deepEqual(initialHistoryDecision('missing-page', ['portfolio-overview', 'keyword-library'], 'portfolio-overview'), { action: 'sync' });
+  assert.deepEqual(initialHistoryDecision('', ['portfolio-overview'], 'portfolio-overview'), { action: 'sync' });
 });
