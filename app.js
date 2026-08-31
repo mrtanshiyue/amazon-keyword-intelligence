@@ -181,8 +181,8 @@ function scopeBanner(){const st=activeStore();return isGlobal()?`<div class="sco
 
 function suggestionData(){
   const rows=getRangeRows(), terms=aggregateLevel(rows,'searchterm'), targets=aggregateLevel(rows,'target'), campaigns=aggregateLevel(rows,'campaign');
-  const aiBids=targets.filter(x=>x.clicks>=8&&x.spend>=4).sort((a,b)=>b.spend-a.spend).slice(0,48).map(x=>({...x,suggestion:'Bid',currentBid:x.bid||.65,recommendedBid:Math.max(.2,(x.bid||.65)*(x.acos!=null&&x.acos>state.settings.targetAcos/100?.88:1.08))}));
-  const bids=targets.filter(x=>x.clicks>=5).sort((a,b)=>(b.orders-b.acos)-(a.orders-a.acos)).slice(0,48).map(x=>({...x,suggestion:'Bid',currentBid:x.bid||.6,recommendedBid:Math.max(.2,(x.bid||.6)*(x.orders>=2?1.06:.92))}));
+  const aiBids=targets.filter(x=>Number.isFinite(x.bid)&&x.bid>0&&x.clicks>=8&&x.spend>=4).sort((a,b)=>b.spend-a.spend).slice(0,48).map(x=>({...x,suggestion:'Bid',currentBid:x.bid,recommendedBid:Math.max(.2,(x.bid)*(x.acos!=null&&x.acos>state.settings.targetAcos/100?.88:1.08))}));
+  const bids=targets.filter(x=>Number.isFinite(x.bid)&&x.bid>0&&x.clicks>=5).sort((a,b)=>(b.orders-b.acos)-(a.orders-a.acos)).slice(0,48).map(x=>({...x,suggestion:'Bid',currentBid:x.bid,recommendedBid:Math.max(.2,(x.bid)*(x.orders>=2?1.06:.92))}));
   const newKeywords=terms.filter(x=>x.orders>=state.settings.harvestOrders&&x.acos!=null&&x.acos<=state.settings.harvestAcos/100).sort((a,b)=>b.orders-a.orders).slice(0,60).map(x=>({...x,suggestion:'New Keyword',recommendedMatch:'EXACT'}));
   const negativeKeywords=terms.filter(x=>x.orders===0&&x.clicks>=state.settings.negativeClicks&&x.spend>=state.settings.negativeSpend).sort((a,b)=>b.spend-a.spend).slice(0,60).map(x=>({...x,suggestion:'Negative Keyword',recommendedMatch:'NEGATIVE EXACT'}));
   const budget=campaigns.filter(x=>x.spend>0).sort((a,b)=>b.sales-a.sales).slice(0,36).map(x=>({...x,suggestion:'Budget',currentBudget:25,recommendedBudget:x.acos!=null&&x.acos<=state.settings.targetAcos/100?35:20}));
