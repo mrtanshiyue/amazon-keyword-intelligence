@@ -37,6 +37,43 @@
     return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
   }
 
+  const LOCAL_ARRAY_KEYS = new Set([
+    'keywordos_v9_actions',
+    'keywordos_v9_negatives',
+    'keywordos_v9_tracked',
+    'keywordos_v9_protected',
+    'keywordos_v9_rules',
+    'keywordos_v9_logs',
+    'keywordos_v9_presets',
+    'keywordos_v9_schedules',
+    'keywordos_v9_research_history',
+    'keywordos_v9_store_workspaces'
+  ]);
+  const LOCAL_STRING_KEYS = new Set(['keywordos_v9_preset_default']);
+
+  function validateLocalStateRaw(key, raw) {
+    if (typeof raw !== 'string') return { ok: false, error: `Invalid local value for ${key}.` };
+    let parsed;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      return { ok: false, error: `Local value for ${key} is not valid JSON.` };
+    }
+    if (LOCAL_ARRAY_KEYS.has(key)) {
+      return Array.isArray(parsed)
+        ? { ok: true }
+        : { ok: false, error: `Local value for ${key} must be an array.` };
+    }
+    if (LOCAL_STRING_KEYS.has(key)) {
+      return typeof parsed === 'string'
+        ? { ok: true }
+        : { ok: false, error: `Local value for ${key} must be a string.` };
+    }
+    return isRecord(parsed)
+      ? { ok: true }
+      : { ok: false, error: `Local value for ${key} must be an object.` };
+  }
+
   const ADS_PERSISTED_NUMERIC_FIELDS = ['impressions', 'clicks', 'cost', 'orders', 'sales', 'bid'];
   const FINANCE_PERSISTED_NUMERIC_FIELDS = [
     'quantity',
@@ -109,7 +146,8 @@
     const localState = {};
     for (const [key, raw] of Object.entries(value.localStorage)) {
       if (!SAFE_LOCAL_KEYS.has(key)) continue;
-      if (typeof raw !== 'string') return { ok: false, error: `Invalid local value for ${key}.` };
+      const localValidation = validateLocalStateRaw(key, raw);
+      if (!localValidation.ok) return localValidation;
       localState[key] = key === 'keywordos_v9_schedules' ? sanitizeScheduleStorage(raw) : raw;
     }
 
@@ -155,6 +193,7 @@
       BACKUP_FORMAT,
       BACKUP_VERSION,
       sanitizeScheduleStorage,
+      validateLocalStateRaw,
       validNormalizedDate,
       validateDatasetRows,
       validateBackupObject

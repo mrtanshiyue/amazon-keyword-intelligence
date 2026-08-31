@@ -7,6 +7,7 @@ const {
   BACKUP_FORMAT,
   BACKUP_VERSION,
   sanitizeScheduleStorage,
+  validateLocalStateRaw,
   validateBackupObject
 } = globalThis.KeywordOSLocalOperationsTest;
 
@@ -41,6 +42,35 @@ test('validateBackupObject rejects unsupported dataset keys and duplicate datase
     { key: 'ads', schemaVersion: 1, rows: [] },
     { key: 'ads', schemaVersion: 1, rows: [] }
   ] }).ok, false);
+});
+
+test('validateBackupObject rejects wrong local-state top-level shapes before restore', () => {
+  const base = { format: BACKUP_FORMAT, version: BACKUP_VERSION, datasets: [] };
+  assert.equal(validateBackupObject({ ...base, localStorage: {
+    keywordos_v9_protected: JSON.stringify(['reading glasses']),
+    keywordos_v9_settings: JSON.stringify({ targetAcos: 40 }),
+    keywordos_v9_preset_default: JSON.stringify('Winners')
+  } }).ok, true);
+  assert.equal(validateBackupObject({ ...base, localStorage: {
+    keywordos_v9_protected: JSON.stringify({ bad: true })
+  } }).ok, false);
+  assert.equal(validateBackupObject({ ...base, localStorage: {
+    keywordos_v9_settings: JSON.stringify([])
+  } }).ok, false);
+  assert.equal(validateBackupObject({ ...base, localStorage: {
+    keywordos_v9_preset_default: JSON.stringify({ bad: true })
+  } }).ok, false);
+  assert.equal(validateBackupObject({ ...base, localStorage: {
+    keywordos_v9_actions: '{bad json'
+  } }).ok, false);
+});
+
+test('validateLocalStateRaw enforces the stored JSON container contract', () => {
+  assert.equal(validateLocalStateRaw('keywordos_v9_actions', '[]').ok, true);
+  assert.equal(validateLocalStateRaw('keywordos_v9_actions', '{}').ok, false);
+  assert.equal(validateLocalStateRaw('keywordos_v9_settings', '{}').ok, true);
+  assert.equal(validateLocalStateRaw('keywordos_v9_settings', '[]').ok, false);
+  assert.equal(validateLocalStateRaw('keywordos_v9_preset_default', JSON.stringify('')).ok, true);
 });
 
 test('validateBackupObject rejects corrupted normalized dataset rows before restore', () => {
