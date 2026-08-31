@@ -13,6 +13,25 @@ const ADS_REQUIRED_HEADERS = {
   sales: ['销售额', 'Sales', 'Attributed Sales'],
 };
 
+const UNIFIED_REQUIRED_HEADERS = [
+  'date/time',
+  'settlement id',
+  'type',
+  'order id',
+  'sku',
+  'description',
+  'quantity',
+  'marketplace',
+  'product sales',
+  'promotional rebates',
+  'marketplace withheld tax',
+  'selling fees',
+  'fba fees',
+  'other transaction fees',
+  'other',
+  'total',
+];
+
 const IMPORT_KINDS = new Set(['amazon_ads', 'unified_transaction']);
 
 export class ImportValidationError extends Error {
@@ -113,6 +132,12 @@ function validateUnifiedCsv(text) {
   const headerIndex = findUnifiedHeader(rows);
   if (headerIndex < 0) throw new ImportValidationError('unified_header_not_found');
 
+  const headers = rows[headerIndex].map(cleanHeader);
+  const missingRequiredFields = UNIFIED_REQUIRED_HEADERS.filter((header) => !headers.includes(header));
+  if (missingRequiredFields.length) {
+    throw new ImportValidationError('missing_required_fields', { missingRequiredFields });
+  }
+
   const rowCount = rows.slice(headerIndex + 1).filter(nonBlank).length;
   if (!rowCount) throw new ImportValidationError('empty_dataset');
 
@@ -122,6 +147,7 @@ function validateUnifiedCsv(text) {
     rowCount,
     fieldCount: rows[headerIndex].length,
     headerIndex,
+    missingRequiredFields: [],
   };
 }
 
