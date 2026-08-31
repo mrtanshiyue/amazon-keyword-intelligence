@@ -168,7 +168,10 @@ export async function readCurrentDataset(env, storeId, kind) {
            v.byte_size, v.content_sha256, v.r2_key, v.imported_at,
            c.updated_at AS current_since
     FROM dataset_current c
-    JOIN dataset_versions v ON v.dataset_id = c.dataset_id
+    JOIN dataset_versions v
+      ON v.dataset_id = c.dataset_id
+     AND v.store_id = c.store_id
+     AND v.kind = c.kind
     WHERE c.store_id = ? AND c.kind = ?
   `).bind(descriptor.storeId, descriptor.kind).first();
 }
