@@ -26,6 +26,7 @@ test('validates the authoritative Unified Transaction sample', async () => {
   assert.equal(result.reportType, 'Amazon Unified Transaction Report');
   assert.equal(result.rowCount, 3643);
   assert.equal(result.fieldCount, 32);
+  assert.deepEqual(result.missingRequiredFields, []);
   assert.equal(result.byteSize, body.byteLength);
   assert.match(result.contentSha256, /^[0-9a-f]{64}$/);
 });
@@ -34,6 +35,17 @@ test('rejects Ads CSV missing required report fields', () => {
   assert.throws(
     () => validateImportText('amazon_ads', 'Date,Campaign Name\n2026-06-01,Campaign A\n'),
     (error) => error instanceof ImportValidationError && error.code === 'missing_required_fields'
+  );
+});
+
+test('rejects incomplete Unified CSV that only resembles a transaction report', () => {
+  assert.throws(
+    () => validateImportText('unified_transaction', 'Date/Time,Type,Total\n2026-06-01,Order,10\n'),
+    (error) =>
+      error instanceof ImportValidationError &&
+      error.code === 'missing_required_fields' &&
+      error.details?.missingRequiredFields?.includes('product sales') &&
+      error.details?.missingRequiredFields?.includes('selling fees')
   );
 });
 
