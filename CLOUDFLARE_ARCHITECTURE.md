@@ -1,46 +1,120 @@
-# KeywordOS V9 · Cloudflare Native Architecture
+# KeywordOS — Current Cloudflare Native Architecture
 
-## Source baseline
+This document describes the current production architecture only. Historical migration baselines and retired V5–V9 implementation notes are intentionally omitted.
 
-The Cloudflare migration starts from GitHub main commit `382345103b6cad266904530ab3a454990f42adac`.
+## Deployment unit
 
-The existing product is a browser-first V9 application. `index.html` loads the advertising seed, unified-transaction seed, report adapters, i18n layer, styles, and `app.js`. Existing business calculations and the Global read-only / Store execution boundary remain unchanged.
+KeywordOS uses one Cloudflare Worker deployment unit:
 
-## Production architecture
+- **Workers Static Assets** — browser application assets from `dist/`
+- **Worker API** — `/api/*` is handled by `src/worker.js`
+- **D1 (`DB`)** — deployment/source metadata and dormant authorization schema
+- **R2 (`DATA`)** — private public-test dataset objects
+- **Workers Builds** — GitHub `main` build/deploy trigger
+- **Workers Observability** — enabled
 
-Cloudflare's current recommendation for new static, SPA, and full-stack projects is Workers Static Assets rather than Pages. KeywordOS therefore uses one Worker deployment unit:
+Production Worker: `amazon-keyword-intelligence`
 
-- **Workers Static Assets** — existing HTML/CSS/JS frontend and runtime seed assets.
-- **Worker API** — only `/api/*` invokes Worker code first; normal static requests stay on the asset path.
-- **D1 (`DB`)** — deployment metadata and registered data-source manifest.
-- **R2 (`DATA`)** — private archive for large runtime seed/source objects and future raw report objects.
-- **Workers Observability** — enabled in `wrangler.jsonc`.
-- **Workers Builds** — GitHub `main` production trigger with Cloudflare-native build/deploy.
+Production URL: `https://amazon-keyword-intelligence.tanshiyuesir.workers.dev/`
 
-This is deliberately a minimal migration: no frontend framework rewrite, no duplicate API service, and no speculative queues/workflows.
+## Build contract
 
-## Static asset build
+`npm run check` validates:
 
-`npm run build` creates `dist/` from an explicit allowlist of the nine runtime files used by V9. Worker source, Wrangler configuration, dependencies, migrations, raw CSVs, samples, and documentation are never part of the static asset bundle.
+- `src/worker.js`
+- `src/access-auth.js`
+- `src/store-authorization.js`
+- `runtime-capabilities.js`
+- `ui-actions.js`
+- `suggestions-actions.js`
 
-## Runtime endpoints
+`npm run build` recreates `dist/` and copies exactly these 12 browser assets:
 
-- `GET /api/health` — validates D1/R2 bindings and reports deployment/data status. If seed archives are missing, it schedules a streamed copy from Static Assets to private R2 using `waitUntil`.
-- `GET /api/data/manifest` — returns D1 data-source metadata plus R2 archive presence.
+```text
+index.html
+styles.css
+h10-ui.css
+runtime-capabilities.css
+ui-hardening.css
+runtime-capabilities.js
+ui-actions.js
+suggestions-actions.js
+i18n.js
+app.js
+report-adapter.js
+unified-report-adapter.js
+```
 
-No unauthenticated mutation endpoint is exposed.
+The following are not part of public Static Assets:
 
-## Data placement
+- `seed-data.js`
+- `unified-seed-data.js`
+- raw/sample CSV files
+- `src/`
+- `migrations/`
+- `wrangler.jsonc`
+- repository documentation
+- dependencies
 
-The browser still consumes `seed-data.js` and `unified-seed-data.js` so the existing UI and calculations remain compatible with V9 behavior. Duplicate raw CSV/sample files are not deployed as public static assets.
+## Data delivery
 
-D1 records the registered data sources. R2 privately archives the deployed runtime seeds without buffering them into Worker memory.
+The browser loads Store 01 test data through Worker routes backed by R2:
 
-## Security boundary
+```text
+GET /api/data/seed.js
+  -> R2 seed/seed-data.js
 
-Amazon Ads API/OAuth remains disabled in this migration. The existing UI may show the future connection workflow, but this deployment does not request, store, or use Amazon refresh tokens, client secrets, or write credentials.
+GET /api/data/unified-seed.js
+  -> R2 seed/unified-seed-data.js
+```
 
-Before any future server-side mutations or Amazon API integration, add authentication/authorization (for example Cloudflare Access or an application session layer) and enforce Store → Connection → Advertiser → Marketplace authorization in the Worker.
+This keeps the current browser calculation model compatible without exposing the large seed source files as Static Assets.
+
+## Read-only Worker endpoints
+
+The Worker currently accepts only GET/HEAD. Other methods receive `405 Method Not Allowed`.
+
+- `/api/health` — D1/R2/runtime capability state
+- `/api/data/manifest` — deployment metadata, data-source metadata and R2 presence
+- `/api/data/seed.js` — advertising test dataset
+- `/api/data/unified-seed.js` — Unified Transaction test dataset
+- `/api/private/session` — dormant fail-closed authenticated read-only canary
+
+There is no anonymous POST/PUT/PATCH/DELETE business endpoint.
+
+## Authentication foundation
+
+The repository contains dormant authentication/authorization primitives:
+
+- Cloudflare Access JWT verification helpers
+- read-only `/api/private/session`
+- D1 `access_users` / `store_memberships` schema
+- per-store read authorization helpers
+
+These primitives are intentionally **not activated in Production** while #17 is deferred. No Cloudflare Access Production configuration, membership bootstrap or mutable authenticated business API should be introduced until #20 is formally accepted and #17 is explicitly resumed.
+
+## Amazon boundary
+
+`AMAZON_API_MODE=disabled` is authoritative.
+
+Current Production does not:
+
+- start Amazon OAuth
+- store refresh tokens or client secrets
+- bind live advertisers
+- run live sync jobs
+- mutate Amazon Ads state
+
+The UI may stage browser-local decisions, but staged/approved does not mean executed remotely.
+
+## Current release gate
+
+Product issue #20 remains open until both are true:
+
+1. the latest authoritative `main` is verified as the exact Cloudflare Workers Build/deployment source and the build succeeds;
+2. cumulative Production browser acceptance passes across desktop, narrow/mobile, data persistence, major product workflows, truth states and keyboard interaction.
+
+Only after #20 is formally accepted should #17 resume.
 
 ## Commands
 
