@@ -34,6 +34,26 @@ const UNIFIED_REQUIRED_HEADERS = [
   'total',
 ];
 
+const UNIFIED_NUMERIC_HEADERS = [
+  'quantity',
+  'product sales',
+  'product sales tax',
+  'shipping credits',
+  'shipping credits tax',
+  'gift wrap credits',
+  'giftwrap credits tax',
+  'regulatory fee',
+  'tax on regulatory fee',
+  'promotional rebates',
+  'promotional rebates tax',
+  'marketplace withheld tax',
+  'selling fees',
+  'fba fees',
+  'other transaction fees',
+  'other',
+  'total',
+];
+
 const IMPORT_KINDS = new Set(['amazon_ads', 'unified_transaction']);
 
 // The parser materializes bytes, decoded text, rows and fields at once. Increase this
@@ -126,6 +146,15 @@ function parseNonNegativeNumber(value) {
   return Number.isFinite(number) && number >= 0 ? number : null;
 }
 
+function parseSignedNumberOrBlank(value) {
+  const raw = String(value ?? '').trim();
+  if (!raw) return { blank: true, value: 0 };
+  const normalized = raw.replace(/[$,\s]/g, '');
+  if (!/^[+-]?(?:\d+(?:\.\d+)?|\.\d+)$/.test(normalized)) return null;
+  const number = Number(normalized);
+  return Number.isFinite(number) ? { blank: false, value: number } : null;
+}
+
 function validCalendarDate(year, month, day) {
   const date = new Date(Date.UTC(year, month - 1, day));
   return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
@@ -208,6 +237,38 @@ function findUnifiedHeader(rows) {
   });
 }
 
+function validateUnifiedValues(rows, headerIndex, headers) {
+  const indexByHeader = new Map(headers.map((header, index) => [header, index]));
+  const dateIndex = indexByHeader.get('date/time');
+
+  for (let index = headerIndex + 1; index < rows.length; index += 1) {
+    const row = rows[index];
+    if (!nonBlank(row)) continue;
+
+    for (const header of UNIFIED_NUMERIC_HEADERS) {
+      const column = indexByHeader.get(header);
+      if (column == null) continue;
+      const value = row[column];
+      if (parseSignedNumberOrBlank(value) === null) {
+        throw new ImportValidationError('invalid_unified_numeric_value', {
+          rowNumber: index + 1,
+          field: header,
+          value: String(value ?? '').slice(0, 120),
+        });
+      }
+    }
+
+    const dateValue = row[dateIndex];
+    if (!String(dateValue ?? '').trim() || Number.isNaN(Date.parse(String(dateValue)))) {
+      throw new ImportValidationError('invalid_unified_date_value', {
+        rowNumber: index + 1,
+        field: 'date/time',
+        value: String(dateValue ?? '').slice(0, 120),
+      });
+    }
+  }
+}
+
 function validateUnifiedCsv(text) {
   const rows = parseCsv(text);
   const headerIndex = findUnifiedHeader(rows);
@@ -220,6 +281,7 @@ function validateUnifiedCsv(text) {
   }
 
   validateRowWidths(rows, headerIndex + 1, rows[headerIndex].length);
+  validateUnifiedValues(rows, headerIndex, headers);
   const rowCount = rows.slice(headerIndex + 1).filter(nonBlank).length;
   if (!rowCount) throw new ImportValidationError('empty_dataset');
 
