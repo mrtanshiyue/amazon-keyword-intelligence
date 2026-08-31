@@ -1,0 +1,57 @@
+name: One-shot sidebar nav regression
+
+on:
+  push:
+    branches:
+      - fix/sidebar-nav-after-partial-rerender
+
+permissions:
+  contents: read
+
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Use preinstalled Chrome
+        run: |
+          echo "CHROME_BIN=$(command -v google-chrome)" >> "$GITHUB_ENV"
+          npm install --no-save playwright@1.55.0
+      - name: Verify navigation survives Suggestions staging
+        run: |
+          node --input-type=module <<'EOF'
+          import fs from 'node:fs';
+          import { chromium } from 'playwright';
+          const PROD='https://amazon-keyword-intelligence.tanshiyuesir.workers.dev/';
+          const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME_BIN});
+          const page=await browser.newPage({viewport:{width:1440,height:1000}});
+          page.setDefaultTimeout(6000);
+          let appIntercepted=false;
+          await page.route(`${PROD}app.js`, async route=>{
+            appIntercepted=true;
+            await route.fulfill({status:200,contentType:'text/javascript',body:fs.readFileSync('app.js','utf8')});
+          });
+          await page.goto(`${PROD}?sidebar-nav-regression=${Date.now()}`,{waitUntil:'domcontentloaded',timeout:30000});
+          await page.waitForFunction(()=>document.querySelectorAll('#sidebar-nav [data-page]').length>=26&&(document.querySelector('#content')?.children.length||0)>0);
+          if(!appIntercepted)throw new Error('Feature-branch app.js was not intercepted');
+          const en=page.locator('[data-lang="en"]'); if(await en.count())await en.click();
+          await page.locator('#profile-select').selectOption('store-a');
+          await page.locator('#sidebar-nav [data-page="suggestions"]').click();
+          await page.waitForFunction(()=>document.querySelector('#page-title')?.textContent?.trim()==='Suggestions');
+          const first=page.locator('input[data-suggest-select]').first();
+          await first.check();
+          const stage=page.locator('#apply-suggestion-changes');
+          await page.waitForFunction(()=>{const b=document.querySelector('#apply-suggestion-changes');return b&&!b.disabled&&/Stage 1 Selected/i.test(b.textContent||'');});
+          await stage.click();
+          await page.waitForTimeout(150);
+          for(const [id,title] of [['ad-manager','Ad Manager'],['rules','Rules & Automation'],['cerebro','Cerebro']]){
+            await page.locator(`#sidebar-nav [data-page="${id}"]`).click();
+            await page.waitForFunction(expected=>document.querySelector('#page-title')?.textContent?.trim()===expected,title);
+          }
+          await browser.close();
+          console.log('Sidebar navigation after Suggestions staging PASS');
+          EOF
