@@ -93,6 +93,20 @@ function nonBlank(row) {
   return Array.isArray(row) && row.some((value) => String(value || '').trim());
 }
 
+function validateRowWidths(rows, startIndex, expectedFieldCount) {
+  for (let index = startIndex; index < rows.length; index += 1) {
+    const row = rows[index];
+    if (!nonBlank(row)) continue;
+    if (row.length !== expectedFieldCount) {
+      throw new ImportValidationError('inconsistent_row_width', {
+        rowNumber: index + 1,
+        expectedFieldCount,
+        actualFieldCount: row.length,
+      });
+    }
+  }
+}
+
 function validateAdsCsv(text) {
   const rows = parseCsv(text);
   if (!rows.length || !nonBlank(rows[0])) throw new ImportValidationError('empty_csv');
@@ -107,6 +121,7 @@ function validateAdsCsv(text) {
     throw new ImportValidationError('missing_required_fields', { missingRequiredFields });
   }
 
+  validateRowWidths(rows, 1, rows[0].length);
   const rowCount = rows.slice(1).filter(nonBlank).length;
   if (!rowCount) throw new ImportValidationError('empty_dataset');
 
@@ -138,6 +153,7 @@ function validateUnifiedCsv(text) {
     throw new ImportValidationError('missing_required_fields', { missingRequiredFields });
   }
 
+  validateRowWidths(rows, headerIndex + 1, rows[headerIndex].length);
   const rowCount = rows.slice(headerIndex + 1).filter(nonBlank).length;
   if (!rowCount) throw new ImportValidationError('empty_dataset');
 
