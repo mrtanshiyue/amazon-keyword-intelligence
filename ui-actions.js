@@ -301,19 +301,30 @@
   }
 
   function openLocalStoreWorkspace(id) {
-    const store = storeById(id);
-    if (!store) return;
-    localOpenStoreId = id;
-    if (store.id === 'store-a') {
-      const select = $('#profile-select');
-      if (select) {
-        select.value = 'store-a';
-        select.dispatchEvent(new Event('change', { bubbles: true }));
-      }
-      return;
-    }
-    renderEmptyStoreWorkspace(store);
+  const store = storeById(id);
+  if (!store) return;
+  localOpenStoreId = id;
+  const select = $('#profile-select');
+  if (store.builtIn && select) {
+    select.value = store.id;
+    select.dispatchEvent(new Event('change', { bubbles: true }));
+    return;
   }
+  if (select) {
+    [...select.options]
+      .filter((option) => option.dataset.localWorkspace === '1')
+      .forEach((option) => option.remove());
+    const option = document.createElement('option');
+    option.value = store.id;
+    option.textContent = store.name + ' · ' + store.marketplace + ' · Local · No data';
+    option.dataset.localWorkspace = '1';
+    option.disabled = true;
+    option.selected = true;
+    select.appendChild(option);
+    select.value = store.id;
+  }
+  renderEmptyStoreWorkspace(store);
+}
 
   function renderEmptyStoreWorkspace(store) {
     const content = $('#content');
