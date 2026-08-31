@@ -36,6 +36,20 @@ function sha256Bytes(hex) {
   return bytes.buffer;
 }
 
+function checksumHex(value) {
+  if (!(value instanceof ArrayBuffer) || value.byteLength !== 32) return null;
+  return [...new Uint8Array(value)].map((byte) => byte.toString(16).padStart(2, '0')).join('');
+}
+
+function assertStoredObjectIntegrity(object, descriptor) {
+  if (Number(object?.size) !== descriptor.byteSize) {
+    throw new DatasetPersistenceError('dataset_object_size_mismatch', 503);
+  }
+  if (checksumHex(object?.checksums?.sha256) !== descriptor.contentSha256) {
+    throw new DatasetPersistenceError('dataset_object_checksum_mismatch', 503);
+  }
+}
+
 export function validateDatasetDescriptor(input = {}) {
   const storeId = requiredText(input.storeId, 'invalid_store_id', 64).toLowerCase();
   if (!STORE_ID_PATTERN.test(storeId)) {
@@ -118,6 +132,7 @@ export async function persistAcceptedDataset(env, input = {}) {
   if (!stored) {
     throw new DatasetPersistenceError('dataset_object_already_exists', 409);
   }
+  assertStoredObjectIntegrity(stored, descriptor);
 
   try {
     await env.DB.batch([
@@ -187,9 +202,12 @@ export async function readCurrentDatasetObject(env, storeId, kind) {
   if (!object) {
     throw new DatasetPersistenceError('dataset_object_missing', 503);
   }
-  if (Number(object.size) !== Number(metadata.byte_size)) {
-    throw new DatasetPersistenceError('dataset_object_size_mismatch', 503);
-  }
+
+  const descriptor = {
+    byteSize: Number(metadata.byte_size),
+    contentSha256: metadata.content_sha256,
+  };
+  assertStoredObjectIntegrity(object, descriptor);
 
   const custom = object.customMetadata || {};
   if (
