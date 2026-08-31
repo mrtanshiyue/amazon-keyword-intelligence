@@ -4,6 +4,7 @@
   const BACKUP_FORMAT = 'keywordos-local-workspace-backup';
   const BACKUP_VERSION = 1;
   const MAX_BACKUP_BYTES = 32 * 1024 * 1024;
+  const MAX_DATASET_ROWS = 250000;
   const DB_NAME = 'keywordos_v9_workspace';
   const DB_VERSION = 1;
   const DATASET_STORE = 'datasets';
@@ -52,12 +53,14 @@
       return { ok: false, error: 'This is not a supported KeywordOS local workspace backup.' };
     }
     if (!isRecord(value.localStorage)) return { ok: false, error: 'Backup local state is missing.' };
+
     const localState = {};
     for (const [key, raw] of Object.entries(value.localStorage)) {
       if (!SAFE_LOCAL_KEYS.has(key)) continue;
       if (typeof raw !== 'string') return { ok: false, error: `Invalid local value for ${key}.` };
       localState[key] = key === 'keywordos_v9_schedules' ? sanitizeScheduleStorage(raw) : raw;
     }
+
     const sourceDatasets = value.datasets == null ? [] : value.datasets;
     if (!Array.isArray(sourceDatasets)) return { ok: false, error: 'Backup datasets must be an array.' };
     const datasets = [];
@@ -66,7 +69,7 @@
       if (!isRecord(record) || !DATASET_KEYS.has(record.key) || seen.has(record.key)) {
         return { ok: false, error: 'Backup contains an unsupported or duplicate dataset.' };
       }
-      if (record.schemaVersion !== 1 || !Array.isArray(record.rows) || record.rows.length > 250000) {
+      if (record.schemaVersion !== 1 || !Array.isArray(record.rows) || record.rows.length > MAX_DATASET_ROWS) {
         return { ok: false, error: `Dataset ${record.key} has an unsupported schema or row count.` };
       }
       seen.add(record.key);
@@ -80,6 +83,7 @@
         rowCount: record.rows.length
       });
     }
+
     return {
       ok: true,
       backup: {
@@ -120,7 +124,9 @@
     const root = $('#toast-root');
     if (!root) return;
     root.innerHTML = `<div class="toast ${tone}">${escapeHtml(message)}</div>`;
-    setTimeout(() => { if (root.textContent.includes(message)) root.innerHTML = ''; }, 2800);
+    setTimeout(() => {
+      if (root.textContent.includes(message)) root.innerHTML = '';
+    }, 2800);
   }
 
   function openWorkspaceDb() {
@@ -138,20 +144,24 @@
   }
 
   async function readDatasets() {
-    try {
-      const db = await openWorkspaceDb();
-      return await new Promise((resolve, reject) => {
-        const tx = db.transaction(DATASET_STORE, 'readonly');
-        const request = tx.objectStore(DATASET_STORE).getAll();
-        request.onsuccess = () => resolve((request.result || []).filter((item) => DATASET_KEYS.has(item?.key)));
-        request.onerror = () => reject(request.error || new Error('Dataset backup read failed'));
-        tx.oncomplete = () => db.close();
-        tx.onabort = () => { db.close(); reject(tx.error || new Error('Dataset backup read aborted')); };
-      });
-    } catch (error) {
-      console.warn('KeywordOS backup could not read IndexedDB datasets', error);
-      return [];
-    }
+    const db = await openWorkspaceDb();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(DATASET_STORE, 'readonly');
+      const request = tx.objectStore(DATASET_STORE).getAll();
+      let rows = [];
+      request.onsuccess = () => {
+        rows = (request.result || []).filter((item) => DATASET_KEYS.has(item?.key));
+      };
+      request.onerror = () => reject(request.error || new Error('Dataset backup read failed'));
+      tx.oncomplete = () => {
+        db.close();
+        resolve(rows);
+      };
+      tx.onabort = () => {
+        db.close();
+        reject(tx.error || new Error('Dataset backup read aborted'));
+      };
+    });
   }
 
   async function replaceDatasets(records) {
@@ -161,21 +171,33 @@
       const store = tx.objectStore(DATASET_STORE);
       store.clear();
       records.forEach((record) => store.put(record));
-      tx.oncomplete = () => { db.close(); resolve(true); };
-      tx.onerror = () => { db.close(); reject(tx.error || new Error('Dataset restore failed')); };
-      tx.onabort = () => { db.close(); reject(tx.error || new Error('Dataset restore aborted')); };
+      tx.oncomplete = () => {
+        db.close();
+        resolve(true);
+      };
+      tx.onerror = () => {
+        db.close();
+        reject(tx.error || new Error('Dataset restore failed'));
+      };
+      tx.onabort = () => {
+        db.close();
+        reject(tx.error || new Error('Dataset restore aborted'));
+      };
     });
   }
 
   function collectLocalState() {
     const output = {};
     for (const key of SAFE_LOCAL_KEYS) {
-      try {
-        const raw = localStorage.getItem(key);
-        if (raw !== null) output[key] = key === 'keywordos_v9_schedules' ? sanitizeScheduleStorage(raw) : raw;
-      } catch {}
+      const raw = localStorage.getItem(key);
+      if (raw !== null) output[key] = key === 'keywordos_v9_schedules' ? sanitizeScheduleStorage(raw) : raw;
     }
     return output;
+  }
+
+  function replaceLocalState(next) {
+    for (const key of SAFE_LOCAL_KEYS) localStorage.removeItem(key);
+    for (const [key, raw] of Object.entries(next)) localStorage.setItem(key, raw);
   }
 
   async function buildBackup() {
@@ -188,8 +210,15 @@
     };
   }
 
-  function downloadBackup(backup) {
+  function serializeBackup(backup) {
     const content = JSON.stringify(backup);
+    if (new Blob([content]).size > MAX_BACKUP_BYTES) {
+      throw new Error('Local workspace backup exceeds the 32 MiB safety limit.');
+    }
+    return content;
+  }
+
+  function downloadBackup(content) {
     const blob = new Blob([content], { type: 'application/json;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -204,35 +233,39 @@
   async function exportBackup() {
     try {
       const backup = await buildBackup();
-      downloadBackup(backup);
+      downloadBackup(serializeBackup(backup));
       const rows = backup.datasets.reduce((sum, item) => sum + item.rows.length, 0);
       toast(`Local workspace backup exported · ${rows.toLocaleString()} dataset rows`, 'success');
     } catch (error) {
       console.error('KeywordOS local backup failed', error);
-      toast('Unable to export the local workspace backup', 'error');
+      toast(error.message || 'Unable to export the local workspace backup', 'error');
     }
   }
 
   function restoreSummary(backup) {
-    const ads = backup.datasets.find((item) => item.key === 'ads');
-    const finance = backup.datasets.find((item) => item.key === 'finance');
     return {
       localKeys: Object.keys(backup.localStorage).length,
-      adsRows: ads?.rows.length || 0,
-      financeRows: finance?.rows.length || 0
+      adsRows: backup.datasets.find((item) => item.key === 'ads')?.rows.length || 0,
+      financeRows: backup.datasets.find((item) => item.key === 'finance')?.rows.length || 0
     };
   }
 
   async function applyBackup(backup) {
-    for (const key of SAFE_LOCAL_KEYS) {
-      try { localStorage.removeItem(key); } catch {}
-    }
-    for (const [key, raw] of Object.entries(backup.localStorage)) {
-      try { localStorage.setItem(key, raw); } catch (error) {
-        throw new Error(`Unable to restore local state: ${key}`, { cause: error });
+    const previousLocal = collectLocalState();
+    const previousDatasets = await readDatasets();
+    try {
+      await replaceDatasets(backup.datasets);
+      replaceLocalState(backup.localStorage);
+    } catch (error) {
+      try {
+        await replaceDatasets(previousDatasets);
+        replaceLocalState(previousLocal);
+      } catch (rollbackError) {
+        console.error('KeywordOS restore rollback failed', rollbackError);
+        throw new AggregateError([error, rollbackError], 'Restore failed and rollback was incomplete.');
       }
+      throw error;
     }
-    await replaceDatasets(backup.datasets);
   }
 
   function closeRestoreModal() {
@@ -256,12 +289,12 @@
       } catch (error) {
         console.error('KeywordOS restore failed', error);
         if (button) button.disabled = false;
-        toast('Restore failed; the current browser workspace was not fully replaced', 'error');
+        toast(error instanceof AggregateError ? 'Restore failed and automatic rollback was incomplete' : 'Restore failed; the previous local workspace was restored', 'error');
       }
     });
   }
 
-  async function chooseRestoreFile() {
+  function chooseRestoreFile() {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = '.json,application/json';
@@ -273,8 +306,7 @@
       if (!file) return;
       if (file.size > MAX_BACKUP_BYTES) return toast('Backup file is too large to restore safely', 'error');
       try {
-        const parsed = JSON.parse(await file.text());
-        const result = validateBackupObject(parsed);
+        const result = validateBackupObject(JSON.parse(await file.text()));
         if (!result.ok) return toast(result.error, 'error');
         openRestoreConfirmation(file.name, result.backup);
       } catch (error) {
@@ -293,12 +325,8 @@
     actions.id = 'keywordos-backup-actions';
     actions.className = 'toolbar-right';
     actions.innerHTML = '<button class="btn secondary" id="keywordos-export-backup">⇩ Export Local Backup</button><button class="btn secondary" id="keywordos-restore-backup-button">⇧ Restore Local Backup</button>';
-    if (pageTitle() === 'Data Health') {
-      $('.settings-intro', content)?.appendChild(actions);
-    } else {
-      const existing = $('.card-head > div:last-child', content);
-      existing?.appendChild(actions);
-    }
+    if (pageTitle() === 'Data Health') $('.settings-intro', content)?.appendChild(actions);
+    else $('.card-head > div:last-child', content)?.appendChild(actions);
     $('#keywordos-export-backup')?.addEventListener('click', exportBackup);
     $('#keywordos-restore-backup-button')?.addEventListener('click', chooseRestoreFile);
   }
@@ -316,7 +344,18 @@
     $('#keywordos-import-unified')?.addEventListener('click', () => $('#hidden-unified-file')?.click());
   }
 
-  function enforceSuggestionBudgetTruth() {
+  function enforceSuggestionTruth() {
+    const navPill = $('#sidebar-nav [data-page="suggestions"] .nav-pill');
+    if (navPill) {
+      navPill.hidden = true;
+      navPill.title = 'Aggregate count hidden because the legacy calculation includes unsupported Budget suggestions.';
+    }
+
+    if (pageTitle() === 'Dashboard') {
+      const button = $('.h10-dashboard-head [data-nav="suggestions"]');
+      if (button && /Suggestions/.test(button.textContent)) button.textContent = '✦ Suggestions';
+    }
+
     if (pageTitle() !== 'Suggestions') return;
     const budget = $('[data-suggestion-tab="Budget"]');
     if (budget) {
@@ -328,12 +367,7 @@
       budget.setAttribute('aria-disabled', 'true');
       budget.title = 'Campaign budget is not present in the current imported Ads search-term dataset; KeywordOS will not synthesize current or recommended budget values.';
       const count = $('.tab-count', budget);
-      if (count && count.textContent !== '—') count.textContent = '—';
-    }
-    const navPill = $('#sidebar-nav [data-page="suggestions"] .nav-pill');
-    if (navPill) {
-      navPill.hidden = true;
-      navPill.title = 'The aggregate suggestion count is hidden while unsupported Budget suggestions remain excluded from the usable product surface.';
+      if (count) count.textContent = '—';
     }
     const callout = $('.h10-callout');
     if (callout && !$('#keywordos-budget-truth')) {
@@ -374,7 +408,7 @@
       refreshPending = false;
       ensureBackupControls();
       ensureUnifiedImportShortcut();
-      enforceSuggestionBudgetTruth();
+      enforceSuggestionTruth();
       neutralizeHourlyPreview();
     });
   }
