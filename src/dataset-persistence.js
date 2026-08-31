@@ -1,7 +1,7 @@
 const DATASET_KINDS = new Set(['amazon_ads', 'unified_transaction']);
 const STORE_ID_PATTERN = /^store-[a-z0-9]+(?:-[a-z0-9]+)*$/;
-const DATASET_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const SHA256_PATTERN = /^[0-9a-f]{64}$/i;
+const DATASET_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+const SHA256_PATTERN = /^[0-9a-f]{64}$/;
 
 export class DatasetPersistenceError extends Error {
   constructor(code, status = 400) {
@@ -18,6 +18,22 @@ function requiredText(value, code, maxLength = 255) {
     throw new DatasetPersistenceError(code);
   }
   return text;
+}
+
+function normalizeDatasetId(value) {
+  const datasetId = String(value || '').trim().toLowerCase();
+  if (!DATASET_ID_PATTERN.test(datasetId)) {
+    throw new DatasetPersistenceError('invalid_dataset_id');
+  }
+  return datasetId;
+}
+
+function sha256Bytes(hex) {
+  const bytes = new Uint8Array(32);
+  for (let index = 0; index < bytes.length; index += 1) {
+    bytes[index] = Number.parseInt(hex.slice(index * 2, index * 2 + 2), 16);
+  }
+  return bytes.buffer;
 }
 
 export function validateDatasetDescriptor(input = {}) {
@@ -58,30 +74,36 @@ export function buildDatasetObjectKey(storeId, kind, datasetId) {
     byteSize: 1,
     contentSha256: '0'.repeat(64),
   });
-  if (!DATASET_ID_PATTERN.test(String(datasetId || ''))) {
-    throw new DatasetPersistenceError('invalid_dataset_id');
-  }
-  return `imports/${descriptor.storeId}/${descriptor.kind}/${datasetId}.csv`;
+  const normalizedDatasetId = normalizeDatasetId(datasetId);
+  return `imports/${descriptor.storeId}/${descriptor.kind}/${normalizedDatasetId}.csv`;
 }
 
-function requireBindings(env) {
-  if (!env?.DATA?.put || !env?.DB?.prepare || !env?.DB?.batch) {
+function requireDatabase(env) {
+  if (!env?.DB?.prepare) {
+    throw new DatasetPersistenceError('persistence_not_configured', 503);
+  }
+}
+
+function requireWriteBindings(env) {
+  requireDatabase(env);
+  if (!env?.DATA?.put || !env?.DB?.batch) {
     throw new DatasetPersistenceError('persistence_not_configured', 503);
   }
 }
 
 export async function persistAcceptedDataset(env, input = {}) {
-  requireBindings(env);
+  requireWriteBindings(env);
   const descriptor = validateDatasetDescriptor(input);
   if (input.body == null) {
     throw new DatasetPersistenceError('dataset_body_required');
   }
 
-  const datasetId = input.datasetId || crypto.randomUUID();
+  const datasetId = normalizeDatasetId(input.datasetId || crypto.randomUUID());
   const r2Key = buildDatasetObjectKey(descriptor.storeId, descriptor.kind, datasetId);
+  const onlyIf = new Headers({ 'if-none-match': '*' });
   const stored = await env.DATA.put(r2Key, input.body, {
-    onlyIf: { etagDoesNotMatch: '*' },
-    sha256: descriptor.contentSha256,
+    onlyIf,
+    sha256: sha256Bytes(descriptor.contentSha256),
     httpMetadata: { contentType: 'text/csv; charset=utf-8' },
     customMetadata: {
       datasetId,
@@ -131,7 +153,7 @@ export async function persistAcceptedDataset(env, input = {}) {
 }
 
 export async function readCurrentDataset(env, storeId, kind) {
-  requireBindings(env);
+  requireDatabase(env);
   const descriptor = validateDatasetDescriptor({
     storeId,
     kind,
