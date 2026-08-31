@@ -75,8 +75,6 @@
   }
 
   function isLocalTableSearch(input) {
-    if (input.id === 'log-search' || input.id === 'kw-search') return true;
-    if (pageTitle() === 'Keyword Tracker' && input.closest('.toolbar .searchbox')) return true;
     return false;
   }
 
@@ -163,39 +161,6 @@
   function markKnownInactiveControls() {
     const title = pageTitle();
 
-    if (title === 'Keyword Tracker') {
-      $$('.toolbar button').forEach((button) => {
-        if (button.textContent.trim().startsWith('Tags')) {
-          disableButton(button, 'Keyword tags are not implemented in the current test runtime.');
-        }
-      });
-    }
-
-    if (title === 'Keyword Library') {
-      $$('.toolbar button').forEach((button) => {
-        const text = button.textContent.trim();
-        if (text.startsWith('Lifecycle') || text.startsWith('Tags') || text.startsWith('☷ Columns')) {
-          disableButton(button, 'This library control is not implemented in the current test runtime.');
-        }
-      });
-    }
-
-    if (title === 'Change Log') {
-      $$('.toolbar button').forEach((button) => {
-        const text = button.textContent.trim();
-        if (text.startsWith('Change Type') || text.startsWith('Source')) {
-          disableButton(button, 'Advanced change-log filters are not implemented yet. Search and CSV export are available.');
-        }
-      });
-    }
-
-    if (title === 'Cerebro') {
-      $$('.utility-links .utility-link').forEach((button) => {
-        if (button.textContent.trim() === 'History') {
-          disableButton(button, 'Research history is not persisted yet.');
-        }
-      });
-    }
 
     markRuleTruth();
   }
