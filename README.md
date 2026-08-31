@@ -9,12 +9,12 @@ KeywordOS 是一个面向 Amazon 广告、关键词与经营分析的多 Store �
 - Production URL: `https://amazon-keyword-intelligence.tanshiyuesir.workers.dev/`
 - Product completion issue #20: **CLOSED / COMPLETED**
 - Security/persistence issue #17: **OPEN**
-- Non-auth server persistence code foundation: **READY**
-- Remote D1 migration `0003`: **PENDING**
+- Non-auth server persistence foundation: **GITHUB + D1 READY**
+- Remote D1 migration `0003`: **APPLIED / VERIFIED**
 - Authentication/login acceptance: **FROZEN BY OWNER until explicitly resumed**
 - Amazon Ads API / OAuth / SP-API: **disabled / HARD-OFF**
 - Amazon remote mutation: **disabled**
-- Product main before this docs-only synchronization: `568b21c64f413eafbf4fa7e0d2db4c5d20561fb1`
+- Authoritative main before this final docs synchronization: `9d8f5543fc60b6f2e8dac841bc888425c0cedc03`
 
 The authoritative continuation instructions are in [`CURRENT_HANDOFF.md`](./CURRENT_HANDOFF.md).
 
@@ -74,7 +74,7 @@ Completed product workflows include Dashboard/Analytics, Ad Manager, Suggestions
 
 The code-side foundation is ready and intentionally unexposed.
 
-### D1 schema in repository
+### D1 schema
 
 `migrations/0003_dataset_versions.sql` defines:
 
@@ -82,6 +82,8 @@ The code-side foundation is ready and intentionally unexposed.
 - per-Store/per-kind `dataset_current`
 - composite dataset/Store/kind foreign-key integrity
 - schema metadata version `3`
+
+The exact-main migration has now been applied to Production D1 and verified remotely.
 
 ### Import validation
 
@@ -125,23 +127,30 @@ Invalid imports perform zero R2/D1 writes; R2 integrity mismatch cannot promote 
 
 A final narrow audit after PR #53 found no additional clear non-auth P1/P2 persistence defect. Further speculative validation/abstraction is intentionally omitted.
 
-## Only remaining non-auth external gate
+## Remote D1 migration verification
 
-Remote D1 migration `0003` is still pending.
+On 2026-08-31, exact-main `migrations/0003_dataset_versions.sql` was applied to Production D1 `amazon-keyword-intelligence-db` (`e38981da-fbeb-412e-ac8c-936bf16adb36`).
 
-In the latest continuation the user explicitly invoked the Cloudflare connector, but no executable Cloudflare resource was exposed in the chat runtime. Do not claim schema v3 is live until it is actually applied and verified.
+Preflight was read-only and confirmed:
 
-When Cloudflare execution becomes available, the required sequence is:
+- `dataset_versions` / `dataset_current` were not yet present
+- `deployment_meta.schema_version = 1`
+- `access_users = 0`
+- `store_memberships = 0`
 
-1. read current D1 state
-2. apply exact-main `0003_dataset_versions.sql`
-3. verify `dataset_versions` exists and is empty
-4. verify `dataset_current` exists and is empty
-5. verify `deployment_meta.schema_version = 3`
-6. verify `access_users = 0`
-7. verify `store_memberships = 0`
+Postflight confirmed:
 
-Do not insert memberships during that operation.
+- `dataset_versions` exists and `count = 0`
+- `dataset_current` exists and `count = 0`
+- `idx_dataset_versions_store_kind_imported` exists
+- `idx_dataset_current_dataset` exists
+- `deployment_meta.schema_version = 3`
+- `access_users = 0`
+- `store_memberships = 0`
+
+No membership rows were inserted. The non-auth server persistence foundation is therefore **GITHUB + D1 READY**.
+
+Protected runtime Store read/write wiring remains deferred while authentication is frozen.
 
 ## Browser application assets
 
@@ -151,6 +160,7 @@ Do not insert memberships during that operation.
 
 - Cloudflare Access configuration: present; login acceptance frozen
 - D1 membership tables: present but intentionally unbootstrapped
+- D1 dataset schema: version 3 live and empty
 - server persistence code: prepared internally but not exposed through Worker mutation routes
 - product mutable state: browser-local where implemented
 - Amazon Ads OAuth/API/SP-API: disabled
