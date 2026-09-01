@@ -155,6 +155,7 @@ Status rules:
 - [x] Data Health now exposes per-dataset Store, source, import timestamp, coverage, row count, schema version, validation status and checksum for auditable decisions.
 - [x] Growth workspaces show their precise persisted dataset sources, coverage and validation state ahead of evidence-derived KPI views.
 - [x] Action Outcome review warns on incomplete windows, small samples, same-scope concurrent local actions and unavailable Amazon-side confounders.
+- [x] Shared keyword assets support Store-scoped tags and intent classification across library, tracker and workflow, with backup/restore coverage.
 - [ ] Unified Dataset Registry covering Ads, Unified, SQP/ABA, cost, inventory, rank, competitor, review and Listing datasets.
 - [ ] Dataset provenance: Store, source, import time, coverage dates, row count, schema version, checksum and validation state.
 - [ ] Bring all growth datasets into Data Health, backup/restore and Store isolation instead of independent `localStorage` silos.

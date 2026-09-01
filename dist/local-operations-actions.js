@@ -23,6 +23,7 @@
     'keywordos_v9_schedules',
     'keywordos_v9_global_ui',
     'keywordos_v9_keyword_tags',
+    'keywordos_v9_keyword_intents',
     'keywordos_v9_keyword_ui',
     'keywordos_v9_tracker_ui',
     'keywordos_v9_change_log_ui',
