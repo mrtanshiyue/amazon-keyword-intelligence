@@ -74,10 +74,10 @@ test('virtual suite homes participate in async startup history after core nav is
   assert.deepEqual(initialHistoryDecision('suite-keywords', ['portfolio-overview', 'suite-keywords'], 'portfolio-overview'), { action: 'navigate', page: 'suite-keywords' });
 });
 
-test('Listing workspace remains preparation-only and routes to existing keyword tools', () => {
+test('Listing workspace remains preparation-only and includes the evidence optimizer', () => {
   const listing = suiteWorkspace('listing');
   assert.match(listing.notice, /not connected/i);
-  assert.deepEqual(listing.items.map((item) => item.page), ['global-keywords', 'cerebro', 'keyword-library']);
+  assert.deepEqual(listing.items.map((item) => item.page), ['listing-optimizer', 'global-keywords', 'cerebro', 'keyword-library']);
 });
 
 test('suite active state follows the actual current workspace page without absorbing settings', () => {

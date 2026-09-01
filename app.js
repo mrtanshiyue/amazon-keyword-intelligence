@@ -613,6 +613,6 @@ $('#profile-select').addEventListener('change',e=>{state.scope=e.target.value;st
 $('#import-top').addEventListener('click',()=>{state.page='import';render();});
 $('#tool-switcher').addEventListener('click',()=>toast('KeywordOS V9 separates Global Intelligence from isolated Store execution contexts.','success'));
 
-window.KeywordOSUIBridge={get page(){return state.page},get settings(){return state.settings},getRangeRows,aggregateLevel,isProtected};
+window.KeywordOSUIBridge={get page(){return state.page},get settings(){return state.settings},get adsRows(){return state.currentRows},get financeRows(){return state.financeRows},get actions(){return state.actions},getRangeRows,aggregateLevel,isProtected,toast};
 restorePersistentImports().finally(()=>render());
 })();

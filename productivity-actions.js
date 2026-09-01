@@ -8,6 +8,7 @@
       subtitle: 'Store-scoped product and workspace operations',
       notice: 'Product catalog editing and Amazon listing mutation are not connected in this runtime.',
       items: [
+        { page: 'product-360', label: 'Product 360', detail: 'Join advertising, transactions, imported costs and inventory by product.' },
         { page: 'store-workspace', label: 'Store Workspace', detail: 'Open the selected Store workspace and its loaded data state.' },
         { page: 'stores-settings', label: 'Stores', detail: 'Manage browser-local Store workspace metadata.' }
       ]
@@ -17,6 +18,8 @@
       subtitle: 'Research, library, tracking and conflict intelligence',
       notice: 'Keyword analysis uses loaded/local data. Amazon keyword writes remain disabled.',
       items: [
+        { page: 'search-funnel', label: 'Search Query Funnel', detail: 'Analyze imported SQP or ABA demand, funnel conversion and brand share.' },
+        { page: 'rank-intelligence', label: 'Rank & Index Tracker', detail: 'Track imported organic rank, sponsored rank and index status snapshots.' },
         { page: 'global-keywords', label: 'Global Keyword Library', detail: 'Review shared keyword intelligence across Store workspaces.' },
         { page: 'cerebro', label: 'Cerebro', detail: 'Research keyword opportunities from loaded advertising data.' },
         { page: 'keyword-library', label: 'Keyword Library', detail: 'Manage Store-scoped keyword assets and lifecycle state.' },
@@ -29,6 +32,7 @@
       subtitle: 'Keyword-backed listing preparation without Amazon write access',
       notice: 'Listing editing and publishing are not connected. Use existing keyword intelligence to prepare titles, bullets and search-term inputs without creating Amazon credentials or write actions.',
       items: [
+        { page: 'listing-optimizer', label: 'Listing Optimizer 2.0', detail: 'Measure evidence-keyword coverage, repetition and backend byte usage.' },
         { page: 'global-keywords', label: 'Keyword Research', detail: 'Start from the Global Keyword Library to identify relevant search demand.' },
         { page: 'cerebro', label: 'Keyword Selection', detail: 'Qualify candidate terms using existing advertising search-term evidence.' },
         { page: 'keyword-library', label: 'Listing Keyword Set', detail: 'Review protected, tracked and lifecycle-tagged keyword assets.' }
@@ -39,6 +43,7 @@
       subtitle: 'Advertising analysis, recommendations and controlled local actions',
       notice: 'Amazon execution remains disabled. Marketing actions stay local/review-only unless separately authorized.',
       items: [
+        { page: 'action-outcomes', label: 'Action Outcomes', detail: 'Compare approved local actions with later imported performance evidence.' },
         { page: 'overview', label: 'Dashboard', detail: 'Review advertising performance for the current Store scope.' },
         { page: 'suggestions', label: 'Suggestions', detail: 'Review source-backed bid, keyword and negative recommendations.' },
         { page: 'ad-manager', label: 'Ad Manager', detail: 'Drill through campaign, ad group, target and search-term data.' },
@@ -51,6 +56,7 @@
       subtitle: 'Finance, imports, synchronization status and data health',
       notice: 'Operations are limited to loaded/local data and read-only runtime status. No anonymous mutable Worker API is exposed.',
       items: [
+        { page: 'inventory-risk', label: 'Inventory & Replenishment', detail: 'Assess stock risk and days of cover from imported inventory snapshots.' },
         { page: 'unified-report', label: 'Unified Report', detail: 'Analyze transaction-level income, refunds, fees and settlements.' },
         { page: 'import', label: 'Import Center', detail: 'Validate and load Amazon Ads or Unified Transaction CSV data.' },
         { page: 'sync-center', label: 'Sync Center', detail: 'Review synchronization readiness and connection truth.' },
@@ -62,6 +68,7 @@
       subtitle: 'Portfolio, cross-store and advertising performance analysis',
       notice: 'Analytics is read-only and operates on the currently loaded Store/local datasets.',
       items: [
+        { page: 'anomaly-center', label: 'Anomaly Center', detail: 'Surface deterministic advertising, conversion and inventory risks.' },
         { page: 'portfolio-overview', label: 'Portfolio Overview', detail: 'Review consolidated intelligence across Store workspaces.' },
         { page: 'cross-store', label: 'Cross-store Intelligence', detail: 'Compare Store performance without sharing credentials or write actions.' },
         { page: 'analytics', label: 'Advertising Analytics', detail: 'Analyze performance across campaign, target, search term and product levels.' }
@@ -69,11 +76,12 @@
     }
   });
   const SUITE_PAGE_GROUPS = Object.freeze({
-    products: new Set(['store-workspace', 'stores-settings']),
-    keywords: new Set(['global-keywords', 'global-conflicts', 'cerebro', 'tracker', 'keyword-library', 'negative-library', 'conflicts']),
-    marketing: new Set(['overview', 'suggestions', 'ad-manager', 'rules', 'schedules', 'actions', 'change-log']),
-    operations: new Set(['unified-report', 'import', 'sync-center', 'data-health']),
-    analytics: new Set(['portfolio-overview', 'cross-store', 'analytics'])
+    products: new Set(['product-360', 'store-workspace', 'stores-settings']),
+    keywords: new Set(['search-funnel', 'rank-intelligence', 'global-keywords', 'global-conflicts', 'cerebro', 'tracker', 'keyword-library', 'negative-library', 'conflicts']),
+    listing: new Set(['listing-optimizer']),
+    marketing: new Set(['action-outcomes', 'overview', 'suggestions', 'ad-manager', 'rules', 'schedules', 'actions', 'change-log']),
+    operations: new Set(['inventory-risk', 'unified-report', 'import', 'sync-center', 'data-health']),
+    analytics: new Set(['anomaly-center', 'portfolio-overview', 'cross-store', 'analytics'])
   });
   const SUITE_HOME_PAGES = Object.freeze({
     products: 'suite-products',
