@@ -156,6 +156,7 @@ Status rules:
 - [x] Growth workspaces show their precise persisted dataset sources, coverage and validation state ahead of evidence-derived KPI views.
 - [x] Action Outcome review warns on incomplete windows, small samples, same-scope concurrent local actions and unavailable Amazon-side confounders.
 - [x] Shared keyword assets support Store-scoped tags and intent classification across library, tracker and workflow, with backup/restore coverage.
+- [x] Keyword Workflow now displays the exact Ads, SQP/ABA and imported rank evidence available for each keyword asset rather than reducing every source to Ads.
 - [ ] Unified Dataset Registry covering Ads, Unified, SQP/ABA, cost, inventory, rank, competitor, review and Listing datasets.
 - [ ] Dataset provenance: Store, source, import time, coverage dates, row count, schema version, checksum and validation state.
 - [ ] Bring all growth datasets into Data Health, backup/restore and Store isolation instead of independent `localStorage` silos.
