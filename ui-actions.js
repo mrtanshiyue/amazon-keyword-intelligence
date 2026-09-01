@@ -787,6 +787,14 @@
     $$('.side-link:not([data-page])').forEach((button) => disableButton(button, 'Help Center integration is not implemented in the current test runtime.'));
   }
 
+  function markNegativeGuardTruth() {
+    if (pageTitle() !== 'Negative Library') return;
+    const card = $$('.overview-metric').find((item) => $('.metric-label', item)?.textContent.includes('Protected Blocks'));
+    if (!card) return;
+    const blocked = aggregateLevel(getRangeRows(), 'searchterm').filter((item) => item.orders === 0 && item.clicks >= state.settings.negativeClicks && item.spend >= state.settings.negativeSpend && isProtected(item.name)).length;
+    setText($('.metric-value', card), blocked);
+  }
+
   function markKnownInactiveControls() {
     syncBuiltInStoreOptions();
     if (pageTitle() === 'Stores') {
@@ -810,6 +818,7 @@
     enhanceSuggestions();
     enhanceSchedules();
     enhanceFinance();
+    markNegativeGuardTruth();
     markRuleTruth();
     prepareOverlayAccessibility();
   }
@@ -824,6 +833,28 @@
 
   document.addEventListener('change', (event) => {
     if (event.target?.id === 'profile-select') localOpenStoreId = '';
+  }, true);
+
+  document.addEventListener('click', (event) => {
+    const button = event.target instanceof Element ? event.target.closest('button') : null;
+    if (!button) return;
+    if (button.id === 'save-settings') {
+      const values = ['s-target', 's-break', 's-horders', 's-hacos', 's-nclicks', 's-nspend'].map((id) => Number($(`#${id}`)?.value));
+      if (values.some((value) => !Number.isFinite(value) || value < 0) || values[0] > values[1]) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        window.alert('Settings must be non-negative numbers, and Target ACoS cannot exceed Break-even ACoS.');
+      }
+      return;
+    }
+    if (pageTitle() === 'Rules & Automation' && button.textContent.trim() === 'Create Rule' && $('#rule-type')) {
+      const values = ['rule-orders', 'rule-acos', 'rule-clicks', 'rule-spend'].map((id) => Number($(`#${id}`)?.value));
+      if (values.some((value) => !Number.isFinite(value) || value < 0)) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        window.alert('Rule thresholds must be non-negative numbers.');
+      }
+    }
   }, true);
 
   document.addEventListener('click', (event) => {

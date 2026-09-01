@@ -65,3 +65,7 @@ test('numeric parser accepts normal Amazon numeric formatting', () => {
   assert.equal(parseNonNegativeNumber(''), null);
   assert.equal(parseNonNegativeNumber('NaN'), null);
 });
+
+test('Ads adapter rejects unclosed quoted fields', () => {
+  assert.throws(() => createAdapter().analyzeText('"unclosed'), /unclosed quoted field/i);
+});

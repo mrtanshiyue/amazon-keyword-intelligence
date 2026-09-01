@@ -17,6 +17,7 @@ test('bid suggestions require a real imported target bid', () => {
   const eligibilityChecks = suggestionSource.match(/Number\.isFinite\(x\.bid\)&&x\.bid>0/g) || [];
   assert.equal(eligibilityChecks.length, 2, 'both bid recommendation lanes must require a real positive bid');
 
-  const currentBidUses = suggestionSource.match(/currentBid:x\.bid/g) || [];
-  assert.equal(currentBidUses.length, 2, 'both bid recommendation lanes must use the imported bid directly');
+  const observedBidUses = suggestionSource.match(/observedBid:x\.bid/g) || [];
+  assert.equal(observedBidUses.length, 2, 'both bid recommendation lanes must label the report-period bid as observed');
+  assert.match(suggestionSource, /x\.orders>0&&x\.sales>0&&x\.acos<=state\.settings\.targetAcos\/100\?1\.08:\.88/);
 });

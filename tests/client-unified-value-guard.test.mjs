@@ -58,6 +58,25 @@ test('Unified value guard rejects invalid transaction dates', () => {
   );
 });
 
+test('Unified adapter rejects incomplete financial schemas', () => {
+  assert.throws(
+    () => createAdapter().analyzeText('Date/Time,Type,Total\n2026-06-01,Order,10\n'),
+    (error) => error.code === 'missing_required_fields' && error.details?.missingRequiredFields.includes('sku')
+  );
+});
+
+test('Unified adapter rejects unclosed quoted fields', () => {
+  assert.throws(
+    () => createAdapter().analyzeText(`${HEADER}\n"unclosed`),
+    /unclosed quoted field/i
+  );
+});
+
+test('product family extraction is not tied to YS-prefixed SKUs', () => {
+  assert.equal(createAdapter().product('AB123-RED-L'), 'AB123');
+  assert.equal(createAdapter().product('YS005-D01-1.50'), 'YS005');
+});
+
 test('signed parser distinguishes blanks from malformed values', () => {
   assert.deepEqual(parseSignedNumberOrBlank(''), { blank: true, value: 0 });
   assert.deepEqual(parseSignedNumberOrBlank('$-1,234.50'), { blank: false, value: -1234.5 });
