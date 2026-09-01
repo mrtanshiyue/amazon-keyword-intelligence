@@ -31,10 +31,11 @@ export async function readStoreMemberships(env, accessSub) {
   }
 
   const { results = [] } = await env.DB.prepare(`
-    SELECT store_id, role, status, created_at, updated_at
-    FROM store_memberships
-    WHERE access_sub = ? AND status = 'active'
-    ORDER BY store_id
+    SELECT m.store_id, m.role, m.status, m.created_at, m.updated_at
+    FROM store_memberships m
+    JOIN access_users u ON u.access_sub = m.access_sub
+    WHERE m.access_sub = ? AND m.status = 'active' AND u.status = 'active'
+    ORDER BY m.store_id
   `).bind(accessSub).all();
 
   return {
