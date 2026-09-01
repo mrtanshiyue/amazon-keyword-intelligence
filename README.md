@@ -148,6 +148,7 @@ Status rules:
 - [x] Product Master workspace and imported SKU/ASIN/Parent ASIN/FNSKU/family/marketplace mappings; Product 360 only joins explicitly mapped records.
 - [x] Visible unmapped-record queue that excludes ambiguous source identities from authoritative product economics.
 - [x] Action Outcome windows now retain an approval timestamp and compare equal-length loaded-date windows, with spend, sales, orders, ACoS, ROAS, CPC and CVR plus partial-window/sample warnings.
+- [x] Store analytics pages display the loaded Ads and Unified source, coverage period and actual-import status before decisions are made.
 - [ ] Unified Dataset Registry covering Ads, Unified, SQP/ABA, cost, inventory, rank, competitor, review and Listing datasets.
 - [ ] Dataset provenance: Store, source, import time, coverage dates, row count, schema version, checksum and validation state.
 - [ ] Bring all growth datasets into Data Health, backup/restore and Store isolation instead of independent `localStorage` silos.

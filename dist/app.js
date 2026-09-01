@@ -129,7 +129,7 @@ function storeContextRequired(feature){
   }
   return false;
 }
-function runStorePage(feature,fn){if(storeContextRequired(feature))return;fn();const c=$('#content');if(c)c.insertAdjacentHTML('afterbegin',scopeBanner());}
+function runStorePage(feature,fn){if(storeContextRequired(feature))return;fn();const c=$('#content');if(c)c.insertAdjacentHTML('afterbegin',scopeBanner()+sourceChips());}
 function renderNav(){
   $('#sidebar-nav').innerHTML=NAV.map(g=>`<div class="nav-section"><div class="nav-section-title">${g.title}</div>${g.items.map(([id,ic,label,badge])=>{
     const bv=typeof badge==='function'?badge():badge; return `<button class="nav-item ${state.page===id?'active':''}" data-page="${id}"><span class="nav-icon">${ic}</span><span class="nav-label">${label}</span>${bv?`<span class="nav-pill ${bv==='BETA'?'beta':''}">${esc(bv)}</span>`:''}</button>`
@@ -177,6 +177,7 @@ function render(){renderNav();setMeta(); const fn={'portfolio-overview':renderPo
 
 
 function scopeBanner(){const st=activeStore();return isGlobal()?`<div class="scope-banner global"><div class="scope-lock">◎</div><div><b>Global Intelligence Mode</b><span>Cross-store analytics only · Amazon write actions disabled</span></div><span class="scope-tag">READ ONLY</span></div>`:`<div class="scope-banner store"><div class="scope-lock">🔒</div><div><b>${esc(st.name)} · ${esc(st.marketplace)}</b><span>${esc(st.connection)} → ${esc(st.advertiser)} · ${esc(st.oauth)}</span></div><span class="scope-tag">ISOLATED STORE</span></div>`;}
+function sourceChips(){const ads=datasetDateCoverage(state.currentRows||[]),fin=datasetDateCoverage(state.financeRows||[]),chip=(label,source,range,mode)=>`<span class="badge ${mode==='Estimated'?'amber':'blue'}" title="${esc(source)} · ${esc(range||'No dated rows')} · ${esc(mode)}">${esc(label)}: ${esc(range||'No dated rows')} · ${esc(mode)}</span>`;return`<div class="source-chip-row" aria-label="Page data sources">${chip('Ads',state.adsSource,ads.min?`${ads.min} → ${ads.max}`:'','Actual imported')}${chip('Unified',state.financeSource,fin.min?`${fin.min} → ${fin.max}`:'','Actual imported')}</div>`;}
 
 function suggestionData(){
   const rows=getRangeRows(), terms=aggregateSearchTermContexts(rows), targets=aggregateLevel(rows,'target');
