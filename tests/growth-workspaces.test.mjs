@@ -78,10 +78,26 @@ test('listing placement suggestions rank only imported evidence and preserve its
 });
 
 test('ships parseable templates for every local growth import', () => {
-  for (const kind of ['sqp', 'costs', 'inventory', 'ranks', 'product-master', 'competitor', 'reviews']) {
+  for (const kind of ['sqp', 'costs', 'inventory', 'ranks', 'product-master', 'competitor', 'reviews', 'reverse-asin']) {
     const rows = growth.parseKind(kind, growth.TEMPLATES[kind]);
     assert.equal(rows.length, 1, `${kind} template should parse`);
   }
+});
+
+test('compares imported reverse-ASIN keywords without inferring ASIN ownership', () => {
+  const rows = growth.asinKeywordComparison([
+    { asin: 'OWN-1', keyword: 'shoe rack', volume: 100 },
+    { asin: 'COMP-1', keyword: 'shoe rack', volume: 200 },
+    { asin: 'COMP-1', keyword: 'rack organiser', volume: 50 }
+  ], ['OWN-1']);
+  assert.equal(rows.find(row => row.keyword === 'shoe rack').segment, 'Shared');
+  assert.equal(rows.find(row => row.keyword === 'rack organiser').segment, 'Competitor only / missing');
+});
+
+test('rejects reverse-ASIN imports above the 20-ASIN comparison limit', () => {
+  const header = 'ASIN,Keyword';
+  const rows = Array.from({ length: 21 }, (_, index) => `B${index},keyword ${index}`);
+  assert.throws(() => growth.parseKind('reverse-asin', [header, ...rows].join('\n')), /at most 20 ASINs/);
 });
 
 test('imports review evidence only when required identity, date, rating, title and text are present', () => {

@@ -13,7 +13,7 @@
   const MAX_DATASET_ROWS = 250000;
   const DATASET_KINDS = Object.freeze([
     'ads', 'finance', 'sqp', 'costs', 'inventory', 'ranks',
-    'competitor', 'reviews', 'listing', 'product-master', 'keyword-assets', 'action-outcomes'
+    'competitor', 'reviews', 'reverse-asin', 'listing', 'product-master', 'keyword-assets', 'action-outcomes'
   ]);
   const DATASET_KIND_SET = new Set(DATASET_KINDS);
 
