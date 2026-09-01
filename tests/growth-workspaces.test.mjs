@@ -63,3 +63,7 @@ test('keyword asset ids are stable across keyword workspace consumers', () => {
   assert.equal(growth.keywordAssetId('Reading  Glasses'), growth.keywordAssetId('reading glasses'));
   assert.notEqual(growth.keywordAssetId('reading glasses'), growth.keywordAssetId('reading glasses women'));
 });
+
+test('workflow assets do not invent action records when no Store action state exists', () => {
+  assert.deepEqual(growth.actionForAsset('kw_example'), []);
+});
