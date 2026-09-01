@@ -143,6 +143,8 @@ Status rules:
 
 ### P0 — trustworthy connected decision system
 
+- [x] Store-scoped browser Dataset Registry for currently supported Ads, Unified, SQP/ABA, cost, inventory and rank imports, including source, import time, coverage, row count, schema version, checksum and validation status.
+- [x] Core growth imports migrated into the registry, Data Health and local backup/restore, with safe legacy browser-data migration.
 - [ ] Unified Dataset Registry covering Ads, Unified, SQP/ABA, cost, inventory, rank, competitor, review and Listing datasets.
 - [ ] Dataset provenance: Store, source, import time, coverage dates, row count, schema version, checksum and validation state.
 - [ ] Bring all growth datasets into Data Health, backup/restore and Store isolation instead of independent `localStorage` silos.

@@ -35,6 +35,22 @@ test('validateBackupObject accepts supported local state and dataset records', (
   assert.deepEqual(JSON.parse(result.backup.localStorage.keywordos_v9_schedules), [{ id: 'schedule-1', name: 'Real' }]);
 });
 
+test('validateBackupObject preserves Store-scoped growth registry records', () => {
+  const result = validateBackupObject({
+    format: BACKUP_FORMAT,
+    version: BACKUP_VERSION,
+    localStorage: {},
+    datasets: [{
+      key: 'store-a::inventory', kind: 'inventory', storeId: 'store-a', schemaVersion: 2,
+      source: 'inventory.csv', importedAt: '2026-09-01T08:00:00.000Z',
+      rows: [{ date: '2026-08-30', sku: 'SKU-1', available: 10 }]
+    }]
+  });
+  assert.equal(result.ok, true);
+  assert.equal(result.backup.datasets[0].key, 'store-a::inventory');
+  assert.equal(result.backup.datasets[0].kind, 'inventory');
+});
+
 test('validateBackupObject rejects unsupported dataset keys and duplicate datasets', () => {
   const base = { format: BACKUP_FORMAT, version: BACKUP_VERSION, localStorage: {} };
   assert.equal(validateBackupObject({ ...base, datasets: [{ key: 'other', schemaVersion: 1, rows: [] }] }).ok, false);
