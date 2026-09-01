@@ -62,6 +62,21 @@ test('listing coverage checks complete phrases by field and keeps partial roots 
   assert.deepEqual(coverage[1].byField.title.roots.sort(), ['rack', 'shoe']);
 });
 
+test('listing quality excludes configured brands and flags backend brands plus repeated roots', () => {
+  const quality = growth.listingQuality({ title: 'Rack rack rack rack', bullets: '', description: '', searchTerms: 'Example Brand rack' }, 'Example Brand');
+  assert.deepEqual(quality.backendBrands, ['Example Brand']);
+  assert.deepEqual(quality.repeated, [['rack', 5]]);
+});
+
+test('listing placement suggestions rank only imported evidence and preserve its metrics', () => {
+  const evidence = growth.listingEvidenceTerms([{ query: 'shoe rack', purchases: 3, volume: 500 }], [{ searchTerm: 'shoe rack', orders: 4 }, { searchTerm: 'rack organiser', orders: 2 }]);
+  const suggestions = growth.listingPlacementSuggestions({ title: '', bullets: '', description: '', searchTerms: '' }, evidence);
+  assert.equal(suggestions[0].keyword, 'shoe rack');
+  assert.equal(suggestions[0].orders, 4);
+  assert.equal(suggestions[0].purchases, 3);
+  assert.equal(suggestions[0].volume, 500);
+});
+
 test('ships parseable templates for every local growth import', () => {
   for (const kind of ['sqp', 'costs', 'inventory', 'ranks', 'product-master', 'competitor', 'reviews']) {
     const rows = growth.parseKind(kind, growth.TEMPLATES[kind]);

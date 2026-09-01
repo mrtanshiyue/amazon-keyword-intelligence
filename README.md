@@ -206,8 +206,8 @@ Status rules:
 
 - [x] Root-word and phrase coverage instead of simple substring matching.
 - [x] Separate title, bullets, description and backend-term coverage/scoring.
-- [ ] Brand-term exclusion, duplicate-root control and keyword-stuffing warnings.
-- [ ] High-value unused keyword placement suggestions based on imported evidence.
+- [x] User-configured brand-term exclusion, duplicate-root control and keyword-stuffing warnings.
+- [x] High-value unused keyword placement suggestions based on imported evidence, with manual relevance confirmation.
 - [ ] Competitor Listing keyword-gap comparison.
 - [ ] Amazon field character/byte rules with marketplace-specific validation.
 - [ ] Listing versions, diff, notes and linkage to later rank/conversion outcomes.
