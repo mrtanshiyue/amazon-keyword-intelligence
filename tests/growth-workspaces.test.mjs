@@ -94,6 +94,12 @@ test('compares imported reverse-ASIN keywords without inferring ASIN ownership',
   assert.equal(rows.find(row => row.keyword === 'rack organiser').segment, 'Competitor only / missing');
 });
 
+test('ASIN overlap score is based only on the imported comparison sets', () => {
+  const score = growth.asinOverlapScore([{ segment: 'Shared' }, { segment: 'Own only' }, { segment: 'Competitor only / missing' }]);
+  assert.equal(score.score, 1 / 3);
+  assert.equal(score.shared, 1);
+});
+
 test('rejects reverse-ASIN imports above the 20-ASIN comparison limit', () => {
   const header = 'ASIN,Keyword';
   const rows = Array.from({ length: 21 }, (_, index) => `B${index},keyword ${index}`);
