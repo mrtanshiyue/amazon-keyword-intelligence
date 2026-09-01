@@ -12,6 +12,15 @@ test('parses quoted SQP CSV and normalizes percent or decimal shares', () => {
   assert.equal(rows[1].brandPurchaseShare, 0.2);
 });
 
+test('rejects malformed growth CSV with an unclosed quoted field', () => {
+  const csv = 'Search Query,Search Query Volume\n"unfinished,100';
+  assert.throws(() => growth.parseKind('sqp', csv), /unclosed quoted field/);
+});
+
+test('defines the growth-import browser safety limit', () => {
+  assert.equal(growth.MAX_GROWTH_IMPORT_BYTES, 16 * 1024 * 1024);
+});
+
 test('derives search funnel rates and sorts opportunity', () => {
   const rows = growth.sqpSummary([
     { query: 'a', volume: 100, impressions: 50, clicks: 10, cartAdds: 4, purchases: 2, brandPurchaseShare: 0.8 },

@@ -154,6 +154,7 @@ Status rules:
 - [x] Listing drafts and approved-action outcome baselines are Store-scoped registry datasets, included in Data Health and validated local backup/restore with legacy browser-data migration.
 - [x] Data Health exposes per-dataset Store, source, import timestamp, coverage, row count, schema version, validation status and checksum for auditable decisions; the full audit renderer is protected from being shadowed by a summary view.
 - [x] Growth workspaces show the precise persisted dataset source, coverage, import date and validation state ahead of evidence-derived KPI views; a missing import time remains explicit.
+- [x] Growth CSV imports enforce the 16 MiB browser safety limit and reject malformed unclosed CSV fields before any workspace data is replaced.
 - [x] Action Outcome review warns on incomplete windows, small samples, same-scope concurrent local actions and unavailable Amazon-side confounders.
 - [x] Shared keyword assets support Store-scoped tags and intent classification across library, tracker and workflow, with backup/restore coverage.
 - [x] Keyword Workflow now displays the exact Ads, SQP/ABA and imported rank evidence available for each keyword asset rather than reducing every source to Ads.
