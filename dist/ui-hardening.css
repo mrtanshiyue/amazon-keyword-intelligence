@@ -1,0 +1,432 @@
+/* KeywordOS P1 readability hardening
+   Conservative overrides only: improve legibility and keyboard focus without changing product layout. */
+
+:root{
+  --readability-focus: var(--blue);
+}
+
+body{
+  line-height:1.45;
+  text-rendering:optimizeLegibility;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* Keep the dense analytics feel, but remove sub-10px text from primary working surfaces. */
+.brand-copy span,
+.tool-switcher small,
+.nav-section-title,
+.control-label,
+.eyebrow,
+.metric-sub,
+.v8-kpi>small,
+.card-title small,
+.result-count,
+.filter-field label,
+.field-inline label,
+.subline,
+.badge,
+.status-badge,
+.scope-tag,
+.runtime-capability-chip{
+  font-size:10px!important;
+  line-height:1.35;
+}
+
+.nav-item,
+.side-link,
+.product-menu,
+.market-chip,
+.breadcrumb,
+.section-tab,
+.btn,
+.select,
+.input,
+.suggest-settings,
+.learn-panel>p{
+  font-size:12px;
+}
+
+.page-title-row p{
+  font-size:12.5px;
+  line-height:1.5;
+}
+
+.metric-label,
+.card-title h3,
+.scope-banner b,
+.h10-callout b{
+  font-size:11.5px!important;
+}
+
+.data-table{
+  font-size:12px;
+  line-height:1.35;
+}
+
+.data-table thead th{
+  font-size:10.5px;
+  letter-spacing:0;
+}
+
+.data-table tbody td{
+  min-height:40px;
+}
+
+/* Strong, consistent keyboard focus across the app. */
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+[role="button"]:focus-visible,
+.entity-link:focus-visible,
+.toggle:focus-visible{
+  outline:2px solid var(--readability-focus);
+  outline-offset:2px;
+}
+
+button:disabled,
+input:disabled,
+select:disabled{
+  cursor:not-allowed;
+}
+
+/* Avoid overly compressed controls in long operating sessions. */
+.btn,
+.select,
+.input,
+.market-chip,
+.language-switch{
+  min-height:34px;
+}
+
+.btn.sm{
+  min-height:30px;
+}
+
+.icon-action,
+.header-action,
+.pager button{
+  min-width:30px;
+  min-height:30px;
+}
+
+/* Improve dense table scanability while preserving existing colors and spacing. */
+.data-table tbody td,
+.data-table thead th{
+  padding-left:10px;
+  padding-right:10px;
+}
+
+.table-footer,
+.filter-footer,
+.bulkbar{
+  font-size:11px;
+}
+
+/* Small laptop hardening: allow page-level controls to wrap before they collide. */
+@media (max-width:1180px){
+  .page-title-row{
+    align-items:flex-start;
+    gap:12px;
+    flex-wrap:wrap;
+  }
+  .page-controls{
+    flex-wrap:wrap;
+    justify-content:flex-start;
+  }
+  .profile-control .select{
+    min-width:190px;
+  }
+  .suite-nav button{
+    padding-left:9px;
+    padding-right:9px;
+  }
+}
+
+@media (max-width:900px){
+  .global-header{
+    overflow-x:auto;
+  }
+  .header-left,
+  .header-right{
+    flex:0 0 auto;
+  }
+  .suite-nav{
+    display:none;
+  }
+  .filter-panel{
+    grid-template-columns:repeat(2,minmax(150px,1fr));
+  }
+  .overview-strip{
+    overflow-x:auto;
+    grid-template-columns:repeat(6,minmax(150px,1fr));
+  }
+  .table-scroll{
+    max-height:none;
+  }
+}
+
+/* Mobile: keep navigation available as a narrow rail and collapse working grids. */
+@media (max-width:760px){
+  :root{
+    --sidebar:64px;
+  }
+  body[data-language="bi"]{
+    --sidebar:64px;
+  }
+  .sidebar{
+    width:var(--sidebar);
+  }
+  .main-shell{
+    margin-left:var(--sidebar);
+  }
+  .brand-row{
+    height:52px;
+    padding:0 7px;
+    gap:6px;
+  }
+  .brand-symbol{
+    width:28px;
+    height:28px;
+    font-size:15px;
+    flex:0 0 auto;
+  }
+  .brand-copy strong{
+    display:none;
+  }
+  .brand-copy span,
+  .tool-switcher small,
+  .account-card small{
+    display:none;
+  }
+  .tool-switcher{
+    min-height:40px;
+    height:auto;
+    margin:6px;
+    padding:6px;
+    gap:5px;
+  }
+  .tool-switcher b{
+    font-size:10px;
+  }
+  .tool-icon{
+    width:24px;
+    height:24px;
+    flex:0 0 auto;
+  }
+  .sidebar-nav{
+    padding-left:4px;
+    padding-right:4px;
+  }
+  .nav-section{
+    margin-top:7px;
+  }
+  .nav-section-title{
+    padding:0 5px 4px;
+    font-size:8px!important;
+    letter-spacing:.45px;
+  }
+  .nav-item,
+  .side-link{
+    min-height:36px;
+    height:auto;
+    padding:6px;
+    gap:4px;
+    line-height:1.15;
+  }
+  .nav-item{justify-content:center}
+  .nav-icon{
+    width:15px;
+    flex:0 0 auto;
+  }
+  .nav-label{
+    font-size:10px;
+    white-space:normal;
+    overflow-wrap:anywhere;
+  }
+  .nav-pill{
+    display:none;
+  }
+  .sidebar-bottom{
+    padding:4px;
+  }
+  .account-card{
+    min-height:40px;
+    padding:5px;
+    gap:5px;
+  }
+  .avatar{
+    width:25px;
+    height:25px;
+    flex:0 0 auto;
+  }
+  .account-card b{
+    font-size:9px;
+    white-space:normal;
+    overflow-wrap:anywhere;
+  }
+  .global-header{
+    min-height:44px;
+    height:auto;
+    padding:5px 8px;
+    gap:6px;
+  }
+  .global-header .product-menu,
+  .global-header .header-divider,
+  .global-header .header-action,
+  .breadcrumb{
+    display:none;
+  }
+  .header-left,
+  .header-right{
+    gap:5px;
+  }
+  .market-chip{
+    display:none;
+  }
+  .page-title-row{
+    min-height:0;
+    padding:12px 10px;
+  }
+  .page-title-row h1{
+    font-size:20px;
+  }
+  .page-title-row p{
+    font-size:11.5px;
+  }
+  .page-controls{
+    width:100%;
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:7px;
+  }
+  .page-controls>*{
+    min-width:0;
+  }
+  .profile-control .select,
+  .date-control .select,
+  #page-learn,
+  #import-top,
+  .scope-mode-badge{
+    width:100%;
+    min-width:0;
+  }
+  .content{
+    padding:10px 8px 28px;
+  }
+  .toolbar{
+    flex-wrap:wrap;
+    align-items:flex-start;
+  }
+  .toolbar-left,
+  .toolbar-right{
+    width:100%;
+    flex-wrap:wrap;
+    margin-left:0;
+  }
+  .searchbox{
+    width:100%;
+    min-width:0;
+  }
+  .searchbox input{
+    width:100%;
+  }
+  .section-tabs{
+    overflow-x:auto;
+    flex-wrap:nowrap;
+  }
+  .section-tab{
+    flex:0 0 auto;
+  }
+  .filter-panel{
+    grid-template-columns:1fr;
+  }
+  .filter-field.wide{
+    grid-column:auto;
+  }
+  .overview-strip,
+  .portfolio-kpis{
+    overflow:visible;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+  .dashboard-grid,
+  .split-cards,
+  .v8-grid.two-one,
+  .v8-grid.equal,
+  .conflict-grid,
+  .workspace-module-grid,
+  .health-grid,
+  .store-admin-grid,
+  .connection-grid,
+  .store-grid,
+  .formula-cards{
+    grid-template-columns:1fr;
+  }
+  .store-grid{
+    padding:10px;
+  }
+  .workspace-hero,
+  .settings-intro,
+  .scope-banner,
+  .h10-callout,
+  .suggest-settings{
+    align-items:flex-start;
+    flex-wrap:wrap;
+  }
+  .workspace-hero{
+    flex-direction:column;
+  }
+  .workspace-actions{
+    width:100%;
+    flex-wrap:wrap;
+  }
+  .workspace-actions .btn{
+    flex:1 1 140px;
+  }
+  .scope-banner .scope-tag{
+    margin-left:0;
+  }
+  .context-gate{
+    min-height:0;
+    padding:22px 14px;
+    flex-direction:column;
+    align-items:flex-start;
+  }
+  .context-gate h2{
+    font-size:20px;
+  }
+  .schedule-filterbar{
+    grid-template-columns:1fr;
+  }
+  .schedule-filterbar + .card .card-body{
+    overflow-x:auto;
+  }
+  .schedule-axis,
+  .schedule-grid{
+    min-width:620px;
+  }
+  .schema-list p{
+    grid-template-columns:1fr;
+    gap:3px;
+    padding:8px 0;
+  }
+  .readiness>div{
+    grid-template-columns:1fr;
+    gap:3px;
+    padding:8px 0;
+  }
+  .drawer{
+    width:96vw;
+  }
+  .modal{
+    max-width:94vw;
+  }
+}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{
+    scroll-behavior:auto!important;
+    transition-duration:.01ms!important;
+    animation-duration:.01ms!important;
+    animation-iteration-count:1!important;
+  }
+}

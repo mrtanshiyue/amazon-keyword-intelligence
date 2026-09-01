@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>KeywordOS V9 · Multi-Store Intelligence</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="h10-ui.css">
+  <link rel="stylesheet" href="runtime-capabilities.css">
+  <link rel="stylesheet" href="ui-hardening.css">
+  <link rel="stylesheet" href="growth-workspaces.css">
+</head>
+<body>
+  <div id="app" class="app-shell">
+    <aside class="sidebar">
+      <div class="brand-row">
+        <div class="brand-symbol">K</div>
+        <div class="brand-copy"><strong>KeywordOS</strong><span>Amazon Intelligence</span></div>
+        <button class="icon-btn sidebar-collapse" title="Collapse">‹</button>
+      </div>
+      <button class="tool-switcher" id="tool-switcher"><span class="tool-icon">◫</span><span><b>Advertising</b><small>Amazon US workspace</small></span><span class="chev">⌄</span></button>
+      <nav id="sidebar-nav" class="sidebar-nav"></nav>
+      <div class="sidebar-bottom">
+        <button class="side-link" data-page="settings"><span class="nav-icon">⚙</span><span>Settings</span></button>
+        <button class="side-link"><span class="nav-icon">?</span><span>Help Center</span></button>
+        <div class="account-card"><span class="avatar">YT</span><div><b>YTDBNS</b><small>US · Local workspace</small></div><span class="chev">⌄</span></div>
+      </div>
+    </aside>
+
+    <main class="main-shell">
+      <header class="global-header">
+        <div class="header-left">
+          <button class="product-menu"><span class="grid-icon">▦</span> Tools <span class="chev">⌄</span></button>
+          <span class="header-divider"></span>
+          <div class="suite-nav"><button>Products</button><button>Keywords</button><button>Listing</button><button class="active">Marketing</button><button>Operations</button><button>Analytics</button></div>
+          <span class="header-divider"></span>
+          <span id="breadcrumb" class="breadcrumb">Advertising / Account Overview</span>
+        </div>
+        <div class="header-right">
+          <button class="header-action" title="Search">⌕</button>
+          <button class="header-action" title="Notifications">♢<span class="notification-dot"></span></button>
+          <button class="header-action" title="Help">?</button>
+          <div class="language-switch" data-no-i18n aria-label="Language switch">
+            <button type="button" data-lang="zh">中文</button>
+            <button type="button" data-lang="en">EN</button>
+            <button type="button" data-lang="bi">中英</button>
+          </div>
+          <div class="market-chip"><span class="flag">🇺🇸</span><span>Amazon.com</span><span class="chev">⌄</span></div>
+        </div>
+      </header>
+
+      <div class="workspace">
+        <section class="page-title-row">
+          <div>
+            <div class="eyebrow" id="page-eyebrow">ADVERTISING</div>
+            <h1 id="page-title">Account Overview</h1>
+            <p id="page-subtitle">High-level advertising performance across the selected profile and date range.</p>
+          </div>
+          <div class="page-controls">
+            <button id="page-learn" class="btn secondary control-lg"><span class="page-learn-icon">▣</span> Learn</button>
+            <div class="profile-control">
+              <span class="control-label">Data scope</span>
+              <select id="profile-select" class="select control-lg">
+                <option value="global">All Stores · Global Intelligence</option>
+                <option value="store-a">YTDBNS-US-01 · Amazon.com</option>
+                <option value="store-b">STORE-US-02 · Preview</option>
+                <option value="store-c">STORE-US-03 · Preview</option>
+              </select>
+            </div>
+            <div class="date-control">
+              <span class="control-label">Date range</span>
+              <select id="range-select" class="select control-lg">
+                <option value="7">Last 7 days</option>
+                <option value="14">Last 14 days</option>
+                <option value="30" selected>Last 30 days</option>
+                <option value="60">Last 60 days</option>
+                <option value="all">All available data</option>
+              </select>
+            </div>
+            <span id="scope-mode-badge" class="scope-mode-badge global">GLOBAL · READ ONLY</span><button id="import-top" class="btn primary control-lg">＋ Import Data</button>
+          </div>
+        </section>
+        <section id="content" class="content"></section>
+      </div>
+    </main>
+  </div>
+
+  <div id="drawer-root"></div>
+  <div id="modal-root"></div>
+  <div id="toast-root" role="status" aria-live="polite" aria-atomic="true"></div>
+  <input id="hidden-file" type="file" accept=".csv,text/csv" hidden>
+  <input id="hidden-unified-file" type="file" accept=".csv,text/csv" hidden>
+
+  <script src="/api/data/seed.js"></script>
+  <script src="/api/data/unified-seed.js"></script>
+  <script src="report-adapter.js"></script>
+  <script src="client-import-value-guard.js"></script>
+  <script src="unified-report-adapter.js"></script>
+  <script src="client-unified-value-guard.js"></script>
+  <script src="i18n.js"></script>
+  <script src="preflight-state.js"></script>
+  <script src="growth-workspaces.js"></script>
+  <script src="app.js"></script>
+  <script src="runtime-capabilities.js"></script>
+  <script src="ui-actions.js"></script>
+  <script src="suggestions-actions.js"></script>
+  <script src="listing-workspace-actions.js"></script>
+  <script src="productivity-actions.js"></script>
+  <script src="local-operations-actions.js"></script>
+  <script src="data-recency-actions.js"></script>
+  <script>
+    (() => {
+      'use strict';
+
+      const hasDataAction = (element) =>
+        element instanceof Element && [...element.attributes].some((attribute) => attribute.name.startsWith('data-'));
+
+      const actionLabel = (element) => {
+        const own = element.textContent?.trim();
+        if (own) return own;
+        const row = element.closest('tr,.rule-row');
+        return row?.querySelector('.entity-link,b')?.textContent?.trim() || 'item';
+      };
+
+      const enhance = (root) => {
+        if (!(root instanceof Element || root instanceof Document)) return;
+        const elements = [];
+        if (root instanceof Element && root.matches('.entity-link,.toggle')) elements.push(root);
+        elements.push(...root.querySelectorAll('.entity-link,.toggle'));
+        elements.filter(hasDataAction).forEach((element) => {
+          if (!element.hasAttribute('tabindex')) element.tabIndex = 0;
+          if (element.classList.contains('toggle')) {
+            element.setAttribute('role', 'switch');
+            element.setAttribute('aria-checked', element.classList.contains('on') ? 'true' : 'false');
+            if (!element.hasAttribute('aria-label')) element.setAttribute('aria-label', `Toggle ${actionLabel(element)}`);
+          } else {
+            if (!element.hasAttribute('role')) element.setAttribute('role', 'button');
+            if (!element.hasAttribute('aria-label')) element.setAttribute('aria-label', actionLabel(element));
+          }
+        });
+
+        const checkboxes = [];
+        if (root instanceof HTMLInputElement && root.type === 'checkbox') checkboxes.push(root);
+        checkboxes.push(...root.querySelectorAll('table input[type="checkbox"]'));
+        checkboxes.forEach((input) => {
+          if (input.hasAttribute('aria-label')) return;
+          if (input.closest('thead')) {
+            input.setAttribute('aria-label', 'Select all visible rows');
+            return;
+          }
+          const row = input.closest('tr');
+          const label = row?.querySelector('.entity-link,.keyword-main,b')?.textContent?.trim();
+          input.setAttribute('aria-label', label ? `Select ${label}` : 'Select row');
+        });
+      };
+
+      document.addEventListener('keydown', (event) => {
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        const target = event.target instanceof Element ? event.target.closest('.entity-link,.toggle') : null;
+        if (!target || !hasDataAction(target)) return;
+        event.preventDefault();
+        target.click();
+      });
+
+      const observer = new MutationObserver((records) => {
+        records.forEach((record) => record.addedNodes.forEach((node) => {
+          if (node instanceof Element) enhance(node);
+        }));
+      });
+
+      const start = () => {
+        enhance(document);
+        ['content', 'drawer-root', 'modal-root'].forEach((id) => {
+          const root = document.getElementById(id);
+          if (root) observer.observe(root, { childList: true, subtree: true });
+        });
+      };
+
+      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, { once: true });
+      else start();
+    })();
+  </script>
+</body>
+</html>
