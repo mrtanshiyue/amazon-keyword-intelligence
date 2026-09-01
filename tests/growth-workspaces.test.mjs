@@ -56,10 +56,17 @@ test('counts UTF-8 backend search-term bytes', () => {
 });
 
 test('ships parseable templates for every local growth import', () => {
-  for (const kind of ['sqp', 'costs', 'inventory', 'ranks', 'product-master', 'competitor']) {
+  for (const kind of ['sqp', 'costs', 'inventory', 'ranks', 'product-master', 'competitor', 'reviews']) {
     const rows = growth.parseKind(kind, growth.TEMPLATES[kind]);
     assert.equal(rows.length, 1, `${kind} template should parse`);
   }
+});
+
+test('imports review evidence only when ASIN and review text are present', () => {
+  const rows = growth.parseKind('reviews', 'ASIN,Rating,Body\nB1,2,"too small"\nB2,5,');
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].asin, 'B1');
+  assert.equal(rows[0].rating, 2);
 });
 
 test('keeps the newest imported competitor snapshot for each ASIN', () => {

@@ -156,6 +156,7 @@ Status rules:
 - [x] Growth workspaces show the precise persisted dataset source, coverage, import date and validation state ahead of evidence-derived KPI views; a missing import time remains explicit.
 - [x] Growth CSV imports enforce the 16 MiB browser safety limit and reject malformed unclosed CSV fields before any workspace data is replaced.
 - [x] Competitor Snapshots provides Store-scoped CSV import, template, source provenance and latest-per-ASIN point-in-time listing evidence; no competitor metric is inferred when it is absent from the import.
+- [x] Review Evidence provides Store-scoped CSV import, provenance and raw rating/text sample review; missing review text, sentiment, themes and representativeness are never inferred.
 - [x] Action Outcome review warns on incomplete windows, small samples, same-scope concurrent local actions and unavailable Amazon-side confounders.
 - [x] Shared keyword assets support Store-scoped tags and intent classification across library, tracker and workflow, with backup/restore coverage.
 - [x] Keyword Workflow now displays the exact Ads, SQP/ABA and imported rank evidence available for each keyword asset rather than reducing every source to Ads.
