@@ -35,3 +35,9 @@ test('rejects unknown kinds and non-object rows', () => {
   assert.throws(() => registry.normalizeRecord({ kind: 'unknown', rows: [] }), /Unsupported dataset kind/);
   assert.throws(() => registry.normalizeRecord({ kind: 'costs', rows: ['bad'] }), /non-object row/);
 });
+
+test('accepts Store-scoped action outcome baseline records', () => {
+  const record = registry.normalizeRecord({ kind: 'action-outcomes', storeId: 'store-a', rows: [{ id: 'a-1', windowDays: 14, metrics: { spend: 12 } }], source: 'Approved action baseline' });
+  assert.equal(record.kind, 'action-outcomes');
+  assert.equal(record.rowCount, 1);
+});

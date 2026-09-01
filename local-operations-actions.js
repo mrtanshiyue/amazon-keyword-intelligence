@@ -8,7 +8,7 @@
   const DB_NAME = 'keywordos_v9_workspace';
   const DB_VERSION = 2;
   const DATASET_STORE = 'datasets';
-  const DATASET_KINDS = new Set(['ads', 'finance', 'sqp', 'costs', 'inventory', 'ranks', 'competitor', 'reviews', 'listing', 'product-master', 'keyword-assets']);
+  const DATASET_KINDS = new Set(['ads', 'finance', 'sqp', 'costs', 'inventory', 'ranks', 'competitor', 'reviews', 'listing', 'product-master', 'keyword-assets', 'action-outcomes']);
   const SAFE_LOCAL_KEYS = new Set([
     'keywordos_v9_actions',
     'keywordos_v9_negatives',
