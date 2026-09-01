@@ -1,6 +1,6 @@
 # KeywordOS — Current Authoritative Handoff
 
-**Updated:** 2026-08-31 (Asia/Singapore)  
+**Updated:** 2026-09-01 (Asia/Singapore)  
 **Repository:** `mrtanshiyue/amazon-keyword-intelligence`
 
 This is the single authoritative continuation checkpoint for Amazon Keyword Intelligence / KeywordOS.
@@ -11,22 +11,23 @@ Do one short read-only drift check first:
 
 1. Read the repository's current `main` SHA.
 2. Treat current `main` as authoritative.
-3. Read this file and Issue #17 only for continuation rules/state; do not restart analysis from old V5/V6/V7/V8/V9 handoffs.
-4. If current `main` is newer than the verified product baseline below only because of documentation synchronization, do not mistake that docs-only SHA change for new product work.
+3. Read this file plus Issue #17 for continuation rules/state; do not restart from historical V5/V6/V7/V8/V9 handoffs.
+4. If current `main` is newer only because of docs synchronization, keep the verified product baseline below as the last product-code checkpoint.
 
-Verified product baseline immediately before this handoff synchronization:
+Verified product baseline immediately before this documentation synchronization:
 
-`09d3ad9353395f7a4031a2518bafebeb84a98e16`
+`22517172eca251703d028d081fb7c9466d9404be` — PR #79
 
-That baseline passed:
+Acceptance on that exact product baseline:
 
-- GitHub `check-and-build`
-- Cloudflare Production Workers Build
-  - Build ID: `0e3f7490-84bb-44eb-bd6f-eecfdb7ad961`
-  - Version ID: `1e64a5b2-419e-4068-bb2e-3e3b521f7533`
-- GitHub-only `/cloudflare status` acceptance on Issue #63
+- GitHub `check-and-build`: **PASS**
+- Cloudflare Production Workers Build: **PASS**
+  - Build ID: `c78fafaa-84d1-4a00-b917-0228783ac247`
+  - Version ID: `4a3b6f0e-4782-4336-b2ea-9ec71c7ea0e7`
+- GitHub-only `/cloudflare status` acceptance on Issue #63: **PASS**
+  - latest accepted run: `33454956950`
 
-Do not pin future work to the baseline SHA when current `main` is newer. Always read current `main` first.
+Do not pin future work to this SHA when current `main` is newer. Always read current `main` first.
 
 ## 2. Permanent owner boundaries
 
@@ -35,18 +36,18 @@ Do not pin future work to the baseline SHA when current `main` is newer. Always 
 Until the owner explicitly resumes authentication/login verification, do **not**:
 
 - run `/api/private/session` authentication acceptance
-- request or capture canonical Cloudflare Access `sub`
+- request/capture canonical Cloudflare Access `sub`
 - bootstrap `access_users`
 - bootstrap `store_memberships`
 - run intended-owner, unrelated-identity, cross-store, or role authorization acceptance
 - add login UI or username/password authentication
 - fabricate identity or use D1 membership writes to simulate acceptance
 - replace or extend the existing Access/JWT foundation
-- treat the external redirect gate as a reason to reopen authentication work
+- reopen auth merely because anonymous runtime smoke reaches the external redirect gate
 
 Preserve the existing fail-closed Access/JWT foundation unchanged.
 
-### Amazon is permanently HARD-OFF unless separately authorized
+### Amazon remains HARD-OFF unless separately authorized
 
 Keep:
 
@@ -54,7 +55,7 @@ Keep:
 AMAZON_API_MODE = disabled
 ```
 
-Do not start Amazon OAuth, Amazon Ads API, SP-API, credential storage, live advertiser binding, automatic report sync, or Amazon mutation.
+Do not start Amazon OAuth, Amazon Ads API, SP-API, credential storage, live advertiser binding, automatic report sync, Amazon listing publishing, campaign mutation, bid mutation, or budget mutation.
 
 ### No anonymous mutable Worker API
 
@@ -69,32 +70,34 @@ PATCH /api/*
 
 The prepared server persistence pipeline remains intentionally unwired to runtime while authentication is frozen.
 
-## 3. Completed work — do not redo
+## 3. Major completed areas — do not redo
 
 `#20` is **CLOSED / COMPLETED**. Do not reopen or rerun it.
 
-Do not redo or redesign:
+Do not restart or redesign completed foundations without new evidence:
 
 - Dashboard / Analytics
 - Ad Manager
-- Suggestions already completed except a newly evidenced defect
+- Suggestions except a newly evidenced defect
 - Local Data / Data Health
 - Store Workspace / Store Management
 - Users truth
 - Amazon Connections truth
-- Mobile / responsive work
-- Accessibility
+- mobile/responsive baseline
+- accessibility baseline
+- suite navigation / suite homes / URL page history
+- first-class Listing preparation workspace
 - existing Access/JWT foundation
 - D1 migration `0003`
 - Worker / D1 / R2 resource creation
 - persistence architecture
 - authorization architecture
 
-Do not introduce React/Vue, a second persistence system, a second authorization system, or speculative service/repository/factory layers merely to continue coding.
+Do not introduce React/Vue, a second persistence system, a second authorization system, a new routing framework, or speculative service/repository/factory layers merely to continue coding.
 
 ## 4. Non-auth server persistence foundation — COMPLETE
 
-The non-auth persistence foundation is:
+Status:
 
 ```text
 GITHUB + D1 READY
@@ -151,24 +154,47 @@ store_memberships = 0
 
 No owner/member bootstrap has occurred. Keep `access_users` and `store_memberships` empty while authentication is frozen.
 
-## 6. Product hardening completed while auth is frozen
+## 6. Product integrity and workspace UX completed while auth is frozen
 
-Merged work:
+Merged hardening / UX work:
 
-- #56 — shell productivity controls: sidebar collapse, global page search, current-page help, notification truth
-- #57 — minimal repository CI: Node 22, `npm ci`, `npm run check`, `npm run build`
-- #58 — local workspace resilience: versioned browser backup/restore, Unified import entry, synthetic Budget/hourly/default-schedule surfaces neutralized
-- #59 — Amazon Ads import value integrity: malformed/negative required metrics and invalid dates rejected
-- #60 — Unified Transaction value integrity: malformed nonblank finance values and invalid dates rejected while legitimate signed finance values remain supported
-- #61 — loaded-data recency awareness: exact dataset age and readiness scoped to loaded period
-- #62 — Bid Suggestions source truth: recommendations require a real positive imported Target Bid; no fabricated `$0.65` / `$0.60` current bid
-- #65 — local backup restore value integrity: normalized Ads/Unified rows are validated before IndexedDB writes, closing the backup path around #59/#60 guards while preserving legitimate signed finance values
+- #56 — shell productivity controls: sidebar collapse, global page search, page help, notification truth
+- #57 — minimal repository CI
+- #58 — local workspace resilience + synthetic Budget/hourly/default-schedule truth cleanup
+- #59 — Amazon Ads import value integrity
+- #60 — Unified Transaction value integrity
+- #61 — loaded-data recency awareness
+- #62 — Bid Suggestions source truth: real positive imported Target Bid only
+- #65 — backup restore value integrity for normalized Ads/Unified rows
+- #68 — Cloudflare architecture/data-boundary docs synchronized to verified D1 v3 and GitHub-only Ops truth
+- #69 — persisted IndexedDB dataset startup integrity, including strict numeric non-negative Ads `bid`
+- #70 — backup localStorage top-level shape validation
+- #71 — live localStorage preflight repair before `app.js` initialization
+- #72 — legacy-disabled top suite toolbar restored to real navigation
+- #73 — truthful suite workspace launchers + horizontally usable mobile suite navigation below 900px
+- #74 — lightweight `#page=...` URL history and browser Back/Forward using the existing navigation path
+- #75 — async startup page-hash restore race fixed
+- #76 — Listing promoted to a first-class `#page=listing-workspace` preparation page; session-only Title/Bullets/Search Terms drafts; no Amazon publishing
+- #77 — Listing evidence-source truth: prefers only schema-v1 persisted Ads rows that pass the existing integrity guard; otherwise visibly labeled bundled fallback
+- #78 — Listing/sidebar startup race fixed so valid non-Listing hash routes survive async startup
+- #79 — Products / Keywords / Marketing / Operations / Analytics promoted from modal launchers to stable first-class main-workspace suite homes; suite homes participate in existing hash/history routing; Listing remains its dedicated first-class page
 
-A targeted truth audit after #62 found the existing Budget, Dayparting, Users, Amazon Connections and Store Workspace truth layers already prevent legacy synthetic surfaces from being represented as real data. Do not reopen those areas without new evidence.
+### Current top-level suite behavior
+
+The six suite entries are now real first-class navigation surfaces:
+
+- **Products** — first-class suite home, links only to existing truthful product/store workspace capabilities
+- **Keywords** — first-class suite home, links to existing keyword intelligence workspaces
+- **Listing** — first-class preparation workspace using validated Ads evidence where available; draft-only, no publishing
+- **Marketing** — first-class suite home for existing advertising workflows
+- **Operations** — first-class suite home for existing data/finance operating workflows
+- **Analytics** — first-class suite home for existing analytics surfaces
+
+The suite bar remains available on narrower screens through horizontal navigation instead of being hidden.
 
 ## 7. GitHub-only Cloudflare operations
 
-The project no longer depends on a ChatGPT Cloudflare connector for basic read-only Cloudflare status checks.
+Basic Cloudflare observability does not require a standalone ChatGPT Cloudflare connector.
 
 Permanent channel:
 
@@ -184,13 +210,15 @@ Accepted probes:
 - D1 databases read
 - R2 buckets read
 
+Latest accepted exact-main run on the product baseline: `33454956950` — **SUCCESS**.
+
 The workflow emits PASS/FAIL only and must not print token values, account IDs, resource IDs/names, database contents, bucket contents, or application data.
 
 This path is **read-only observability**. Do not silently extend it into:
 
 - Cloudflare Access identity/session acceptance
 - Access app/policy writes
-- deployments
+- deployment mutation
 - D1/R2 mutation
 - Amazon API work
 
@@ -212,6 +240,7 @@ Store truth:
 - Store 02 and Store 03 have no real data and must not display fabricated metrics
 - custom Store workspace metadata is browser-local only
 - local `Staged` / `Approved` states never mean an action was executed on Amazon
+- Listing draft text is session-only and never means it was published to Amazon
 
 ## 9. Runtime boundary
 
@@ -225,28 +254,38 @@ Existing read-only routes include:
 - `/api/data/unified-seed.js`
 - `/api/private/session` — existing fail-closed canary; do not run auth acceptance while frozen
 
-Anonymous runtime smoke has previously reached an external redirect gate before KeywordOS product HTML/static assets. Do not pursue identity/authentication through that gate while the owner freeze remains active.
+Anonymous runtime smoke may reach the external redirect gate before product HTML/static assets. Do not pursue identity/authentication through that gate while the owner freeze remains active.
 
 ## 10. Current execution rule
 
-Continue only **real P1/P2 product defects** that can be demonstrated from existing imported/local data and fixed without authentication, Amazon API access, or anonymous mutable server routes.
+Continue only **evidenced P1/P2 product defects or operator-usability regressions** that can be completed truthfully from existing imported/local data without authentication, Amazon API access, or anonymous mutable server routes.
 
-Good audit targets when continued product hardening is requested:
+Good audit targets:
 
 - data correctness and source lineage
 - restore/import integrity
-- local state consistency and recovery
-- operator usability regressions
+- local-state consistency and recovery
+- suite home / sidebar / URL-history consistency
+- Listing evidence and draft-state truth
+- mobile/operator usability regressions
 - regression coverage around already-supported local workflows
 - hardcoded performance/money/state values only when not already neutralized by truth layers
 
+The suite/Listing optimization phase through #79 is complete. Do not keep changing those surfaces without a demonstrated usability or correctness defect.
+
 If a targeted audit finds no real P1/P2 defect, state that the current product-hardening surface is clean and stop. Do not manufacture work.
 
-## 11. Authentication resume condition
+## 11. Known repository administration gap
+
+Current `main` branch protection is **not enabled** at the repository level. The available ChatGPT GitHub connector can read this state but does not currently expose the required branch-protection write operation. Do not claim protection has been configured unless it is actually enabled through a supported repository-admin path.
+
+This is an administration gap, not a product-runtime blocker.
+
+## 12. Authentication resume condition
 
 `#17` remains **OPEN** only because authentication/authorization acceptance is intentionally frozen.
 
-Authentication resumes only after the owner explicitly asks for it. At that future point, continue from the existing foundation rather than rebuilding it:
+Authentication resumes only after the owner explicitly asks for it. At that future point continue from the existing foundation rather than rebuilding it:
 
 ```text
 Cloudflare Access external configuration gate
