@@ -168,10 +168,10 @@ select:disabled{
 /* Mobile: keep navigation available as a narrow rail and collapse working grids. */
 @media (max-width:760px){
   :root{
-    --sidebar:112px;
+    --sidebar:64px;
   }
   body[data-language="bi"]{
-    --sidebar:118px;
+    --sidebar:64px;
   }
   .sidebar{
     width:var(--sidebar);
@@ -191,7 +191,7 @@ select:disabled{
     flex:0 0 auto;
   }
   .brand-copy strong{
-    font-size:11px;
+    display:none;
   }
   .brand-copy span,
   .tool-switcher small,
@@ -233,6 +233,7 @@ select:disabled{
     gap:4px;
     line-height:1.15;
   }
+  .nav-item{justify-content:center}
   .nav-icon{
     width:15px;
     flex:0 0 auto;

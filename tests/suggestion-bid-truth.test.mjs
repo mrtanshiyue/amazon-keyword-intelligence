@@ -20,4 +20,5 @@ test('bid suggestions require a real imported target bid', () => {
   const observedBidUses = suggestionSource.match(/observedBid:x\.bid/g) || [];
   assert.equal(observedBidUses.length, 2, 'both bid recommendation lanes must label the report-period bid as observed');
   assert.match(suggestionSource, /x\.orders>0&&x\.sales>0&&x\.acos<=state\.settings\.targetAcos\/100\?1\.08:\.88/);
+  assert.doesNotMatch(suggestionSource, /currentBudget|recommendedBudget/);
 });

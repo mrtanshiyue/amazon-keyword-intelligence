@@ -393,7 +393,7 @@
     const listingVisible = (($('#page-title')?.textContent || '').trim() === 'Listing Workspace');
     const currentSuite = listingVisible ? 'listing' : (activeSuiteHome || suiteForPage(activePage()));
     $$('.suite-nav button').forEach((button) => {
-      const suite = normalizeSearch(button.textContent);
+      const suite = button.dataset.suite || normalizeSearch(button.textContent);
       button.classList.toggle('active', suite === currentSuite);
       if (suite === currentSuite) button.setAttribute('aria-current', 'page');
       else button.removeAttribute('aria-current');
@@ -429,8 +429,10 @@
   }
 
   function bindSuiteNavigation() {
-    $$('.suite-nav button').forEach((button) => {
-      const action = suiteAction(button.textContent);
+    $$('.suite-nav button').forEach((button, index) => {
+      const suite = Object.keys(SUITE_WORKSPACES)[index];
+      if (suite) button.dataset.suite = suite;
+      const action = suiteAction(suite);
       if (!action) return;
       enableButton(button, `Open ${button.textContent.trim()} workspace`, `Open ${button.textContent.trim()} workspace`);
       if (button.dataset.suiteNavigationBound === '1') return;

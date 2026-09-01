@@ -747,7 +747,7 @@
   }
 
   function markRuleTruth() {
-    if (pageTitle() !== 'Rules & Automation') return;
+    if (window.KeywordOSUIBridge?.page !== 'rules') return;
 
     const head = $('.rules-head');
     if (head && !$('#rule-engine-truth')) {
@@ -775,7 +775,37 @@
         toggle.style.opacity = '.45';
         toggle.title = 'Bid automation is not active in the current local runtime.';
       });
+      const table = $('.rule-page .data-table');
+      if (table) {
+        setText($('thead th:nth-child(4)', table), 'Min Bid · unavailable');
+        setText($('thead th:nth-child(5)', table), 'Max Bid · unavailable');
+        $$('tbody tr', table).forEach((row) => {
+          setText($('td:nth-child(4)', row), '—');
+          setText($('td:nth-child(5)', row), '—');
+        });
+      }
     }
+  }
+
+  function upgradeRuleScopeInput() {
+    const input = $('#rule-scope');
+    if (!input || input.tagName === 'SELECT') return;
+    const select = document.createElement('select');
+    select.id = input.id;
+    select.className = `${input.className} select`;
+    const bridge = window.KeywordOSUIBridge;
+    const campaigns = bridge ? bridge.aggregateLevel(bridge.getRangeRows(), 'campaign').map((item) => item.name).filter(Boolean).sort() : [];
+    select.innerHTML = ['All campaigns', ...campaigns].map((name) => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`).join('');
+    select.value = campaigns.includes(input.value) ? input.value : 'All campaigns';
+    input.replaceWith(select);
+    window.KeywordOSI18N?.apply(select);
+  }
+
+  function labelSidebarNavigation() {
+    $$('#sidebar-nav button').forEach((button) => {
+      const label = button.title || $('.nav-label', button)?.textContent.trim();
+      if (label) button.setAttribute('aria-label', label);
+    });
   }
 
   function markStaticShellTruth() {
@@ -788,10 +818,11 @@
   }
 
   function markNegativeGuardTruth() {
-    if (pageTitle() !== 'Negative Library') return;
+    const bridge = window.KeywordOSUIBridge;
+    if (bridge?.page !== 'negative-library') return;
     const card = $$('.overview-metric').find((item) => $('.metric-label', item)?.textContent.includes('Protected Blocks'));
     if (!card) return;
-    const blocked = aggregateLevel(getRangeRows(), 'searchterm').filter((item) => item.orders === 0 && item.clicks >= state.settings.negativeClicks && item.spend >= state.settings.negativeSpend && isProtected(item.name)).length;
+    const blocked = bridge.aggregateLevel(bridge.getRangeRows(), 'searchterm').filter((item) => item.orders === 0 && item.clicks >= bridge.settings.negativeClicks && item.spend >= bridge.settings.negativeSpend && bridge.isProtected(item.name)).length;
     setText($('.metric-value', card), blocked);
   }
 
@@ -820,7 +851,9 @@
     enhanceFinance();
     markNegativeGuardTruth();
     markRuleTruth();
+    labelSidebarNavigation();
     prepareOverlayAccessibility();
+    window.KeywordOSI18N?.apply(document);
   }
 
   document.addEventListener('input', (event) => {
@@ -838,6 +871,11 @@
   document.addEventListener('click', (event) => {
     const button = event.target instanceof Element ? event.target.closest('button') : null;
     if (!button) return;
+    if (button.dataset.scheduleDelete && !window.confirm('Delete this local schedule draft?')) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      return;
+    }
     if (button.id === 'save-settings') {
       const values = ['s-target', 's-break', 's-horders', 's-hacos', 's-nclicks', 's-nspend'].map((id) => Number($(`#${id}`)?.value));
       if (values.some((value) => !Number.isFinite(value) || value < 0) || values[0] > values[1]) {
@@ -847,7 +885,7 @@
       }
       return;
     }
-    if (pageTitle() === 'Rules & Automation' && button.textContent.trim() === 'Create Rule' && $('#rule-type')) {
+    if (window.KeywordOSUIBridge?.page === 'rules' && button.closest('#modal-root') && button.classList.contains('primary') && $('#rule-type')) {
       const values = ['rule-orders', 'rule-acos', 'rule-clicks', 'rule-spend'].map((id) => Number($(`#${id}`)?.value));
       if (values.some((value) => !Number.isFinite(value) || value < 0)) {
         event.preventDefault();
@@ -957,6 +995,7 @@
   const observer = new MutationObserver(() => markKnownInactiveControls());
   const overlayObserver = new MutationObserver(() => {
     enhanceFinance();
+    upgradeRuleScopeInput();
     prepareOverlayAccessibility();
   });
 
