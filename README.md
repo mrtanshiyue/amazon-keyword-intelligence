@@ -179,7 +179,7 @@ Status rules:
 - [x] Generic reverse-ASIN/keyword CSV import adapter with documented template and validated Store-scoped provenance. Helium 10 and SellerSprite-specific adapters remain pending.
 - [x] Compare 2–20 imported ASINs in one project.
 - [x] Shared, own-only, competitor-only and missing-keyword sets, with ownership derived only from Product Master ASINs.
-- [ ] Organic-rank, sponsored-rank, search-volume, conversion and traffic-share gaps when present in imported evidence.
+- [x] Organic-rank, sponsored-rank, search-volume, conversion and traffic-share side-by-side gaps when both sides are present in imported evidence.
 - [ ] Keyword overlap/coverage score and one-click addition to the shared keyword asset library.
 - [ ] Traffic Comparison and keyword-distribution views without synthesizing unavailable external metrics.
 
