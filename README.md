@@ -149,7 +149,7 @@ Status rules:
 - [x] Visible unmapped-record queue that excludes ambiguous source identities from authoritative product economics.
 - [x] Action Outcome windows now retain an approval timestamp and compare equal-length loaded-date windows, with spend, sales, orders, ACoS, ROAS, CPC and CVR plus partial-window/sample warnings.
 - [x] Store analytics pages display the loaded Ads and Unified source, coverage period and actual-import status before decisions are made.
-- [x] Store-scoped keyword-asset records now use stable IDs and synchronize research, library tags/protection, tracker state and staged advertising actions into the Dataset Registry.
+- [x] Store-scoped keyword-asset records use stable IDs and synchronize Ads plus SQP/ABA-only evidence, library tags/protection, tracker state and staged advertising actions into the Dataset Registry; SQP-only terms remain explicitly unqualified until supporting evidence exists.
 - [x] Keyword Workflow view traces evidence, qualification, Listing coverage, local advertising proposal, imported rank and outcome readiness without fabricating missing stages.
 - [x] Listing drafts and approved-action outcome baselines are Store-scoped registry datasets, included in Data Health and validated local backup/restore with legacy browser-data migration.
 - [x] Data Health exposes per-dataset Store, source, import timestamp, coverage, row count, schema version, validation status and checksum for auditable decisions; the full audit renderer is protected from being shadowed by a summary view.
