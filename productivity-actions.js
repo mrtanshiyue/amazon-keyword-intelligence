@@ -75,6 +75,13 @@
     operations: new Set(['unified-report', 'import', 'sync-center', 'data-health']),
     analytics: new Set(['portfolio-overview', 'cross-store', 'analytics'])
   });
+  const SUITE_HOME_PAGES = Object.freeze({
+    products: 'suite-products',
+    keywords: 'suite-keywords',
+    marketing: 'suite-marketing',
+    operations: 'suite-operations',
+    analytics: 'suite-analytics'
+  });
 
   function normalizeSearch(value) {
     return String(value || '').trim().toLowerCase().replace(/\s+/g, ' ');
@@ -100,6 +107,14 @@
 
   function suiteWorkspace(suite) {
     return SUITE_WORKSPACES[suite] || null;
+  }
+
+  function suiteHomePage(suite) {
+    return SUITE_HOME_PAGES[suite] || '';
+  }
+
+  function suiteFromHomePage(page) {
+    return Object.entries(SUITE_HOME_PAGES).find(([, homePage]) => homePage === page)?.[0] || '';
   }
 
   function pageHash(page) {
@@ -134,6 +149,8 @@
       suiteAction,
       suiteForPage,
       suiteWorkspace,
+      suiteHomePage,
+      suiteFromHomePage,
       pageHash,
       pageFromHash,
       initialHistoryDecision
@@ -147,6 +164,7 @@
   const headerActions = () => $$('.header-right .header-action');
   let applyingHistoryRoute = false;
   let pendingInitialHistoryPage = '';
+  let activeSuiteHome = '';
 
   function loadShellState() {
     try {
@@ -208,6 +226,11 @@
       .keywordos-suite-card b{display:block;color:var(--text-strong);font-size:13px}
       .keywordos-suite-card small{display:block;color:var(--muted);font-size:11px;line-height:1.45;margin-top:4px}
       .keywordos-suite-card span{color:var(--muted);font-size:12px;flex:0 0 auto}
+      .keywordos-suite-home{max-width:1080px}
+      .keywordos-suite-home-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:12px}
+      .keywordos-suite-home-head h2{margin:0;color:var(--text-strong);font-size:20px}
+      .keywordos-suite-home-head p{margin:5px 0 0;color:var(--muted);font-size:12px;line-height:1.5}
+      .keywordos-suite-home-count{flex:0 0 auto}
       @media (max-width:900px){
         .header-left{min-width:0;flex:1 1 auto!important}
         .suite-nav{display:flex!important;overflow-x:auto;overflow-y:hidden;flex-wrap:nowrap;max-width:calc(100vw - var(--sidebar) - 220px);scrollbar-width:none;-webkit-overflow-scrolling:touch}
@@ -264,12 +287,19 @@
 
   function currentPageEntries() {
     const seen = new Set();
-    return $$('#sidebar-nav [data-page]').map((button) => {
+    const entries = $$('#sidebar-nav [data-page]').map((button) => {
       const page = button.dataset.page || '';
       const label = $('.nav-label', button)?.textContent.trim() || button.textContent.trim();
       const section = button.closest('.nav-section')?.querySelector('.nav-section-title')?.textContent.trim() || '';
       return { page, label, section };
-    }).filter((entry) => {
+    });
+    if (entries.some((entry) => entry.page === 'portfolio-overview')) {
+      for (const [suite, page] of Object.entries(SUITE_HOME_PAGES)) {
+        const workspace = suiteWorkspace(suite);
+        entries.push({ page, label: workspace?.title || suite, section: 'WORKSPACES' });
+      }
+    }
+    return entries.filter((entry) => {
       if (!entry.page || !entry.label || seen.has(entry.page)) return false;
       seen.add(entry.page);
       return true;
@@ -287,6 +317,8 @@
   }
 
   function activePage() {
+    if (($('#page-title')?.textContent || '').trim() === 'Listing Workspace') return 'listing-workspace';
+    if (activeSuiteHome) return suiteHomePage(activeSuiteHome);
     return $('#sidebar-nav .nav-item.active')?.dataset.page || '';
   }
 
@@ -298,8 +330,16 @@
   }
 
   function navigateToPage(page, { fromHistory = false } = {}) {
+    const suiteHome = suiteFromHomePage(page);
+    if (suiteHome) {
+      if (fromHistory) applyingHistoryRoute = true;
+      renderSuiteHomePage(suiteHome, { writeHistory: !fromHistory });
+      if (fromHistory) setTimeout(() => { applyingHistoryRoute = false; }, 0);
+      return true;
+    }
     const target = $$('#sidebar-nav [data-page]').find((button) => button.dataset.page === page);
     if (!target) return false;
+    activeSuiteHome = '';
     closeCommandPalette();
     closeSuiteWorkspace();
     if (fromHistory) applyingHistoryRoute = true;
@@ -325,6 +365,7 @@
       if (button.dataset.pageHistoryBound === '1') return;
       button.dataset.pageHistoryBound = '1';
       button.addEventListener('click', () => {
+        activeSuiteHome = '';
         if (applyingHistoryRoute) return;
         const page = button.dataset.page || '';
         if (page) writePageHistory(page, false);
@@ -349,8 +390,8 @@
   }
 
   function syncSuiteState() {
-    const openWorkspace = $('#keywordos-suite-workspace');
-    const currentSuite = openWorkspace?.dataset.suite || suiteForPage(activePage());
+    const listingVisible = (($('#page-title')?.textContent || '').trim() === 'Listing Workspace');
+    const currentSuite = listingVisible ? 'listing' : (activeSuiteHome || suiteForPage(activePage()));
     $$('.suite-nav button').forEach((button) => {
       const suite = normalizeSearch(button.textContent);
       button.classList.toggle('active', suite === currentSuite);
@@ -359,19 +400,32 @@
     });
   }
 
-  function openSuiteWorkspace(suite) {
+  function renderSuiteHomePage(suite, { writeHistory = true } = {}) {
     const workspace = suiteWorkspace(suite);
-    const root = $('#modal-root');
-    if (!workspace || !root) return;
-    root.innerHTML = `<div class="modal-wrap" id="keywordos-suite-workspace" data-suite="${suite}"><div class="modal" role="dialog" aria-modal="true" aria-labelledby="keywordos-suite-title"><div class="modal-header"><div><h2 id="keywordos-suite-title">${workspace.title}</h2><small>${workspace.subtitle}</small></div><button class="drawer-close" id="keywordos-suite-close" aria-label="Close ${workspace.title}">×</button></div><div class="modal-body"><div class="notice-banner">${workspace.notice}</div><div class="keywordos-suite-grid">${workspace.items.map((item) => `<button class="keywordos-suite-card" type="button" data-suite-page="${item.page}"><div><b>${item.label}</b><small>${item.detail}</small></div><span>Open →</span></button>`).join('')}</div></div></div></div>`;
-    $('#keywordos-suite-close')?.addEventListener('click', () => {
-      closeSuiteWorkspace();
-      syncSuiteState();
-    });
-    $$('[data-suite-page]', root).forEach((button) => {
+    const page = suiteHomePage(suite);
+    const content = $('#content');
+    if (!workspace || !page || !content) return false;
+    activeSuiteHome = suite;
+    closeCommandPalette();
+    closeSuiteWorkspace();
+    const modalRoot = $('#modal-root');
+    if (modalRoot) modalRoot.innerHTML = '';
+    $$('#sidebar-nav .nav-item').forEach((item) => item.classList.remove('active'));
+    const eyebrow = $('#page-eyebrow');
+    const title = $('#page-title');
+    const subtitle = $('#page-subtitle');
+    const breadcrumb = $('#breadcrumb');
+    if (eyebrow) eyebrow.textContent = suite.toUpperCase();
+    if (title) title.textContent = workspace.title;
+    if (subtitle) subtitle.textContent = workspace.subtitle;
+    if (breadcrumb) breadcrumb.textContent = `${suite.toUpperCase()} / ${workspace.title}`;
+    content.innerHTML = `<div class="keywordos-suite-home"><div class="notice-banner"><b>${workspace.title}.</b> ${workspace.notice}</div><div class="keywordos-suite-home-head top-gap"><div><h2>Choose a workspace</h2><p>${workspace.subtitle}. Open an existing KeywordOS surface without changing authentication or Amazon execution boundaries.</p></div><span class="badge blue keywordos-suite-home-count">${workspace.items.length} TOOLS</span></div><div class="keywordos-suite-grid">${workspace.items.map((item) => `<button class="keywordos-suite-card" type="button" data-suite-page="${item.page}"><div><b>${item.label}</b><small>${item.detail}</small></div><span>Open →</span></button>`).join('')}</div></div>`;
+    $$('[data-suite-page]', content).forEach((button) => {
       button.addEventListener('click', () => navigateToPage(button.dataset.suitePage));
     });
+    if (writeHistory && !applyingHistoryRoute) writePageHistory(page, false);
     syncSuiteState();
+    return true;
   }
 
   function bindSuiteNavigation() {
@@ -382,7 +436,8 @@
       if (button.dataset.suiteNavigationBound === '1') return;
       button.dataset.suiteNavigationBound = '1';
       button.addEventListener('click', () => {
-        openSuiteWorkspace(action.suite);
+        if (action.suite === 'listing') navigateToPage('listing-workspace');
+        else renderSuiteHomePage(action.suite, { writeHistory: true });
         syncSuiteState();
       });
     });
@@ -470,6 +525,9 @@
     bindGlobalSearch();
     bindHelp();
     enforceNotificationTruth();
+    if (activeSuiteHome && !$('#content')?.querySelector('.keywordos-suite-home')) {
+      renderSuiteHomePage(activeSuiteHome, { writeHistory: false });
+    }
     if (syncHistory) syncPassivePageHash();
   }
 
