@@ -106,5 +106,6 @@ test('source chips expose imported source, coverage and import date', () => {
   assert.match(chip, /rank-snapshot\.csv/);
   assert.match(chip, /2026-08-01 → 2026-08-31/);
   assert.match(chip, /imported 2026-09-01/);
+  assert.match(chip, /imported evidence/);
   assert.match(chip, /validated/);
 });

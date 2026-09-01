@@ -161,16 +161,16 @@ Status rules:
 - [x] Shared keyword assets support Store-scoped tags and intent classification across library, tracker and workflow, with backup/restore coverage.
 - [x] Keyword Workflow now displays the exact Ads, SQP/ABA and imported rank evidence available for each keyword asset rather than reducing every source to Ads.
 - [x] Tracked keywords surface exact imported organic and sponsored rank snapshots by ASIN; multi-ASIN evidence stays separated rather than being collapsed into a guessed rank.
-- [ ] Unified Dataset Registry covering Ads, Unified, SQP/ABA, cost, inventory, rank, competitor, review and Listing datasets.
-- [ ] Dataset provenance: Store, source, import time, coverage dates, row count, schema version, checksum and validation state.
-- [ ] Bring all growth datasets into Data Health, backup/restore and Store isolation instead of independent `localStorage` silos.
-- [ ] Product master-data workspace for ASIN, Parent ASIN, SKU, FNSKU, product family, marketplace and Store.
-- [ ] Explicit unmapped-record queue; no heuristic Product 360 join may silently become authoritative.
-- [ ] Shared keyword asset IDs across SQP, research, keyword lists, Listing coverage, advertising actions and rank tracking.
-- [ ] End-to-end keyword workflow: evidence → qualification → list/tag/intent → Listing → advertising proposal → rank → outcome.
-- [ ] Action Outcome attribution with real approval timestamp, equal before/after windows and data-completeness checks.
-- [ ] Outcome metrics for spend, sales, orders, ACoS, ROAS, CPC and CVR with sample-size/confounder warnings.
-- [ ] Page-level source chips showing the exact dataset, coverage period, freshness and estimated/actual status behind every KPI.
+- [x] Unified Dataset Registry covering Ads, Unified, SQP/ABA, cost, inventory, rank, competitor, review and Listing datasets.
+- [x] Dataset provenance: Store, source, import time, coverage dates, row count, schema version, checksum and validation state.
+- [x] Bring all growth datasets into Data Health, backup/restore and Store isolation instead of independent `localStorage` silos.
+- [x] Product master-data workspace for ASIN, Parent ASIN, SKU, FNSKU, product family, marketplace and Store.
+- [x] Explicit unmapped-record queue; no heuristic Product 360 join may silently become authoritative.
+- [x] Shared keyword asset IDs across SQP, research, keyword lists, Listing coverage, advertising actions and rank tracking.
+- [x] End-to-end keyword workflow: evidence → qualification → list/tag/intent → Listing → advertising proposal → rank → outcome.
+- [x] Action Outcome attribution with real approval timestamp, equal before/after windows and data-completeness checks.
+- [x] Outcome metrics for spend, sales, orders, ACoS, ROAS, CPC and CVR with sample-size/confounder warnings.
+- [x] Page-level source chips showing the exact dataset, coverage period, freshness and imported/local-record status behind every KPI.
 
 ### P1 — competitor, Listing and operating intelligence
 
