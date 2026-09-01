@@ -56,10 +56,20 @@ test('counts UTF-8 backend search-term bytes', () => {
 });
 
 test('ships parseable templates for every local growth import', () => {
-  for (const kind of ['sqp', 'costs', 'inventory', 'ranks', 'product-master']) {
+  for (const kind of ['sqp', 'costs', 'inventory', 'ranks', 'product-master', 'competitor']) {
     const rows = growth.parseKind(kind, growth.TEMPLATES[kind]);
     assert.equal(rows.length, 1, `${kind} template should parse`);
   }
+});
+
+test('keeps the newest imported competitor snapshot for each ASIN', () => {
+  const rows = growth.latestCompetitors([
+    { asin: 'B1', date: '2026-08-01', price: 25, bsr: 200 },
+    { asin: 'B1', date: '2026-08-02', price: 23, bsr: 100 },
+    { asin: 'B2', date: '2026-08-01', price: 30, bsr: 300 }
+  ]);
+  assert.equal(rows.length, 2);
+  assert.equal(rows.find(row => row.asin === 'B1').price, 23);
 });
 
 test('product master resolves only explicit identifiers', () => {
