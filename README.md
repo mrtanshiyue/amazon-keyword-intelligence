@@ -2,6 +2,8 @@
 
 KeywordOS 是一个面向 Amazon 广告、关键词、Listing 准备和经营分析的多 Store 工作台，运行在 Cloudflare Workers Static Assets + Worker API + D1 + R2 上。
 
+> **README 同步规则（强制）**：从 `fa135d5` 起，每次推送功能代码时，必须在同一个提交或同一批推送中同步更新本 README 的“当前已完成能力”和“产品路线图”。已经通过测试并进入代码的项目改为 `[x]`；仍是界面、实验、依赖外部数据或尚未完成的项目必须保留为 `[ ]`，不得提前宣称完成。
+
 ## Current authoritative status
 
 - Repository: `mrtanshiyue/amazon-keyword-intelligence`
@@ -18,11 +20,16 @@ KeywordOS 是一个面向 Amazon 广告、关键词、Listing 准备和经营分
 
 At the start of future work, always read the repository's current `main`; do not rely on a permanently embedded SHA in documentation.
 
-Latest verified product baseline before this documentation synchronization:
+Current repository feature baseline at this documentation update:
 
-`22517172eca251703d028d081fb7c9466d9404be` — PR #79
+`fa135d5` — CSV-first growth intelligence workspaces
 
-Acceptance on that product baseline:
+Local acceptance on `fa135d5`:
+
+- `npm run check`: **PASS — 88/88 tests**
+- `npm run build`: **PASS**
+
+Latest recorded production acceptance remains the earlier PR #79 baseline (`22517172eca251703d028d081fb7c9466d9404be`):
 
 - GitHub `check-and-build`: **PASS**
 - Cloudflare Workers Build: **PASS**
@@ -104,7 +111,147 @@ It emits PASS/FAIL only. It must not be silently expanded into Access identity/s
 - Local `Staged` / `Approved` states never mean executed on Amazon.
 - Listing drafts are preparation-only and never mean published to Amazon.
 
-Completed product workflows include Dashboard/Analytics, Ad Manager, Suggestions, supported local Rules, Action Center/Change Log, Cerebro, Keyword Tracker, Keyword/Negative libraries, Conflict Guard, Protected Keywords, Unified Transaction analytics, browser-local Ads/Unified imports, Local Data Operations, Store management, responsive/mobile hardening, keyboard accessibility, URL page history, suite workspace homes, and first-class Listing preparation.
+Completed product workflows include Dashboard/Analytics, Ad Manager, Suggestions, supported local Rules, Action Center/Change Log, Cerebro, Keyword Tracker, Keyword/Negative libraries, Conflict Guard, Protected Keywords, Unified Transaction analytics, browser-local Ads/Unified imports, Local Data Operations, Store management, responsive/mobile hardening, keyboard accessibility, URL page history, suite workspace homes, first-class Listing preparation, CSV-first Search Query Funnel, Product 360, Action Outcomes, Rank & Index Tracker, Listing Optimizer 2.0, Inventory Risk, and deterministic Anomaly Center.
+
+## Product roadmap
+
+This roadmap is the authoritative feature scope requested by the owner. It is deliberately broader than the currently completed product. Implementation remains evidence-first: KeywordOS must not invent search volume, sales, ranking, bid, competitor, inventory, profitability, or attribution data.
+
+Status rules:
+
+- `[x]` means implemented in the repository and covered by appropriate verification.
+- `[ ]` means planned, incomplete, experimental, or waiting for a required data source.
+- Amazon Ads API, SP-API, OAuth, remote Amazon mutation and Listing publishing remain disabled until the owner explicitly resumes that work.
+
+### Completed foundation
+
+- [x] Multi-Store analytics shell with explicit global read-only and Store execution boundaries.
+- [x] Amazon Ads Search Term and Unified Transaction CSV validation/import.
+- [x] Advertising Dashboard, Analytics and campaign → ad group → target → search-term drill-down.
+- [x] Source-backed Suggestions, supported local Rules, Action Center, Change Log and protected-negative checks.
+- [x] Keyword research, tracker, keyword/negative libraries and cross-product/cross-Store conflict guards.
+- [x] Unified Transaction revenue, refunds, fees, advertising-charge and settlement analytics.
+- [x] Listing preparation workspace without Amazon publishing.
+- [x] CSV-first SQP/ABA Search Query Funnel with demand, funnel and share analysis.
+- [x] CSV-first Product 360 joining loaded advertising, finance, cost and inventory evidence.
+- [x] Local approved-action baselines and later-import outcome review.
+- [x] CSV rank/index snapshots and latest organic/sponsored rank status.
+- [x] Listing Optimizer 2.0 keyword coverage, repetition and backend UTF-8 byte checks.
+- [x] CSV inventory snapshots with evidence-labelled days-of-cover risk.
+- [x] Deterministic advertising, conversion and inventory anomaly checks.
+- [x] Downloadable parseable templates for SQP/ABA, cost, inventory and rank imports.
+
+### P0 — trustworthy connected decision system
+
+- [ ] Unified Dataset Registry covering Ads, Unified, SQP/ABA, cost, inventory, rank, competitor, review and Listing datasets.
+- [ ] Dataset provenance: Store, source, import time, coverage dates, row count, schema version, checksum and validation state.
+- [ ] Bring all growth datasets into Data Health, backup/restore and Store isolation instead of independent `localStorage` silos.
+- [ ] Product master-data workspace for ASIN, Parent ASIN, SKU, FNSKU, product family, marketplace and Store.
+- [ ] Explicit unmapped-record queue; no heuristic Product 360 join may silently become authoritative.
+- [ ] Shared keyword asset IDs across SQP, research, keyword lists, Listing coverage, advertising actions and rank tracking.
+- [ ] End-to-end keyword workflow: evidence → qualification → list/tag/intent → Listing → advertising proposal → rank → outcome.
+- [ ] Action Outcome attribution with real approval timestamp, equal before/after windows and data-completeness checks.
+- [ ] Outcome metrics for spend, sales, orders, ACoS, ROAS, CPC and CVR with sample-size/confounder warnings.
+- [ ] Page-level source chips showing the exact dataset, coverage period, freshness and estimated/actual status behind every KPI.
+
+### P1 — competitor, Listing and operating intelligence
+
+#### Multi-ASIN keyword and traffic intelligence
+
+- [ ] Import adapters for Helium 10, SellerSprite and generic reverse-ASIN/keyword exports.
+- [ ] Compare 2–20 ASINs in one project.
+- [ ] Shared, own-only, competitor-only and missing-keyword sets.
+- [ ] Organic-rank, sponsored-rank, search-volume, conversion and traffic-share gaps when present in imported evidence.
+- [ ] Keyword overlap/coverage score and one-click addition to the shared keyword asset library.
+- [ ] Traffic Comparison and keyword-distribution views without synthesizing unavailable external metrics.
+
+#### Product, market and competitor monitoring
+
+- [ ] Product/market monitoring projects and reusable competitor groups.
+- [ ] CSV snapshot history for price, BSR, rating, review count, estimated sales, variants and availability.
+- [ ] Trend and seasonality charts with explicit snapshot dates.
+- [ ] Alerts for new competitors, price changes, BSR movement, review acceleration and variant/listing changes.
+- [ ] Competitor storefront and new-listing snapshot imports with 7/15/30/60-day change summaries.
+- [ ] Imported competitor advertising/Ads Insights workspace for observed keywords, placements and inferred structures.
+- [ ] Market concentration, price-band, review-barrier and opportunity scoring based only on imported/licensed evidence.
+
+#### Review and voice-of-customer intelligence
+
+- [ ] Review CSV import with ASIN, variation, rating, date, title and body validation.
+- [ ] Positive/negative themes, complaints, purchasing motivations, use cases and requested features.
+- [ ] Variant-level sentiment and issue comparison.
+- [ ] Own-versus-competitor VOC comparison.
+- [ ] Evidence-linked product improvement backlog and Listing claim/selling-point suggestions.
+- [ ] Multi-market/language review normalization while preserving original review text.
+
+#### Listing Optimizer 3.0
+
+- [ ] Root-word and phrase coverage instead of simple substring matching.
+- [ ] Separate title, bullets, description and backend-term coverage/scoring.
+- [ ] Brand-term exclusion, duplicate-root control and keyword-stuffing warnings.
+- [ ] High-value unused keyword placement suggestions based on imported evidence.
+- [ ] Competitor Listing keyword-gap comparison.
+- [ ] Amazon field character/byte rules with marketplace-specific validation.
+- [ ] Listing versions, diff, notes and linkage to later rank/conversion outcomes.
+- [ ] Product image and selling-point evidence checklist.
+
+#### Profitability, inventory and replenishment
+
+- [ ] Profit scenario simulator for price, CPC, CVR, fees, COGS, freight, tariff, refund and promotion changes.
+- [ ] Break-even price, CPC, ACoS and contribution-margin calculations.
+- [ ] 7/30/60/90-day sales velocity using transaction/order evidence before advertising proxies.
+- [ ] Supplier lead time, safety stock, inbound/reserved/unfulfillable inventory and stockout forecast.
+- [ ] Recommended reorder date and quantity with formula disclosure.
+- [ ] Inventory capital, overstock, aged/slow inventory and stranded/damaged inventory risks.
+- [ ] Purchase-order planning/export without implying submission to Amazon or suppliers.
+- [ ] Refund/reimbursement opportunity workspace based on imported inventory and transaction reports.
+
+### P2 — advanced automation and assistance
+
+- [ ] Read-only KeywordOS Agent over validated local/Store data with answers linked to source rows and date ranges.
+- [ ] Specialist analysis modes for knowledge/help, advertising, keyword, Listing, profitability and inventory questions.
+- [ ] Natural-language “why did this metric change?” diagnostics with deterministic evidence before AI narrative.
+- [ ] AI-assisted Listing drafting with optional product-image understanding and explicit human approval.
+- [ ] Competitor image/selling-point comparison with evidence capture.
+- [ ] Category/market AI summaries over imported or licensed market datasets.
+- [ ] Local alert inbox, digest and scheduled monitoring summaries.
+- [ ] Browser extension for opt-in Amazon-page research and snapshot capture.
+- [ ] Mobile-focused operating dashboard and alert review.
+- [ ] Design-patent, trademark and global-brand research integrations when authoritative sources are available.
+- [ ] External Google Trends/Keepa-style history connectors when licensed and technically supported.
+- [ ] Amazon API/OAuth/SP-API integration only after the owner resumes it and authentication/data-boundary acceptance is complete.
+- [ ] Optional managed advertising execution, budget control, dayparting and campaign mutation only behind explicit Store-scoped authorization, preview, approval, audit and rollback controls.
+- [ ] Optional Listing publishing only behind explicit diff, preview, authorization and audit controls.
+
+### Product and UI optimization backlog
+
+- [ ] Remove the separate Growth navigation group and place each tool under Products, Keywords, Listing, Marketing, Operations or Analytics.
+- [ ] Turn every top suite into a KPI/data-health/task-oriented home instead of a link directory.
+- [ ] Replace irrelevant global controls on CSV-first pages with dataset- and page-specific selectors.
+- [ ] Consolidate duplicate Keyword Tracker, Listing and analytics surfaces into one clear workflow per job.
+- [ ] Complete Chinese/English/bilingual coverage for dynamic messages, statuses and table content.
+- [ ] Add trend charts, drill-down drawers and evidence details to Search Funnel, Rank, Inventory, Outcomes and Anomalies.
+- [ ] Improve mobile data tables with priority columns, cards or controlled horizontal scrolling.
+- [ ] Add empty/loading/error/partial-data states with schema guidance and template downloads on every import-driven page.
+- [ ] Add saved views, filters, projects, tags, favorites and recent-work shortcuts.
+- [ ] Rename competitor-inspired labels where needed so KeywordOS has its own consistent product language.
+
+### Delivery order
+
+Implementation should proceed in this order unless the owner explicitly reprioritizes it:
+
+1. Unified Dataset Registry and provenance.
+2. Product master-data mapping and unmapped queue.
+3. Shared keyword assets and cross-page workflow.
+4. Action Outcome attribution accuracy.
+5. Multi-ASIN keyword gap and traffic comparison.
+6. Product/competitor snapshot monitoring.
+7. Listing Optimizer 3.0.
+8. Review/VOC intelligence.
+9. Profit simulator and replenishment planning.
+10. Read-only AI assistance and external integrations.
+
+The intended differentiation is not to pretend KeywordOS already owns Helium 10 or SellerSprite-scale external datasets. KeywordOS should turn the seller's Amazon exports, finance reports, inventory files, licensed research exports and approved future connections into one traceable operating and decision system.
 
 ## Recent product hardening and suite UX phase
 
