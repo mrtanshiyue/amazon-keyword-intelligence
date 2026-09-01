@@ -9,6 +9,8 @@ const {
   suiteAction,
   suiteForPage,
   suiteWorkspace,
+  suiteHomePage,
+  suiteFromHomePage,
   pageHash,
   pageFromHash,
   initialHistoryDecision
@@ -48,6 +50,28 @@ test('suite toolbar maps every visible suite to a workspace launcher', () => {
   }
   assert.equal(suiteAction('Unknown'), null);
   assert.equal(suiteWorkspace('unknown'), null);
+});
+
+test('non-Listing suites expose stable first-class home page ids', () => {
+  const expected = {
+    products: 'suite-products',
+    keywords: 'suite-keywords',
+    marketing: 'suite-marketing',
+    operations: 'suite-operations',
+    analytics: 'suite-analytics'
+  };
+  for (const [suite, page] of Object.entries(expected)) {
+    assert.equal(suiteHomePage(suite), page);
+    assert.equal(suiteFromHomePage(page), suite);
+    assert.equal(pageFromHash(pageHash(page)), page);
+  }
+  assert.equal(suiteHomePage('listing'), '');
+  assert.equal(suiteFromHomePage('listing-workspace'), '');
+});
+
+test('virtual suite homes participate in async startup history after core nav is ready', () => {
+  assert.deepEqual(initialHistoryDecision('suite-keywords', [], ''), { action: 'wait', page: 'suite-keywords' });
+  assert.deepEqual(initialHistoryDecision('suite-keywords', ['portfolio-overview', 'suite-keywords'], 'portfolio-overview'), { action: 'navigate', page: 'suite-keywords' });
 });
 
 test('Listing workspace remains preparation-only and routes to existing keyword tools', () => {
