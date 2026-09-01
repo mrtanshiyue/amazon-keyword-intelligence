@@ -149,6 +149,7 @@ Status rules:
 - [x] Visible unmapped-record queue that excludes ambiguous source identities from authoritative product economics.
 - [x] Action Outcome windows now retain an approval timestamp and compare equal-length loaded-date windows, with spend, sales, orders, ACoS, ROAS, CPC and CVR plus partial-window/sample warnings.
 - [x] Store analytics pages display the loaded Ads and Unified source, coverage period and actual-import status before decisions are made.
+- [x] Store-scoped keyword-asset records now use stable IDs and synchronize research, library tags/protection, tracker state and staged advertising actions into the Dataset Registry.
 - [ ] Unified Dataset Registry covering Ads, Unified, SQP/ABA, cost, inventory, rank, competitor, review and Listing datasets.
 - [ ] Dataset provenance: Store, source, import time, coverage dates, row count, schema version, checksum and validation state.
 - [ ] Bring all growth datasets into Data Health, backup/restore and Store isolation instead of independent `localStorage` silos.
