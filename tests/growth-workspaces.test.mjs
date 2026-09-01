@@ -62,8 +62,8 @@ test('ships parseable templates for every local growth import', () => {
   }
 });
 
-test('imports review evidence only when ASIN and review text are present', () => {
-  const rows = growth.parseKind('reviews', 'ASIN,Rating,Body\nB1,2,"too small"\nB2,5,');
+test('imports review evidence only when required identity, date, rating, title and text are present', () => {
+  const rows = growth.parseKind('reviews', 'Date,ASIN,Rating,Title,Body\n2026-08-01,B1,2,Small,"too small"\n2026-08-01,B2,5,Great,\n2026-08-01,B3,6,Invalid,Rating');
   assert.equal(rows.length, 1);
   assert.equal(rows[0].asin, 'B1');
   assert.equal(rows[0].rating, 2);

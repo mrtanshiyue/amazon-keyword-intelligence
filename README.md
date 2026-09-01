@@ -195,7 +195,7 @@ Status rules:
 
 #### Review and voice-of-customer intelligence
 
-- [ ] Review CSV import with ASIN, variation, rating, date, title and body validation.
+- [x] Review CSV import with ASIN, variation, rating, date, title and body validation.
 - [ ] Positive/negative themes, complaints, purchasing motivations, use cases and requested features.
 - [ ] Variant-level sentiment and issue comparison.
 - [ ] Own-versus-competitor VOC comparison.
