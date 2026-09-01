@@ -71,3 +71,14 @@ test('workflow assets do not invent action records when no Store action state ex
 test('source chips stay explicit when a workspace has no persisted sources', () => {
   assert.match(growth.pageSourceChips('rank-intelligence'), /No persisted source dataset/);
 });
+
+test('source chips expose imported source, coverage and import date', () => {
+  const chip = growth.pageSourceChips('rank-intelligence', [{
+    kind: 'ranks', source: 'rank-snapshot.csv', importedAt: '2026-09-01T12:00:00.000Z',
+    coverage: { min: '2026-08-01', max: '2026-08-31' }, validation: { status: 'validated' }, checksum: 'fnv1a32:1234'
+  }]);
+  assert.match(chip, /rank-snapshot\.csv/);
+  assert.match(chip, /2026-08-01 → 2026-08-31/);
+  assert.match(chip, /imported 2026-09-01/);
+  assert.match(chip, /validated/);
+});
