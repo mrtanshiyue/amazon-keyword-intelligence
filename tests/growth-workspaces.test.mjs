@@ -79,6 +79,17 @@ test('keeps the newest imported competitor snapshot for each ASIN', () => {
   assert.equal(rows.find(row => row.asin === 'B1').price, 23);
 });
 
+test('reports changes only when an ASIN has consecutive dated snapshots', () => {
+  const changes = growth.competitorChanges([
+    { asin: 'B1', date: '2026-08-01', price: 25, bsr: 200, rating: 4.5, reviewCount: 10, variants: 1, availability: 'In stock' },
+    { asin: 'B1', date: '2026-08-08', price: 20, bsr: 150, rating: 4.5, reviewCount: 12, variants: 1, availability: 'In stock' },
+    { asin: 'B2', date: '2026-08-08', price: 30, bsr: 300 }
+  ]);
+  assert.equal(changes.length, 1);
+  assert.match(changes[0].changes.join(' '), /Price: 25 → 20/);
+  assert.match(changes[0].changes.join(' '), /Reviews: 10 → 12/);
+});
+
 test('product master resolves only explicit identifiers', () => {
   const master = growth.masterIndex([{ productId: 'P1', product: 'Example', sku: 'SKU-1', asin: 'B000000001' }]);
   assert.equal(growth.resolveMaster(master, { sku: 'SKU-1' }).productId, 'P1');

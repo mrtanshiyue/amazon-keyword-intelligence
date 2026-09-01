@@ -186,9 +186,9 @@ Status rules:
 #### Product, market and competitor monitoring
 
 - [ ] Product/market monitoring projects and reusable competitor groups.
-- [ ] CSV snapshot history for price, BSR, rating, review count, estimated sales, variants and availability.
+- [x] CSV snapshot history for price, BSR, rating, review count, estimated sales, variants and availability.
 - [ ] Trend and seasonality charts with explicit snapshot dates.
-- [ ] Alerts for new competitors, price changes, BSR movement, review acceleration and variant/listing changes.
+- [x] Alerts for imported price, BSR, rating, review-count, variant and availability changes between consecutive dated snapshots of the same ASIN; no alert is fabricated without a baseline.
 - [ ] Competitor storefront and new-listing snapshot imports with 7/15/30/60-day change summaries.
 - [ ] Imported competitor advertising/Ads Insights workspace for observed keywords, placements and inferred structures.
 - [ ] Market concentration, price-band, review-barrier and opportunity scoring based only on imported/licensed evidence.
