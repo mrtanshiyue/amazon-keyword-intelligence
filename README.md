@@ -204,8 +204,8 @@ Status rules:
 
 #### Listing Optimizer 3.0
 
-- [ ] Root-word and phrase coverage instead of simple substring matching.
-- [ ] Separate title, bullets, description and backend-term coverage/scoring.
+- [x] Root-word and phrase coverage instead of simple substring matching.
+- [x] Separate title, bullets, description and backend-term coverage/scoring.
 - [ ] Brand-term exclusion, duplicate-root control and keyword-stuffing warnings.
 - [ ] High-value unused keyword placement suggestions based on imported evidence.
 - [ ] Competitor Listing keyword-gap comparison.

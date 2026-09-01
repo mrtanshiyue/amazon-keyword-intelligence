@@ -55,6 +55,13 @@ test('counts UTF-8 backend search-term bytes', () => {
   assert.equal(growth.utf8Bytes('中文'), 6);
 });
 
+test('listing coverage checks complete phrases by field and keeps partial roots distinct', () => {
+  const coverage = growth.listingCoverage({ title: 'Blue shoe rack', bullets: 'Stackable rack', description: '', searchTerms: '' }, ['shoe rack', 'rack shoe']);
+  assert.equal(coverage[0].byField.title.phrase, true);
+  assert.equal(coverage[1].byField.title.phrase, false);
+  assert.deepEqual(coverage[1].byField.title.roots.sort(), ['rack', 'shoe']);
+});
+
 test('ships parseable templates for every local growth import', () => {
   for (const kind of ['sqp', 'costs', 'inventory', 'ranks', 'product-master', 'competitor', 'reviews']) {
     const rows = growth.parseKind(kind, growth.TEMPLATES[kind]);
