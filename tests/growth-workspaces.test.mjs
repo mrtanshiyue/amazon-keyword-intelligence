@@ -47,8 +47,14 @@ test('counts UTF-8 backend search-term bytes', () => {
 });
 
 test('ships parseable templates for every local growth import', () => {
-  for (const kind of ['sqp', 'costs', 'inventory', 'ranks']) {
+  for (const kind of ['sqp', 'costs', 'inventory', 'ranks', 'product-master']) {
     const rows = growth.parseKind(kind, growth.TEMPLATES[kind]);
     assert.equal(rows.length, 1, `${kind} template should parse`);
   }
+});
+
+test('product master resolves only explicit identifiers', () => {
+  const master = growth.masterIndex([{ productId: 'P1', product: 'Example', sku: 'SKU-1', asin: 'B000000001' }]);
+  assert.equal(growth.resolveMaster(master, { sku: 'SKU-1' }).productId, 'P1');
+  assert.equal(growth.resolveMaster(master, { product: 'unrelated label' }), null);
 });

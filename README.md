@@ -145,6 +145,8 @@ Status rules:
 
 - [x] Store-scoped browser Dataset Registry for currently supported Ads, Unified, SQP/ABA, cost, inventory and rank imports, including source, import time, coverage, row count, schema version, checksum and validation status.
 - [x] Core growth imports migrated into the registry, Data Health and local backup/restore, with safe legacy browser-data migration.
+- [x] Product Master workspace and imported SKU/ASIN/Parent ASIN/FNSKU/family/marketplace mappings; Product 360 only joins explicitly mapped records.
+- [x] Visible unmapped-record queue that excludes ambiguous source identities from authoritative product economics.
 - [ ] Unified Dataset Registry covering Ads, Unified, SQP/ABA, cost, inventory, rank, competitor, review and Listing datasets.
 - [ ] Dataset provenance: Store, source, import time, coverage dates, row count, schema version, checksum and validation state.
 - [ ] Bring all growth datasets into Data Health, backup/restore and Store isolation instead of independent `localStorage` silos.
