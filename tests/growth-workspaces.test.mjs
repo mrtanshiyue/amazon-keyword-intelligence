@@ -67,3 +67,7 @@ test('keyword asset ids are stable across keyword workspace consumers', () => {
 test('workflow assets do not invent action records when no Store action state exists', () => {
   assert.deepEqual(growth.actionForAsset('kw_example'), []);
 });
+
+test('source chips stay explicit when a workspace has no persisted sources', () => {
+  assert.match(growth.pageSourceChips('rank-intelligence'), /No persisted source dataset/);
+});

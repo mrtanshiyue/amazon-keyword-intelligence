@@ -153,6 +153,7 @@ Status rules:
 - [x] Keyword Workflow view traces evidence, qualification, Listing coverage, local advertising proposal, imported rank and outcome readiness without fabricating missing stages.
 - [x] Listing drafts and approved-action outcome baselines are Store-scoped registry datasets, included in Data Health and validated local backup/restore with legacy browser-data migration.
 - [x] Data Health now exposes per-dataset Store, source, import timestamp, coverage, row count, schema version, validation status and checksum for auditable decisions.
+- [x] Growth workspaces show their precise persisted dataset sources, coverage and validation state ahead of evidence-derived KPI views.
 - [ ] Unified Dataset Registry covering Ads, Unified, SQP/ABA, cost, inventory, rank, competitor, review and Listing datasets.
 - [ ] Dataset provenance: Store, source, import time, coverage dates, row count, schema version, checksum and validation state.
 - [ ] Bring all growth datasets into Data Health, backup/restore and Store isolation instead of independent `localStorage` silos.
