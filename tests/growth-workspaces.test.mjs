@@ -58,3 +58,8 @@ test('product master resolves only explicit identifiers', () => {
   assert.equal(growth.resolveMaster(master, { sku: 'SKU-1' }).productId, 'P1');
   assert.equal(growth.resolveMaster(master, { product: 'unrelated label' }), null);
 });
+
+test('keyword asset ids are stable across keyword workspace consumers', () => {
+  assert.equal(growth.keywordAssetId('Reading  Glasses'), growth.keywordAssetId('reading glasses'));
+  assert.notEqual(growth.keywordAssetId('reading glasses'), growth.keywordAssetId('reading glasses women'));
+});
