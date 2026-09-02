@@ -201,7 +201,7 @@ Status rules:
 - [x] Literal two-word frequency review by explicit 1–2-star versus 4–5-star imported samples; this is not inferred sentiment, themes or intent.
 - [x] Variant-level imported rating and star-band comparison, with raw review text retained.
 - [x] Own-versus-competitor imported review sample comparison when Product Master identifies the owned ASINs.
-- [ ] Evidence-linked product improvement backlog and Listing claim/selling-point suggestions.
+- [x] Evidence-linked product investigation and Listing selling-point candidate backlog from literal imported review phrases, with sample date/ASIN/rating/title references. Low-star rows are investigation prompts and high-star rows require manual claim substantiation; neither is inferred sentiment, root cause or automatic Listing text.
 - [ ] Multi-market/language review normalization while preserving original review text.
 - [x] Marketplace-level imported review breakdown while preserving original text and labels; cross-language normalization remains unavailable without an authoritative source.
 

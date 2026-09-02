@@ -155,6 +155,16 @@ test('review phrase evidence groups literal phrases by imported star rating', ()
   assert.equal(phrases.find(item => item.phrase === 'very useful').high, 1);
 });
 
+test('review evidence backlog links literal phrases to imported sample references', () => {
+  const backlog = growth.reviewEvidenceBacklog([
+    { date: '2026-08-01', asin: 'B1', rating: 1, title: 'Too small', body: 'too small for my shelf' },
+    { date: '2026-08-02', asin: 'B2', rating: 5, title: 'Very useful', body: 'very useful shelf' }
+  ]);
+  const issue = backlog.find(item => item.kind === 'Investigate low-star evidence' && item.phrase === 'too small');
+  assert.equal(issue.samples[0].asin, 'B1');
+  assert.match(issue.next, /no cause is inferred/);
+});
+
 test('review breakdown compares variants and explicit own-ASIN membership only', () => {
   const rows = growth.reviewBreakdown([{ asin: 'OWN', variant: 'Blue', marketplace: 'US', rating: 5 }, { asin: 'COMP', variant: 'Blue', marketplace: 'US', rating: 1 }], ['OWN']);
   assert.equal(rows.find(item => item.key === 'Variant: Blue').average, 3);
