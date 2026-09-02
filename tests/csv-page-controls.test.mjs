@@ -1,6 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import controls from '../csv-page-controls.js';
+
+await import('../csv-page-controls.js');
+const controls=globalThis.KeywordOSCsvPageControlsTest;
+assert.ok(controls,'csv page controls test API should be exposed');
 
 const expected=['product-master','search-funnel','asin-comparison','rank-intelligence','inventory-risk','competitor-snapshots','review-evidence'];
 
