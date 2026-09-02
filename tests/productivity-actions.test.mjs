@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
+await import('../navigation-taxonomy.js');
 await import('../productivity-actions.js');
 
 const {
@@ -13,7 +14,8 @@ const {
   suiteFromHomePage,
   pageHash,
   pageFromHash,
-  initialHistoryDecision
+  initialHistoryDecision,
+  pageShellMeta
 } = globalThis.KeywordOSProductivityTest;
 
 test('normalizeSearch makes command matching case and whitespace insensitive', () => {
@@ -22,17 +24,16 @@ test('normalizeSearch makes command matching case and whitespace insensitive', (
 
 test('filterEntries matches page labels and sections without inventing results', () => {
   const entries = [
-    { page: 'data-health', label: 'Data Health', section: 'DATA' },
-    { page: 'suggestions', label: 'Suggestions', section: 'ADVERTISING' },
+    { page: 'data-health', label: 'Data Health', section: 'OPERATIONS' },
+    { page: 'suggestions', label: 'Suggestions', section: 'MARKETING' },
     { page: 'keyword-library', label: 'Keyword Library', section: 'KEYWORDS' },
   ];
-
   assert.deepEqual(filterEntries(entries, 'health').map((item) => item.page), ['data-health']);
   assert.deepEqual(filterEntries(entries, 'keywords').map((item) => item.page), ['keyword-library']);
   assert.deepEqual(filterEntries(entries, '').map((item) => item.page), entries.map((item) => item.page));
 });
 
-test('suite toolbar maps every visible suite to a workspace launcher', () => {
+test('suite toolbar maps every visible suite to registry-derived workspaces', () => {
   for (const suite of ['products', 'keywords', 'listing', 'marketing', 'operations', 'analytics']) {
     assert.deepEqual(suiteAction(suite), { type: 'workspace', suite });
     const workspace = suiteWorkspace(suite);
@@ -46,6 +47,7 @@ test('suite toolbar maps every visible suite to a workspace launcher', () => {
       assert.ok(item.page);
       assert.ok(item.label);
       assert.ok(item.detail);
+      assert.equal(suiteForPage(item.page), suite);
     });
   }
   assert.equal(suiteAction('Unknown'), null);
@@ -66,7 +68,7 @@ test('non-Listing suites expose stable first-class home page ids', () => {
     assert.equal(pageFromHash(pageHash(page)), page);
   }
   assert.equal(suiteHomePage('listing'), '');
-  assert.equal(suiteFromHomePage('listing-workspace'), '');
+  assert.equal(suiteFromHomePage('listing-optimizer'), '');
 });
 
 test('virtual suite homes participate in async startup history after core nav is ready', () => {
@@ -74,13 +76,13 @@ test('virtual suite homes participate in async startup history after core nav is
   assert.deepEqual(initialHistoryDecision('suite-keywords', ['portfolio-overview', 'suite-keywords'], 'portfolio-overview'), { action: 'navigate', page: 'suite-keywords' });
 });
 
-test('Listing workspace remains preparation-only and includes the evidence optimizer', () => {
+test('Listing workspace is canonical and preparation-only', () => {
   const listing = suiteWorkspace('listing');
   assert.match(listing.notice, /not connected/i);
-  assert.deepEqual(listing.items.map((item) => item.page), ['listing-optimizer', 'global-keywords', 'cerebro', 'keyword-library']);
+  assert.deepEqual(listing.items.map((item) => item.page), ['listing-optimizer']);
 });
 
-test('suite active state follows the actual current workspace page without absorbing settings', () => {
+test('suite active state follows registry membership without absorbing account settings', () => {
   assert.equal(suiteForPage('store-workspace'), 'products');
   assert.equal(suiteForPage('stores-settings'), 'products');
   assert.equal(suiteForPage('global-keywords'), 'keywords');
@@ -96,16 +98,30 @@ test('suite active state follows the actual current workspace page without absor
   assert.equal(suiteForPage('missing-page'), '');
 });
 
-test('page hash helpers round-trip valid sidebar page ids', () => {
+test('page shell title breadcrumb and i18n key come from one registry record', () => {
+  assert.deepEqual(pageShellMeta('rank-intelligence', ' · Store 01'), {
+    page: 'rank-intelligence',
+    suite: 'keywords',
+    eyebrow: 'KEYWORDS',
+    title: 'Rank & Index Tracker',
+    subtitle: 'Track imported organic rank, sponsored rank and index status.',
+    breadcrumb: 'KEYWORDS / Rank & Index Tracker · Store 01',
+    i18nKey: 'page.rank-intelligence'
+  });
+  assert.equal(pageShellMeta('missing-page'), null);
+});
+
+test('page hash helpers canonicalize legacy route ids', () => {
   for (const page of ['portfolio-overview', 'keyword-library', 'unified-report', 'data-health']) {
     assert.equal(pageFromHash(pageHash(page)), page);
   }
+  assert.equal(pageHash('tracker'), '#page=rank-intelligence');
+  assert.equal(pageFromHash('#page=listing-workspace'), 'listing-optimizer');
   assert.equal(pageHash(''), '');
   assert.equal(pageFromHash(''), '');
   assert.equal(pageFromHash('#other=keyword-library'), '');
   assert.equal(pageFromHash('#page=%E0%A4%A'), '');
 });
-
 
 test('initial history waits for async sidebar render before resolving requested page', () => {
   assert.deepEqual(initialHistoryDecision('keyword-library', [], ''), { action: 'wait', page: 'keyword-library' });
