@@ -16,6 +16,11 @@ const BID_SETTINGS_LABELS=Object.freeze({
   zh:'调价建议设置',
   bi:'调价建议设置 / Bid Recommendation Settings'
 });
+const RESEARCH_TRUTH_LABELS=Object.freeze({
+  en:Object.freeze({phraseTab:'Phrase Filter',phraseTitle:'Filter loaded Ads terms by one phrase',phrasePlaceholder:'Enter one keyword phrase',wordFrequency:'Word Frequency'}),
+  zh:Object.freeze({phraseTab:'短语筛选',phraseTitle:'按一个短语筛选已加载广告词',phrasePlaceholder:'输入一个关键词短语',wordFrequency:'词频'}),
+  bi:Object.freeze({phraseTab:'短语筛选 / Phrase Filter',phraseTitle:'按一个短语筛选已加载广告词 / Filter loaded Ads terms by one phrase',phrasePlaceholder:'输入一个关键词短语 / Enter one keyword phrase',wordFrequency:'词频 / Word Frequency'})
+});
 const UNAVAILABLE_REASON='Unavailable: no implemented action is connected in this runtime.';
 const DISABLED_REASON='Unavailable for the current data, selection, or runtime capability.';
 
@@ -23,6 +28,7 @@ function clean(value){return String(value??'').replace(/\s+/g,' ').trim();}
 function languageMode(value){return ['en','zh','bi'].includes(value)?value:'en';}
 function bidLabel(mode='en'){return BID_LABELS[languageMode(mode)];}
 function bidSettingsLabel(mode='en'){return BID_SETTINGS_LABELS[languageMode(mode)];}
+function researchTruthLabels(mode='en'){return RESEARCH_TRUTH_LABELS[languageMode(mode)];}
 function currentPageId(locationLike,registry){return registry?.pageFromHash?.(locationLike?.hash||'')||'';}
 function delegatedActionDescriptor({id='',text='',page='',bulk='' }={}){
   const label=clean(text);
@@ -42,8 +48,8 @@ function capabilityDecision({disabled=false,title='',direct=false,delegated=fals
 }
 
 if(!root?.document||!root?.HTMLButtonElement)return{
-  LEGACY_BID_KEY,BID_LABELS,BID_SETTINGS_LABELS,UNAVAILABLE_REASON,DISABLED_REASON,
-  clean,languageMode,bidLabel,bidSettingsLabel,currentPageId,delegatedActionDescriptor,capabilityDecision
+  LEGACY_BID_KEY,BID_LABELS,BID_SETTINGS_LABELS,RESEARCH_TRUTH_LABELS,UNAVAILABLE_REASON,DISABLED_REASON,
+  clean,languageMode,bidLabel,bidSettingsLabel,researchTruthLabels,currentPageId,delegatedActionDescriptor,capabilityDecision
 };
 
 const doc=root.document;
@@ -74,9 +80,10 @@ function mode(){return languageMode(root.KeywordOSI18N?.getLanguage?.()||'en');}
 function setLeadingText(button,text){
   if(!button)return;
   const node=[...button.childNodes].find(item=>item.nodeType===3);
-  if(node)node.nodeValue=text;
+  if(node){if(node.nodeValue!==text)node.nodeValue=text;}
   else button.prepend(doc.createTextNode(text));
 }
+function setText(node,text){if(node&&node.textContent!==text)node.textContent=text;}
 function normalizeSuggestionLabels(){
   if(currentPageId(root.location,root.KeywordOSPageRegistry)!=='suggestions')return;
   const tab=$(`[data-suggestion-tab="${LEGACY_BID_KEY}"]`);
@@ -89,7 +96,40 @@ function normalizeSuggestionLabels(){
   if(heading){
     heading.setAttribute('data-no-i18n','');
     heading.dataset.keywordosBidSettings='1';
-    heading.textContent=bidSettingsLabel(mode());
+    setText(heading,bidSettingsLabel(mode()));
+  }
+}
+
+function normalizeKeywordResearchTruth(){
+  if(currentPageId(root.location,root.KeywordOSPageRegistry)!=='cerebro')return;
+  const labels=researchTruthLabels(mode());
+  const analyzeTab=$('[data-research-mode="analyze"]');
+  if(analyzeTab){
+    analyzeTab.setAttribute('data-no-i18n','');
+    setLeadingText(analyzeTab,labels.phraseTab);
+    analyzeTab.title='Single phrase only: filters the currently loaded Amazon Ads search-term evidence. Batch analysis up to 200 keywords remains a Keyword Lab task.';
+  }
+  const commonWords=$('.utility-links .utility-link:nth-child(2)');
+  if(commonWords){
+    commonWords.setAttribute('data-no-i18n','');
+    setLeadingText(commonWords,labels.wordFrequency);
+    commonWords.title='Scrolls to literal word frequency for the currently filtered Ads terms; no Common Words exclusion manager is implemented yet.';
+  }
+  const savePreset=$('#r-save');
+  if(savePreset){
+    savePreset.hidden=true;
+    savePreset.setAttribute('aria-hidden','true');
+    savePreset.title='Saved filter presets are not implemented in the current Keyword Research workspace.';
+  }
+  if(analyzeTab?.classList.contains('active')){
+    const heading=$('.cerebro-topline h2');
+    if(heading){heading.setAttribute('data-no-i18n','');setText(heading,labels.phraseTitle);}
+    const input=$('#research-query');
+    if(input){
+      input.setAttribute('data-no-i18n','');
+      if(input.placeholder!==labels.phrasePlaceholder)input.placeholder=labels.phrasePlaceholder;
+      input.setAttribute('aria-label',labels.phrasePlaceholder);
+    }
   }
 }
 
@@ -147,6 +187,7 @@ function auditButton(button){
 function audit(){
   auditTimer=0;
   normalizeSuggestionLabels();
+  normalizeKeywordResearchTruth();
   bindKeywordResearchUtilities();
   $$('button').forEach(auditButton);
 }
@@ -161,7 +202,7 @@ function start(){
     const targets=[doc.body,$('#content'),$('#modal-root'),$('#drawer-root')].filter(Boolean);
     const observer=new MutationObserver(scheduleAudit);
     targets.forEach(target=>observer.observe(target,{childList:true,subtree:true}));
-    doc.addEventListener('click',event=>{if(event.target instanceof root.Element&&event.target.closest('[data-lang]'))root.setTimeout(()=>{normalizeSuggestionLabels();scheduleAudit();},0);},true);
+    doc.addEventListener('click',event=>{if(event.target instanceof root.Element&&event.target.closest('[data-lang]'))root.setTimeout(()=>{normalizeSuggestionLabels();normalizeKeywordResearchTruth();scheduleAudit();},0);},true);
     root.addEventListener('hashchange',scheduleAudit);
     root.addEventListener('popstate',scheduleAudit);
   };
@@ -169,8 +210,8 @@ function start(){
 }
 
 return{
-  LEGACY_BID_KEY,BID_LABELS,BID_SETTINGS_LABELS,UNAVAILABLE_REASON,DISABLED_REASON,
-  clean,languageMode,bidLabel,bidSettingsLabel,currentPageId,delegatedActionDescriptor,capabilityDecision,
-  normalizeSuggestionLabels,bindKeywordResearchUtilities,auditButton,audit,start
+  LEGACY_BID_KEY,BID_LABELS,BID_SETTINGS_LABELS,RESEARCH_TRUTH_LABELS,UNAVAILABLE_REASON,DISABLED_REASON,
+  clean,languageMode,bidLabel,bidSettingsLabel,researchTruthLabels,currentPageId,delegatedActionDescriptor,capabilityDecision,
+  normalizeSuggestionLabels,normalizeKeywordResearchTruth,bindKeywordResearchUtilities,auditButton,audit,start
 };
 });
