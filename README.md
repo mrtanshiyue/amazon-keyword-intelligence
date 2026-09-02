@@ -77,14 +77,14 @@ KeywordOS 的差异化不是复制 Helium 10 或卖家精灵的外部数据库�
 | [growth-import-validation.js](./growth-import-validation.js)、[growth-import-gate.js](./growth-import-gate.js) | 8 类 Growth CSV 严格校验、partial handoff 与拒绝行下载 | ✅ 用户 Growth 文件输入边界 fail-closed |
 | [growth-consistency-actions.js](./growth-consistency-actions.js) | Inventory observed-day velocity 与 Listing field profile 的运行时一致性边界 | ✅ 复用现有 Growth 计算器，统一用户可见口径 |
 | [scripts/check-dist-assets.mjs](./scripts/check-dist-assets.mjs)、[.github/workflows/ci.yml](./.github/workflows/ci.yml) | source → dist 静态资产闭包、字节一致性与提交后重建校验 | ✅ 当前 50 个发布文件受 CI parity gate 约束 |
-| [navigation-taxonomy.js](./navigation-taxonomy.js) | 中央 Page Registry：canonical page、route alias、suite、sidebar、标题与 page-level i18n key | ✅ Core + Growth 页面身份单一来源 |
+| [navigation-taxonomy.js](./navigation-taxonomy.js) | 中央 Page Registry：canonical page、route alias、suite、sidebar、标题与 page-level i18n key | ✅ Core + Growth 页面身份单一来源，legacy 按钮直接隐藏 |
 | [productivity-actions.js](./productivity-actions.js) | 套件首页、command palette、history、breadcrumb 与 page shell 消费者 | ✅ suite / route / page shell 统一读取 registry |
-| [workflow-canonicalization.js](./workflow-canonicalization.js) | Tracker / Listing legacy route 兼容 | 🟡 alias 已统一读取 registry，可见 legacy 入口仍待去除 |
-| [i18n.js](./i18n.js)、[product-language.js](./product-language.js) | 中英双语与产品词汇替换 | 🟡 多个 DOM 补丁造成遗漏和语义误译 |
+| [workflow-canonicalization.js](./workflow-canonicalization.js) | Tracker / Listing legacy route 兼容 | ✅ legacy hash 仅兼容跳转，不再拥有独立可见入口 |
+| [i18n.js](./i18n.js)、[product-language.js](./product-language.js) | 通用动态翻译 + registry-id 页面/套件语言层 | 🟡 已修复已知页面名、套件名与 Advertising 语义碰撞；全量 modal / aria 文案仍需继续审计 |
 | [src/worker.js](./src/worker.js) | Worker 只读 API 和静态资源入口 | ✅ 当前边界明确 |
 | [src/dataset-persistence.js](./src/dataset-persistence.js) | D1/R2 不可变数据版本基础 | 🟡 已准备但未接产品路由 |
 
-页面身份、canonical route alias、suite membership、sidebar group/order、command palette、page shell title/subtitle/breadcrumb 与 page-level i18n key 已集中到 `navigation-taxonomy.js` 的 Page Registry。`app.js` / `growth-workspaces.js` 中原有 NAV / PAGE_META 仍作为现有渲染器兼容输入存在，但 registry coverage 测试要求所有现有 Core/Growth page id 均有且只有一个 canonical record；可见 legacy 入口和全局可见文本翻译仍属于下一轮清理。
+页面身份、canonical route alias、suite membership、sidebar group/order、command palette、page shell title/subtitle/breadcrumb 与 page-level i18n key 已集中到 `navigation-taxonomy.js` 的 Page Registry。legacy `tracker` / `listing-workspace` 只保留历史 route 兼容：导航组织器直接隐藏 legacy 按钮，旧 Listing helper 不再注入侧栏或拦截 Listing 套件。`product-language.js` 继续按 registry page/suite id 处理中英/双语的页面标题、侧栏、套件和 breadcrumb；这已经消除已知路由/标题漂移，但不等于所有动态 modal、空态和 aria 文案都已完成全量审计。
 
 ## 当前已完成与真实状态
 
@@ -116,12 +116,13 @@ KeywordOS 的差异化不是复制 Helium 10 或卖家精灵的外部数据库�
 ### Keywords
 
 - 🟡 Keyword Research 已有 Find Suggestions / Analyze Keywords、筛选预设、词频、分布、表格、导出、历史和批量加入词库/追踪/否定词；但目前只筛选 Ads Search Term，Analyze Keywords 仍把输入当一个短语，并不是真正的最多 200 词批量分析。
-- 🟡 页面仍有 Cerebro 提示或历史文案；中文模式中仍混有英文页面名，个别 Advertising 被错误翻成“广告费”。不能继续宣称用户可见文案已完全统一。
+- ✅ 内部 `cerebro` route 为历史兼容继续保留，但 Page Registry、侧栏、command palette、页面标题与 breadcrumb 对外统一显示 Keyword Research；第三方名称只应出现在来源/格式上下文。
 - 🟡 Common Words 目前主要是滚动到词频，不是完整的词根排除管理；删除词恢复、统一列偏好和可靠的保存筛选仍不完整。
 - ✅ Store 级 keyword assets、稳定 ID、标签、intent、保护状态和 Ads/SQP/rank/Listing/action evidence 汇总。
 - ✅ Keyword Library、Negative Library、Conflict Guard、Protected Keywords、Keyword Workflow。
 - 🟡 Rank & Index 支持用户导入的自然位、广告位和收录快照；没有自动日更、实时收录查询、Boost 或 Amazon 前台抓取，因此应称“快照追踪”。
-- 🟡 旧 Keyword Tracker 可见入口与 Rank & Index canonical route 仍可能同时出现，信息架构尚未真正去重。
+- ✅ 旧 `tracker` route 仍可兼容历史链接，但 legacy Keyword Tracker 按钮由 registry organizer 直接隐藏，并且不会再被 canonical 排序逻辑当作 Rank & Index 入口；可见导航只保留 Rank & Index Tracker。
+- ✅ 页面/套件 shell 的 EN / 中文 / 双语标题由 registry page/suite id 驱动；Marketing shell 使用 suite id 显示 Marketing / 营销，不再让财务上下文的 `Advertising`→“广告费”污染导航语义。全量动态 modal / aria 文案仍按 P1 审计标准继续检查。
 
 ### Listing
 
@@ -130,6 +131,7 @@ KeywordOS 的差异化不是复制 Helium 10 或卖家精灵的外部数据库�
 - ✅ 本地版本、字段 diff、evidence checklist 和导入竞品标题对比；不发布到 Amazon。
 - 🟡 页面实际版本名仍为 Listing Optimizer 2.0，旧 README 的 “3.0 已完成”不准确。
 - ✅ Listing field profile 是 Backend Bytes KPI、field validation 与 placement suggestion 的同一限制源；`searchTermsLimit` 可编辑，非法/非正整数 profile 会 fail-closed，不再由建议路径另写死 250 bytes。
+- ✅ `listing-workspace` 仅保留 legacy route 兼容并 canonicalize 到 `listing-optimizer`；旧 `listing-workspace-actions.js` 不再注入独立 Listing Workspace 侧栏、拦截 Listing 顶部套件或维护第二套 active 状态，因此可见 Listing 入口只有 Listing Optimizer。
 
 ### Marketing / Advertising
 
@@ -168,7 +170,7 @@ KeywordOS 的差异化不是复制 Helium 10 或卖家精灵的外部数据库�
 |---|---|---|---|
 | P0 | 种子数据与真实导入标识混淆 | 用户可能基于演示数据批准动作 | seed / import / calculated / estimated / missing 全局一致；seed 默认不可批准 |
 | P0 | Keyword Research 的批量标签、保存筛选和 Common Words 语义不完整 | UI 承诺大于功能 | 完成真实工作流，或在完成前准确改名/隐藏 |
-| P1 | 旧/新入口并存及中英混杂 | 找同一功能要猜路由，语言切换不可信 | 只显示 canonical route；全页面、空态、modal 和 aria 文案审计通过 |
+| P1 | 动态文案与可访问性双语仍需全量审计 | modal、空态或 aria 可能存在局部翻译遗漏 | canonical route/page/suite 已统一；继续覆盖全页面、空态、modal 和 aria 文案 |
 | P1 | 多 ASIN 只有通用导入层 | H10/卖家精灵导出需要人工清洗 | provider CSV profile、列映射预览和未知列保留 |
 
 ## 竞品基准：截至 2026-09-02
@@ -294,7 +296,8 @@ UI 统一规则：
   - 2026-09-02：`scripts/check-dist-assets.mjs` 以源码 `index.html` 为入口推导静态发布闭包，拒绝缺失/多余文件、越界路径和 source/dist 字节差异；当前 `npm run build` 生成 **50 个发布文件（40 个 JS、9 个 CSS、1 个 HTML）**。CI 在 clean build 后继续要求 `git status --porcelain --untracked-files=all -- dist` 为空，阻止未提交、陈旧或额外 dist 进入 main；本次已重建并同步整个 `dist/`。CI 为 **282 passed / 0 failed**，build 与 committed-dist parity gate 均通过。该结论只覆盖仓库发布产物，不等同于声明 Cloudflare 生产部署已经更新。
 - [x] 建立中央 page registry；统一 route、suite、侧栏、breadcrumb、command palette、标题与 i18n key。
   - 2026-09-02：`navigation-taxonomy.js` 升级为中央 Page Registry，每个 canonical page 统一保存 page id、suite、sidebar group/order、title/subtitle、icon 与稳定 `page.<id>` i18n key；`tracker → rank-intelligence`、`listing-workspace → listing-optimizer` alias 也由同一 registry 提供。`productivity-actions.js` 的 suite home、suite active、history/hash、command palette、breadcrumb/title/subtitle 与 page-level i18n key，`workflow-canonicalization.js` 的 legacy alias，以及 `suite-home-intelligence.js` 的 suite route/title 均改为读取 registry。新增 coverage/uniqueness 回归确保现有 Core `NAV` 与 Growth `PAGE_META` 的 page id 全部受 registry 覆盖且无重复。CI 为 **289 passed / 0 failed**；`npm run build`、50-file source/dist byte identity 与 committed-dist parity gate 全部通过。该项不等于已去除 legacy DOM 入口，也不等于全局可见文案 i18n 已完成；这两项继续留在下一 P0。
-- [ ] 去除重复 Tracker/Listing 入口，修正套件 active 状态、Cerebro 残留、中文混杂和 Advertising 语义碰撞。
+- [x] 去除重复 Tracker/Listing 入口，修正套件 active 状态、Cerebro 残留、中文混杂和 Advertising 语义碰撞。
+  - 2026-09-02：`navigation-taxonomy.js` 现在直接隐藏 `tracker` / `listing-workspace` legacy 按钮，并在 canonical 排序时显式排除 legacy page；历史 hash 仍由既有 alias 重定向。`listing-workspace-actions.js` 已收缩为兼容纯 helper，不再注入独立 Listing Workspace、拦截 Listing 顶部套件或根据可见文本维护第二套 active 状态。内部 `cerebro` route 保持兼容，但 registry 可见名称统一为 Keyword Research；`product-language.js` 为全部 canonical page 提供 registry-id 驱动的 EN / 中文 / 双语 page/suite shell 文案，并让 tool workspace 使用 Marketing suite id，因此导航不再受财务上下文 `Advertising`→“广告费”影响。CI 为 **294 passed / 0 failed**；`npm run build`、40 JS + 9 CSS 静态闭包、50-file source/dist byte identity 与 committed-dist parity gate 全部通过。该项只宣告已知 route / page / suite / title 漂移闭环；动态 modal、空态和 aria 文案仍保留为更广的 P1 文案审计。
 - [ ] 把 AI Bids 改为准确名称；所有按钮必须有真实 handler，否则隐藏或 disabled 并说明原因。
 
 P0 验收：所有可见指标能追到来源；坏行不会变成零；备份往返不丢状态；源码、dist 和已部署入口同版本；中英模式无已知路由/标题漂移。
