@@ -67,6 +67,16 @@ test('sales velocity uses observed dated rows instead of assuming full window co
   assert.equal(velocity.unitsPerDay, 5);
 });
 
+test('product sales velocity keeps products separate and uses literal dated labels', () => {
+  const rows = growth.productSalesVelocity([
+    { date: '2026-08-01', product: 'Blue', units: 4 },
+    { date: '2026-08-02', product: 'Blue', units: 6 },
+    { date: '2026-08-02', product: 'Red', units: 8 }
+  ], 30);
+  assert.equal(rows.find(row => row.product === 'Blue').unitsPerDay, 5);
+  assert.equal(rows.find(row => row.product === 'Red').observedDays, 1);
+});
+
 test('replenishment plan requires actual sales and lead-time inputs', () => {
   assert.equal(growth.replenishmentPlan({ available: 20, dailySales: 0, leadTimeDays: 7 }).available, false);
   assert.equal(growth.replenishmentPlan({ available: 20, dailySales: 2 }).available, false);

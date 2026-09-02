@@ -222,7 +222,7 @@ Status rules:
 - [x] Imported-period contribution margin and break-even ACoS readout, using explicit Product Master joins plus loaded operating-net, COGS and ad-sales evidence; it remains unavailable when those inputs are absent and is not a forecast.
 - [x] 7/30/60/90-day sales velocity from dated imported Ads units/orders, with observed-day coverage shown so incomplete reports are not treated as full windows. Transaction/order-led velocity remains a future enhancement when an authoritative order feed is connected.
 - [ ] Supplier lead time, safety stock, inbound/reserved/unfulfillable inventory and stockout forecast.
-- [ ] Recommended reorder date and quantity with formula disclosure. The validated planning formula is present but remains intentionally unavailable in the UI until actual product-level sales evidence, supplier lead time and safety-stock inputs are supplied.
+- [x] Reorder review date and coverage-gap calculator with formula disclosure. It requires explicit supplier lead time and safety-stock inputs plus a literal Inventory-to-dated-Ads product-label match; it creates no purchase order and stays unavailable when evidence is missing.
 - [ ] Inventory capital, overstock, aged/slow inventory and stranded/damaged inventory risks.
 - [x] Evidence-led inventory review priority that ranks critical cover, low cover, damaged inventory and missing sales evidence without creating a purchase order or reorder quantity.
 - [ ] Purchase-order planning/export without implying submission to Amazon or suppliers.
