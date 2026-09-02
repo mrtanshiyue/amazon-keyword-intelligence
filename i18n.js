@@ -4,6 +4,8 @@ const KEY='keywordos_language_v9';
 let mode=localStorage.getItem(KEY)||'zh';
 const originalText=new WeakMap();
 const originalAttrs=new WeakMap();
+const renderedAttrs=new WeakMap();
+const TRANSLATABLE_ATTRS=['placeholder','title','aria-label'];
 
 const ZH={
   // Global shell
@@ -11,7 +13,7 @@ const ZH={
   'Settings':'设置','Help Center':'帮助中心','US · Local workspace':'美国站 · 本地工作区','Tools':'工具',
   'Products':'产品','Keywords':'关键词','Listing':'Listing','Marketing':'营销','Operations':'运营','Analytics':'数据分析',
   'Profile':'店铺账户','Date range':'日期范围','Last 7 days':'最近 7 天','Last 14 days':'最近 14 天','Last 30 days':'最近 30 天','Last 60 days':'最近 60 天','All available data':'全部数据','＋ Import Data':'＋ 导入数据','Import Data':'导入数据',
-  'Search':'搜索','Notifications':'通知','Help':'帮助','Collapse':'收起侧栏',
+  'Search':'搜索','Notifications':'通知','Help':'帮助','Collapse':'收起侧栏','Expand sidebar':'展开侧栏','Collapse sidebar':'收起侧栏',
   // Navigation
   'OVERVIEW':'概览','Account Overview':'账户概览','Dashboard':'广告仪表盘','ADVERTISING':'广告管理','Suggestions':'优化建议','Ad Manager':'广告管理器','Rules & Automation':'规则与自动化','Dayparting Schedules':'分时投放计划','Action Center':'操作中心','Change Log':'变更记录',
   'FINANCE':'财务','Unified Report':'联合报告分析','KEYWORD RESEARCH':'关键词研究','Cerebro':'关键词研究','Keyword Tracker':'关键词追踪','Keyword Library':'关键词库','Negative Library':'否定词库','Conflict Guard':'冲突保护','DATA & SETTINGS':'数据与设置','Workspace Settings':'工作区设置','DATA':'数据','SETTINGS':'设置',
@@ -124,6 +126,27 @@ function shouldSkip(node){
   if(cell&&!p.closest('button,[role=button],.badge,.pill,.status-chip,.tag')&&!isTranslatableTableHeader(tableHeaderForCell(cell))) return true;
   return false;
 }
+function attributeTargets(root){
+  const baseRoot=root===document?document:root;
+  const selector='[placeholder],[title],[aria-label]';
+  const targets=[];
+  if(baseRoot!==document&&baseRoot?.matches?.(selector)) targets.push(baseRoot);
+  baseRoot.querySelectorAll?.(selector).forEach(el=>targets.push(el));
+  return targets;
+}
+function applyAttribute(el,a,{refreshSource=false}={}){
+  if(!el?.hasAttribute?.(a)||el.closest?.('[data-no-i18n]')) return;
+  let sources=originalAttrs.get(el); if(!sources){sources={}; originalAttrs.set(el,sources)}
+  let rendered=renderedAttrs.get(el); if(!rendered){rendered={}; renderedAttrs.set(el,rendered)}
+  const current=el.getAttribute(a);
+  if(!(a in sources)||(refreshSource&&current!==rendered[a])) sources[a]=current;
+  const out=translate(sources[a]);
+  if(current!==out) el.setAttribute(a,out);
+  rendered[a]=out;
+}
+function applyAttributes(root,refreshSource=false){
+  for(const el of attributeTargets(root)) for(const a of TRANSLATABLE_ATTRS) applyAttribute(el,a,{refreshSource});
+}
 function apply(root=document){
   document.documentElement.lang=mode==='en'?'en':'zh-CN';
   document.body?.setAttribute('data-language',mode);
@@ -134,15 +157,7 @@ function apply(root=document){
     const base=originalText.get(n), core=base.trim(); if(!core) continue;
     const out=translate(core); n.nodeValue=preserveWhitespace(base,out);
   }
-  const baseRoot=root===document?document:root;
-  baseRoot.querySelectorAll?.('[placeholder],[title],[aria-label]').forEach(el=>{
-    if(el.closest('[data-no-i18n]')) return;
-    let bag=originalAttrs.get(el); if(!bag){bag={}; originalAttrs.set(el,bag)}
-    for(const a of ['placeholder','title','aria-label']) if(el.hasAttribute(a)){
-      if(!(a in bag)) bag[a]=el.getAttribute(a);
-      const original=bag[a], out=translate(original); el.setAttribute(a,out);
-    }
-  });
+  applyAttributes(root);
   document.querySelectorAll('[data-lang]').forEach(b=>b.classList.toggle('active',b.dataset.lang===mode));
   const title='KeywordOS · Amazon Advertising Intelligence';
   document.title=mode==='en'?title:mode==='bi'?'KeywordOS · 亚马逊广告智能 / Amazon Advertising Intelligence':'KeywordOS · 亚马逊广告智能';
@@ -157,8 +172,13 @@ function init(){
   document.querySelectorAll('[data-lang]').forEach(b=>b.addEventListener('click',()=>setLanguage(b.dataset.lang)));
   apply(document);
   if(document.body&&typeof MutationObserver!=='undefined'){
-    dynamicObserver=new MutationObserver(records=>{for(const record of records)for(const node of record.addedNodes||[])applyAddedNode(node);});
-    dynamicObserver.observe(document.body,{childList:true,subtree:true});
+    dynamicObserver=new MutationObserver(records=>{
+      for(const record of records){
+        if(record.type==='attributes'&&TRANSLATABLE_ATTRS.includes(record.attributeName)){applyAttribute(record.target,record.attributeName,{refreshSource:true});continue;}
+        for(const node of record.addedNodes||[]) applyAddedNode(node);
+      }
+    });
+    dynamicObserver.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:TRANSLATABLE_ATTRS});
   }
 }
 window.KeywordOSI18N={apply,setLanguage,getLanguage:()=>mode,zhFor,isTranslatableTableHeader};

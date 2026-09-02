@@ -7,9 +7,11 @@ const source = await readFile(new URL('../i18n.js', import.meta.url), 'utf8');
 
 function loadI18n(mode = 'en') {
   const listeners = {};
+  const attributeNodes = [];
   let observed = null;
+  let observerCallback = null;
   class MutationObserverMock {
-    constructor(callback) { this.callback = callback; }
+    constructor(callback) { this.callback = callback; observerCallback = callback; }
     observe(target, options) { observed = { target, options }; }
   }
   const body = {
@@ -22,7 +24,7 @@ function loadI18n(mode = 'en') {
     title: '',
     documentElement: {},
     addEventListener(name, callback) { listeners[name] = callback; },
-    querySelectorAll() { return []; },
+    querySelectorAll(selector) { return selector === '[placeholder],[title],[aria-label]' ? attributeNodes : []; },
     createTreeWalker() { return { nextNode() { return null; } }; },
   };
   const window = {};
@@ -46,7 +48,27 @@ function loadI18n(mode = 'en') {
   };
   vm.createContext(context);
   vm.runInContext(source, context, { filename: 'i18n.js' });
-  return { api: window.KeywordOSI18N, listeners, body, observed: () => observed };
+  return {
+    api: window.KeywordOSI18N,
+    listeners,
+    body,
+    observed: () => observed,
+    addAttributeNode(node) { attributeNodes.push(node); },
+    mutate(records) { observerCallback?.(records); },
+  };
+}
+
+function attributeElement(initial = {}) {
+  const attrs = new Map(Object.entries(initial));
+  return {
+    nodeType: 1,
+    matches(selector) { return selector === '[placeholder],[title],[aria-label]' && ['placeholder','title','aria-label'].some(a => attrs.has(a)); },
+    querySelectorAll() { return []; },
+    hasAttribute(name) { return attrs.has(name); },
+    getAttribute(name) { return attrs.get(name) ?? null; },
+    setAttribute(name, value) { attrs.set(name, String(value)); },
+    closest() { return null; },
+  };
 }
 
 test('recent suite, import, evidence and organizer UI strings have Chinese translations', () => {
@@ -61,6 +83,8 @@ test('recent suite, import, evidence and organizer UI strings have Chinese trans
     ['Explicit voice-of-customer labels', '显式客户之声标签'],
     ['Relative opportunity score', '相对机会分'],
     ['Export PO CSV', '导出采购 CSV'],
+    ['Expand sidebar', '展开侧栏'],
+    ['Collapse sidebar', '收起侧栏'],
   ];
   for (const [en, zh] of pairs) assert.equal(api.zhFor(en), zh, en);
 });
@@ -90,10 +114,41 @@ test('dynamic observer watches subtree child additions after DOMContentLoaded', 
   assert.equal(observed.target, runtime.body);
   assert.equal(observed.options.childList, true);
   assert.equal(observed.options.subtree, true);
+  assert.equal(observed.options.attributes, true);
+  assert.equal(observed.options.attributeFilter.join(','), 'placeholder,title,aria-label');
+});
+
+test('dynamic attribute updates refresh their English source and follow the active language', () => {
+  const runtime = loadI18n('zh');
+  const button = attributeElement({ title: 'Collapse sidebar', 'aria-label': 'Collapse sidebar' });
+  runtime.addAttributeNode(button);
+  runtime.listeners.DOMContentLoaded();
+  assert.equal(button.getAttribute('title'), '收起侧栏');
+  assert.equal(button.getAttribute('aria-label'), '收起侧栏');
+
+  button.setAttribute('title', 'Expand sidebar');
+  button.setAttribute('aria-label', 'Expand sidebar');
+  runtime.mutate([
+    { type: 'attributes', target: button, attributeName: 'title', addedNodes: [] },
+    { type: 'attributes', target: button, attributeName: 'aria-label', addedNodes: [] },
+  ]);
+  assert.equal(button.getAttribute('title'), '展开侧栏');
+  assert.equal(button.getAttribute('aria-label'), '展开侧栏');
+
+  runtime.api.setLanguage('en');
+  assert.equal(button.getAttribute('title'), 'Expand sidebar');
+  assert.equal(button.getAttribute('aria-label'), 'Expand sidebar');
+});
+
+test('newly added root elements translate their own accessible attributes', () => {
+  const runtime = loadI18n('zh');
+  const button = attributeElement({ title: 'Expand sidebar' });
+  runtime.api.apply(button);
+  assert.equal(button.getAttribute('title'), '展开侧栏');
 });
 
 test('observer intentionally avoids characterData to prevent translation feedback loops', () => {
-  assert.match(source, /observe\(document\.body,\{childList:true,subtree:true\}\)/);
+  assert.match(source, /attributes:true,attributeFilter:TRANSLATABLE_ATTRS/);
   assert.doesNotMatch(source, /characterData\s*:\s*true/);
 });
 
