@@ -101,7 +101,7 @@ It emits PASS/FAIL only. It must not be silently expanded into Access identity/s
 - Local `Staged` / `Approved` states never mean executed on Amazon.
 - Listing drafts are preparation-only and never mean published to Amazon.
 
-Completed product workflows include Dashboard/Analytics, Ad Manager, Suggestions, supported local Rules, Action Center/Change Log, Cerebro, Keyword Tracker, Keyword/Negative libraries, Conflict Guard, Protected Keywords, Unified Transaction analytics, browser-local Ads/Unified imports, Local Data Operations, Store management, responsive/mobile hardening, keyboard accessibility, URL page history, suite workspace homes, first-class Listing preparation, CSV-first Search Query Funnel, Product 360, Action Outcomes, Rank & Index Tracker, Listing Optimizer 2.0, Inventory Risk, deterministic Anomaly Center, imported competitor snapshot trends/seasonality evidence, imported market structure/opportunity screening, and local purchase-order planning CSV export.
+Completed product workflows include Dashboard/Analytics, Ad Manager, Suggestions, supported local Rules, Action Center/Change Log, Cerebro, Keyword Tracker, Keyword/Negative libraries, Conflict Guard, Protected Keywords, Unified Transaction analytics, browser-local Ads/Unified imports, Local Data Operations, Store management, responsive/mobile hardening, keyboard accessibility, URL page history, suite workspace homes, suite-aligned Growth navigation taxonomy, first-class Listing preparation, CSV-first Search Query Funnel, Product 360, Action Outcomes, Rank & Index Tracker, Listing Optimizer 2.0, Inventory Risk, deterministic Anomaly Center, imported competitor snapshot trends/seasonality evidence, imported market structure/opportunity screening, and local purchase-order planning CSV export.
 
 ## Product roadmap
 
@@ -237,7 +237,7 @@ Status rules:
 
 ### Product and UI optimization backlog
 
-- [ ] Remove the separate Growth navigation group and place each tool under Products, Keywords, Listing, Marketing, Operations or Analytics.
+- [x] Remove the separate visible Growth navigation group and place its existing tools under Products, Keywords, Listing, Marketing, Operations or Analytics while preserving the existing workspace page IDs and URL hashes. The hidden `#growth-nav` marker remains only to prevent duplicate reinjection by the legacy workspace bootstrap.
 - [ ] Turn every top suite into a KPI/data-health/task-oriented home instead of a link directory.
 - [ ] Replace irrelevant global controls on CSV-first pages with dataset- and page-specific selectors.
 - [ ] Consolidate duplicate Keyword Tracker, Listing and analytics surfaces into one clear workflow per job.
@@ -300,6 +300,8 @@ All six top-level suite entries are now usable first-class surfaces:
 The suite bar is no longer hidden below 900px; it remains horizontally navigable on narrower layouts.
 
 Suite homes and Listing participate in the existing lightweight `#page=...` URL/history behavior, so reload and browser Back/Forward reuse the real application navigation path without a routing framework.
+
+The former visible `GROWTH` sidebar group is now redistributed under those six suite labels. Existing Growth workspace buttons are moved rather than recreated, so their click handlers, stable page IDs and `#page=...` history behavior are preserved.
 
 ## Listing data and draft boundary
 
