@@ -65,7 +65,21 @@ const ZH={
   // CSV-first growth workspaces
   'GROWTH':'增长','Product 360':'产品 360','Search Funnel':'搜索词漏斗','Rank & Index':'排名与收录','Listing Optimizer':'Listing 优化器','Inventory':'库存','Action Outcomes':'操作效果','Anomaly Center':'异常中心','Rank & Index Tracker':'排名与收录追踪','Listing Optimizer 2.0':'Listing 优化器 2.0','Inventory & Replenishment':'库存与补货','Search Query Funnel':'搜索查询漏斗',
   'Join advertising, finance, cost and inventory evidence by product.':'按产品关联广告、财务、成本和库存证据。','Analyze imported SQP or ABA query demand, funnel share and conversion gaps.':'分析导入的 SQP 或 ABA 查询需求、漏斗份额和转化缺口。','Measure approved local actions against later imported advertising evidence.':'用后续导入的广告证据衡量已批准本地操作的效果。','Track imported organic rank, sponsored rank and index status.':'追踪导入的自然排名、广告排名和收录状态。','Measure keyword coverage, repetition and backend search-term byte usage.':'衡量关键词覆盖、重复度和后台搜索词字节用量。','Assess days of cover and stock risk from imported inventory snapshots.':'根据导入的库存快照评估可售天数和缺货风险。','Surface deterministic advertising, finance, inventory and data freshness risks.':'识别有明确证据的广告、财务、库存和数据时效风险。',
-  'CSV-first workspace.':'CSV 优先工作区。','Amazon API remains disabled; all metrics below come from imported or already-loaded data.':'Amazon API 仍未启用；以下指标全部来自导入或已加载数据。','Product economics':'产品经营表现','Ads + Unified transactions + imported costs + inventory':'广告 + 联合交易 + 导入成本 + 库存','Import COGS':'导入商品成本','Import Inventory':'导入库存','Contribution excludes COGS until a cost CSV is imported.':'导入成本 CSV 前，贡献利润不包含商品成本。','Units':'件数','Unit Cost':'单位成本','COGS':'商品成本','Contribution':'贡献利润','Margin':'利润率','Available':'可售库存','Download CSV Template':'下载 CSV 模板','Import SQP or ABA CSV':'导入 SQP 或 ABA CSV','Import SQP / ABA':'导入 SQP / ABA','Import rank snapshots':'导入排名快照','Import Rank CSV':'导入排名 CSV','Import inventory snapshot':'导入库存快照','Import Inventory CSV':'导入库存 CSV','Required: Search Query plus funnel totals or shares. No demand metrics are synthesized.':'必填：搜索查询及漏斗总量或份额；系统不会虚构需求指标。','Required: Date, Keyword, ASIN, Organic Rank, Sponsored Rank and Indexed.':'必填：日期、关键词、ASIN、自然排名、广告排名和收录状态。','Required: SKU and Available/Fulfillable. Inbound, Reserved and Unfulfillable are optional.':'必填：SKU 和可售库存；在途、预留和不可售库存为选填。'
+  'CSV-first workspace.':'CSV 优先工作区。','Amazon API remains disabled; all metrics below come from imported or already-loaded data.':'Amazon API 仍未启用；以下指标全部来自导入或已加载数据。','Product economics':'产品经营表现','Ads + Unified transactions + imported costs + inventory':'广告 + 联合交易 + 导入成本 + 库存','Import COGS':'导入商品成本','Import Inventory':'导入库存','Contribution excludes COGS until a cost CSV is imported.':'导入成本 CSV 前，贡献利润不包含商品成本。','Units':'件数','Unit Cost':'单位成本','COGS':'商品成本','Contribution':'贡献利润','Margin':'利润率','Available':'可售库存','Download CSV Template':'下载 CSV 模板','Import SQP or ABA CSV':'导入 SQP 或 ABA CSV','Import SQP / ABA':'导入 SQP / ABA','Import rank snapshots':'导入排名快照','Import Rank CSV':'导入排名 CSV','Import inventory snapshot':'导入库存快照','Import Inventory CSV':'导入库存 CSV','Required: Search Query plus funnel totals or shares. No demand metrics are synthesized.':'必填：搜索查询及漏斗总量或份额；系统不会虚构需求指标。','Required: Date, Keyword, ASIN, Organic Rank, Sponsored Rank and Indexed.':'必填：日期、关键词、ASIN、自然排名、广告排名和收录状态。','Required: SKU and Available/Fulfillable. Inbound, Reserved and Unfulfillable are optional.':'必填：SKU 和可售库存；在途、预留和不可售库存为选填。',
+  // Dynamic product/UI companions
+  'Products Workspace':'产品工作区','Keywords Workspace':'关键词工作区','Marketing Workspace':'营销工作区','Operations Workspace':'运营工作区','Analytics Workspace':'分析工作区',
+  'Evidence Health':'证据健康','Evidence sources':'证据来源','Loaded sources':'已加载来源','Total evidence rows':'证据总行数','Dated coverage':'日期覆盖','Next Tasks':'下一步任务',
+  'Competitor rows':'竞品行数','Review samples':'评论样本','SQP rows':'SQP 行数','Rank snapshots':'排名快照','Keyword assets':'关键词资产','Ads rows':'广告行数','Outcome records':'效果记录','Unified rows':'联合交易行数','Inventory rows':'库存行数','Cost rows':'成本行数',
+  'Load Product Master':'加载产品主数据','Add competitor evidence':'添加竞品证据','Add review evidence':'添加评论证据','Review Product 360':'查看产品 360','Load SQP / ABA evidence':'加载 SQP / ABA 证据','Load rank snapshots':'加载排名快照','Add reverse-ASIN evidence':'添加反查 ASIN 证据','Review Keyword Workflow':'查看关键词工作流','Load Amazon Ads export':'加载 Amazon Ads 导出','Review outcome evidence':'查看效果证据','Review Suggestions':'查看优化建议','Load Unified Transaction export':'加载联合交易导出','Load inventory evidence':'加载库存证据','Add product cost evidence':'添加商品成本证据','Review Data Health':'查看数据健康','Load Amazon Ads evidence':'加载 Amazon Ads 证据','Load Unified evidence':'加载联合交易证据','Review Anomaly Center':'查看异常中心',
+  'Import readiness':'导入就绪状态','Required fields':'必填字段','Optional / evidence fields':'可选 / 证据字段','Current rows':'当前行数','Source':'来源','Coverage':'覆盖范围','Validation':'校验','Schema guidance':'字段结构指南','Template':'模板','Real source export required':'需要真实来源导出',
+  'EMPTY':'空','LOADING':'加载中','ERROR':'错误','PARTIAL':'部分数据','READY':'就绪',
+  'Evidence details':'证据详情','Dataset kind':'数据集类型','Row count':'行数','Import time':'导入时间','Checksum':'校验和','Raw evidence rows':'原始证据行','Trend unavailable':'趋势不可用','Query demand':'查询需求','Purchases':'购买','Organic rank':'自然排名','Sponsored rank':'广告排名','Available units':'可售库存','Inbound units':'在途库存','Evidence row coverage':'证据行覆盖','Non-causal context':'非因果背景',
+  'Workspace':'工作区','Saved Views':'已保存视图','Projects':'项目','Tags':'标签','Favorites':'收藏','Recent Work':'最近工作','Save current view':'保存当前视图','View name':'视图名称','Project':'项目','Tags (comma separated)':'标签（逗号分隔）','Favorite':'收藏','No saved views yet':'暂无已保存视图','No recent work yet':'暂无最近工作','Apply view':'应用视图','Delete view':'删除视图','Create project':'创建项目','Project name':'项目名称','All projects':'全部项目','All tags':'全部标签','Favorites only':'仅收藏','Search views':'搜索视图',
+  'Explicit voice-of-customer labels':'显式客户之声标签','Rows with VOC labels':'含 VOC 标签的行','Label observations':'标签观测数','Positive theme':'正向主题','Negative theme':'负向主题','Complaint':'投诉点','Purchase motivation':'购买动机','Use case':'使用场景','Requested feature':'期望功能','Imported label':'导入标签','Review rows':'评论行数','ASINs':'ASIN','Marketplaces':'站点','Languages':'语言','Evidence samples':'证据样本','Normalized marketplace':'标准化站点','Language key':'语言键','Average rating':'平均评分','Original marketplace labels':'原始站点标签','Original language labels / tags':'原始语言标签 / 标记',
+  'Latest observed evidence by ASIN':'按 ASIN 的最新观测证据','Latest date':'最新日期','Keywords':'关键词','Ad types':'广告类型','Campaign labels':'广告活动标签','Placement / ad-type observations':'广告位 / 广告类型观测','Observed rows':'观测行数','Storefront':'店铺前台','Window':'窗口','Baseline → latest':'基线 → 最新','Listings':'商品数','Added to snapshot':'快照新增','Removed from snapshot':'快照移除','Explicit new listings':'显式新上架商品',
+  'Market structure':'市场结构','Price quartiles':'价格四分位','Review median':'评论中位数','Review Q3':'评论 Q3','Top-3 concentration':'Top-3 集中度','Relative opportunity score':'相对机会分','Insufficient evidence':'证据不足',
+  'Purchase order planning':'采购计划','PO planning preview':'采购计划预览','Recommended order qty':'建议采购量','Days of cover':'可售天数','Lead time days':'交期天数','Safety stock days':'安全库存天数','Target cover days':'目标覆盖天数','Export PO CSV':'导出采购 CSV',
+  'Exact filter':'精确筛选','All ASINs':'全部 ASIN','All SKUs':'全部 SKU','All marketplaces':'全部站点','All keyword sets':'全部关键词集合','STORE 01 · IMPORTED DATA':'店铺 01 · 导入数据'
 };
 
 function preserveWhitespace(text, replacement){
@@ -85,6 +99,9 @@ function translatePattern(en){
   if(en.startsWith('Unified-report advertising charges are ')) return en.replace('Unified-report advertising charges are ','联合报告中的广告扣费为 ').replace(' of gross order revenue','，占订单总收入');
   if(en.includes(' has the highest unit refund rate at ')) return en.replace(' has the highest unit refund rate at ',' 的件数退款率最高，为 ').replace(' refunded vs ',' 件退款 / ').replace(' ordered units',' 件售出');
   if(en.startsWith('Ads report spend is ')) return en.replace('Ads report spend is ','广告报表花费为 ').replace(' vs Unified Report Cost of Advertising ','，联合报告广告实际扣费为 ').replace('; difference ','；差额 ').replace('Review posting/date timing before treating the difference as an error.','。在判断为数据错误前，应先核对入账时间和日期口径。');
+  if((m=en.match(/^(\d[\d,]*) rows$/))) return `${m[1]} 行`;
+  if((m=en.match(/^(\d+)\/(\d+) sources loaded$/))) return `已加载 ${m[1]}/${m[2]} 个数据源`;
+  if((m=en.match(/^Coverage (\d{4}-\d{2}-\d{2}) → (\d{4}-\d{2}-\d{2})$/))) return `覆盖范围 ${m[1]} → ${m[2]}`;
   return null;
 }
 function zhFor(en){const checked=en.startsWith('✓ ')?ZH[en.slice(2)]:null;return ZH[en]||(checked?`✓ ${checked}`:null)||translatePattern(en)||null;}
@@ -93,9 +110,19 @@ function translate(en){
   const zh=zhFor(en); if(!zh) return en;
   return mode==='bi' ? `${zh} / ${en}` : zh;
 }
+const TRANSLATABLE_TABLE_HEADERS=new Set(['Status','Validation','Result','State','Health','Risk','Priority','Decision','Indexed','Lifecycle','Action','Mode','Type']);
+function isTranslatableTableHeader(header){return TRANSLATABLE_TABLE_HEADERS.has(String(header||'').trim());}
+function tableHeaderForCell(cell){
+  const table=cell?.closest?.('table'); if(!table)return'';
+  const headers=table.querySelectorAll?.('thead th')||[];
+  return headers[cell.cellIndex]?.textContent?.trim?.()||'';
+}
 function shouldSkip(node){
   const p=node.parentElement; if(!p) return true;
-  return !!p.closest('script,style,[data-no-i18n]');
+  if(p.closest('script,style,[data-no-i18n]')) return true;
+  const cell=p.closest('tbody td');
+  if(cell&&!p.closest('button,[role=button],.badge,.pill,.status-chip,.tag')&&!isTranslatableTableHeader(tableHeaderForCell(cell))) return true;
+  return false;
 }
 function apply(root=document){
   document.documentElement.lang=mode==='en'?'en':'zh-CN';
@@ -121,10 +148,19 @@ function apply(root=document){
   document.title=mode==='en'?title:mode==='bi'?'KeywordOS · 亚马逊广告智能 / Amazon Advertising Intelligence':'KeywordOS · 亚马逊广告智能';
 }
 function setLanguage(next){ if(!['zh','en','bi'].includes(next))return; mode=next; localStorage.setItem(KEY,mode); apply(document); }
+let dynamicObserver=null;
+function applyAddedNode(node){
+  if(node?.nodeType===1) apply(node);
+  else if(node?.nodeType===3&&node.parentElement) apply(node.parentElement);
+}
 function init(){
   document.querySelectorAll('[data-lang]').forEach(b=>b.addEventListener('click',()=>setLanguage(b.dataset.lang)));
   apply(document);
+  if(document.body&&typeof MutationObserver!=='undefined'){
+    dynamicObserver=new MutationObserver(records=>{for(const record of records)for(const node of record.addedNodes||[])applyAddedNode(node);});
+    dynamicObserver.observe(document.body,{childList:true,subtree:true});
+  }
 }
-window.KeywordOSI18N={apply,setLanguage,getLanguage:()=>mode,zhFor};
+window.KeywordOSI18N={apply,setLanguage,getLanguage:()=>mode,zhFor,isTranslatableTableHeader};
 if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init); else init();
 })();
