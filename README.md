@@ -203,6 +203,7 @@ Status rules:
 - [x] Own-versus-competitor imported review sample comparison when Product Master identifies the owned ASINs.
 - [ ] Evidence-linked product improvement backlog and Listing claim/selling-point suggestions.
 - [ ] Multi-market/language review normalization while preserving original review text.
+- [x] Marketplace-level imported review breakdown while preserving original text and labels; cross-language normalization remains unavailable without an authoritative source.
 
 #### Listing Optimizer 3.0
 

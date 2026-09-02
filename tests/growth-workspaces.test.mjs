@@ -82,8 +82,9 @@ test('review phrase evidence groups literal phrases by imported star rating', ()
 });
 
 test('review breakdown compares variants and explicit own-ASIN membership only', () => {
-  const rows = growth.reviewBreakdown([{ asin: 'OWN', variant: 'Blue', rating: 5 }, { asin: 'COMP', variant: 'Blue', rating: 1 }], ['OWN']);
+  const rows = growth.reviewBreakdown([{ asin: 'OWN', variant: 'Blue', marketplace: 'US', rating: 5 }, { asin: 'COMP', variant: 'Blue', marketplace: 'US', rating: 1 }], ['OWN']);
   assert.equal(rows.find(item => item.key === 'Variant: Blue').average, 3);
+  assert.equal(rows.find(item => item.key === 'Marketplace: US').rows, 2);
   assert.equal(rows.find(item => item.key === 'Ownership: own ASIN').rows, 1);
 });
 
