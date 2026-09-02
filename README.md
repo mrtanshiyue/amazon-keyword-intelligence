@@ -101,7 +101,7 @@ It emits PASS/FAIL only. It must not be silently expanded into Access identity/s
 - Local `Staged` / `Approved` states never mean executed on Amazon.
 - Listing drafts are preparation-only and never mean published to Amazon.
 
-Completed product workflows include Dashboard/Analytics, Ad Manager, Suggestions, supported local Rules, Action Center/Change Log, Keyword Research, Keyword Tracker, Keyword/Negative libraries, Conflict Guard, Protected Keywords, Unified Transaction analytics, browser-local Ads/Unified imports, Local Data Operations, Store management, responsive/mobile hardening, keyboard accessibility, URL page history, suite workspace homes, suite-aligned Growth navigation taxonomy, first-class Listing preparation, CSV-first Search Query Funnel, Product 360, Action Outcomes, Rank & Index Tracker, Listing Optimizer 2.0, Inventory Risk, deterministic Anomaly Center, imported competitor snapshot trends/seasonality evidence, storefront/new-listing snapshot comparisons, imported market structure/opportunity screening, and local purchase-order planning CSV export.
+Completed product workflows include Dashboard/Analytics, Ad Manager, Suggestions, supported local Rules, Action Center/Change Log, Keyword Research, Keyword Tracker, Keyword/Negative libraries, Conflict Guard, Protected Keywords, Unified Transaction analytics, browser-local Ads/Unified imports, Local Data Operations, Store management, responsive/mobile hardening, keyboard accessibility, URL page history, suite workspace homes, suite-aligned Growth navigation taxonomy, first-class Listing preparation, CSV-first Search Query Funnel, Product 360, Action Outcomes, Rank & Index Tracker, Listing Optimizer 2.0, Inventory Risk, deterministic Anomaly Center, imported competitor snapshot trends/seasonality evidence, storefront/new-listing snapshot comparisons, imported competitor Ads Insights, imported market structure/opportunity screening, and local purchase-order planning CSV export.
 
 ## Product roadmap
 
@@ -151,7 +151,7 @@ Status rules:
 - [x] Shared keyword assets support Store-scoped tags and intent classification across library, tracker and workflow, with backup/restore coverage.
 - [x] Keyword Workflow now displays the exact Ads, SQP/ABA and imported rank evidence available for each keyword asset rather than reducing every source to Ads.
 - [x] Tracked keywords surface exact imported organic and sponsored rank snapshots by ASIN; multi-ASIN evidence stays separated rather than being collapsed into a guessed rank.
-- [x] Unified Dataset Registry covering Ads, Unified, SQP/ABA, cost, inventory, rank, competitor, review and Listing datasets.
+- [x] Unified Dataset Registry covering Ads, Unified, SQP/ABA, cost, inventory, rank, competitor, competitor Ads, review and Listing datasets.
 - [x] Dataset provenance: Store, source, import time, coverage dates, row count, schema version, checksum and validation state.
 - [x] Bring all growth datasets into Data Health, backup/restore and Store isolation instead of independent `localStorage` silos.
 - [x] Product master-data workspace for ASIN, Parent ASIN, SKU, FNSKU, product family, marketplace and Store.
@@ -181,7 +181,8 @@ Status rules:
 - [x] Alerts for imported price, BSR, rating, review-count, variant and availability changes between consecutive dated snapshots of the same ASIN; no alert is fabricated without a baseline.
 - [x] Competitor storefront snapshot CSV import reuses the existing Store-scoped competitor dataset and provides 7/15/30/60-day per-storefront listing-set change summaries. “Explicit new listings” are counted only when one unambiguous imported First Seen Date falls inside the window; newly observed ASINs without that field are not treated as launches, and partial exports remain partial evidence.
 - [x] Existing imported competitor ASIN snapshots provide conservative 7/15/30/60-day price/BSR/review lookbacks only when a dated historical baseline is available; storefront snapshot set summaries follow the same baseline rule.
-- [ ] Imported competitor advertising/Ads Insights workspace for observed keywords, placements and inferred structures.
+- [x] Imported competitor Ads Insights panel accepts dated ASIN-level CSV observations for supplied keywords, placements, ad types, campaign labels, observed positions and source notes; summaries use each ASIN's latest imported snapshot and count observation rows without treating them as traffic/impression share.
+- [ ] Competitor advertising structure inference (campaign/ad-group/targeting relationships) remains pending until an authoritative source supplies those relationships; KeywordOS does not infer them from observed keywords or placements.
 - [x] Latest-snapshot market structure screen provides price quartiles/bands, review-count median/Q3 barrier, Estimated Sales share concentration (HHI/top-3) when 3+ ASINs have sales evidence, and a disclosed relative opportunity score (65% sales percentile + 35% inverse review-count percentile) only when 3+ ASINs have both inputs. Missing values are never estimated; price bands do not affect the score and no external concentration benchmark is asserted.
 
 #### Review and voice-of-customer intelligence
