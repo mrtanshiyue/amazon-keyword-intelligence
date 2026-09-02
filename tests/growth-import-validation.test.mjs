@@ -46,6 +46,15 @@ test('blank records are counted as skipped and rejected CSV preserves original e
   assert.match(result.rejectedCsv, /BAD-SKU,abc/);
 });
 
+test('competitor snapshots require a valid date so append merges have a stable identity', () => {
+  const missingDate = validation.validateGrowthCsv('competitor', 'Date,ASIN,Price\n,B000000001,19.99');
+  const badDate = validation.validateGrowthCsv('competitor', 'Date,ASIN,Price\n2026-02-30,B000000001,19.99');
+  assert.equal(missingDate.acceptedCount, 0);
+  assert.match(missingDate.rejectedRows[0].reasons.join(' '), /Date is required/);
+  assert.equal(badDate.acceptedCount, 0);
+  assert.match(badDate.rejectedRows[0].reasons.join(' '), /valid ISO-style date/);
+});
+
 test('review rating and reverse-ASIN comparison bounds fail closed', () => {
   const reviews = 'Date,ASIN,Rating,Title,Body\n2026-08-31,B000000001,6,Title,Body';
   const reviewResult = validation.validateGrowthCsv('reviews', reviews);
