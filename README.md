@@ -187,7 +187,7 @@ Status rules:
 
 - [x] Browser-local reusable competitor groups for imported ASIN snapshots, including per-group imported/missing ASIN counts, snapshot counts and detected consecutive-snapshot changes. Groups organize evidence only and do not provide live monitoring or market-data enrichment.
 - [x] CSV snapshot history for price, BSR, rating, review count, estimated sales, variants and availability.
-- [ ] Trend and seasonality charts with explicit snapshot dates.
+- [x] Imported competitor snapshot trend charts use explicit snapshot dates for Price, BSR and Review Count. Seasonality evidence is shown only when the same ASIN has the same calendar month across 2+ years; single-year history never fabricates a seasonal pattern or forecast.
 - [x] Alerts for imported price, BSR, rating, review-count, variant and availability changes between consecutive dated snapshots of the same ASIN; no alert is fabricated without a baseline.
 - [ ] Competitor storefront and new-listing snapshot imports with 7/15/30/60-day change summaries.
 - [x] Existing imported competitor snapshots provide conservative 7/15/30/60-day lookbacks only when a dated historical baseline is available; storefront and new-listing-specific adapters remain pending.
