@@ -98,6 +98,15 @@ test('inventory capital risk keeps cost and dated sales evidence explicit', () =
   assert.equal(rows.find(row => row.sku === 'B').risk, 'Cost unavailable');
 });
 
+test('profit scenario exposes entered costs and rejects invalid inputs', () => {
+  const scenario = growth.profitScenario({ price: 100, unitCost: 20, fees: 15, adCost: 10, freight: 5, tariff: 2, promotion: 3, refundRate: 0.1, refundCost: 4 });
+  assert.equal(scenario.expectedRefund, 10.4);
+  assert.equal(scenario.nonAdCosts, 55.4);
+  assert.equal(scenario.contribution, 34.6);
+  assert.equal(scenario.breakEvenAcos, 0.446);
+  assert.equal(growth.profitScenario({ price: 10, refundRate: 1.1 }).available, false);
+});
+
 test('counts UTF-8 backend search-term bytes', () => {
   assert.equal(growth.utf8Bytes('abc'), 3);
   assert.equal(growth.utf8Bytes('中文'), 6);

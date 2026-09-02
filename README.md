@@ -218,7 +218,7 @@ Status rules:
 
 #### Profitability, inventory and replenishment
 
-- [ ] Profit scenario simulator for price, CPC, CVR, fees, COGS, freight, tariff, refund and promotion changes.
+- [x] Local per-order profit scenario calculator for price, unit cost, user-entered fees, ad cost, freight, tariff, promotion and expected refund impact. It discloses the formula and never estimates omitted Amazon fees or benchmarks.
 - [x] Imported-period contribution margin and break-even ACoS readout, using explicit Product Master joins plus loaded operating-net, COGS and ad-sales evidence; it remains unavailable when those inputs are absent and is not a forecast.
 - [x] 7/30/60/90-day sales velocity from dated imported Ads units/orders, with observed-day coverage shown so incomplete reports are not treated as full windows. Transaction/order-led velocity remains a future enhancement when an authoritative order feed is connected.
 - [ ] Supplier lead time, safety stock, inbound/reserved/unfulfillable inventory and stockout forecast.
