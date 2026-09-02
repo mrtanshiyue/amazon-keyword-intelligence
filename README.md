@@ -219,10 +219,10 @@ Status rules:
 #### Profitability, inventory and replenishment
 
 - [ ] Profit scenario simulator for price, CPC, CVR, fees, COGS, freight, tariff, refund and promotion changes.
-- [ ] Break-even price, CPC, ACoS and contribution-margin calculations.
-- [ ] 7/30/60/90-day sales velocity using transaction/order evidence before advertising proxies.
+- [x] Imported-period contribution margin and break-even ACoS readout, using explicit Product Master joins plus loaded operating-net, COGS and ad-sales evidence; it remains unavailable when those inputs are absent and is not a forecast.
+- [x] 7/30/60/90-day sales velocity from dated imported Ads units/orders, with observed-day coverage shown so incomplete reports are not treated as full windows. Transaction/order-led velocity remains a future enhancement when an authoritative order feed is connected.
 - [ ] Supplier lead time, safety stock, inbound/reserved/unfulfillable inventory and stockout forecast.
-- [ ] Recommended reorder date and quantity with formula disclosure.
+- [ ] Recommended reorder date and quantity with formula disclosure. The validated planning formula is present but remains intentionally unavailable in the UI until actual product-level sales evidence, supplier lead time and safety-stock inputs are supplied.
 - [ ] Inventory capital, overstock, aged/slow inventory and stranded/damaged inventory risks.
 - [x] Evidence-led inventory review priority that ranks critical cover, low cover, damaged inventory and missing sales evidence without creating a purchase order or reorder quantity.
 - [ ] Purchase-order planning/export without implying submission to Amazon or suppliers.

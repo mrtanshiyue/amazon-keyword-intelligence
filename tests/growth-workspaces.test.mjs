@@ -56,6 +56,27 @@ test('inventory review priority remains explicit when sales evidence is unavaila
   assert.match(rows[1].priority, /Import sales evidence/);
 });
 
+test('sales velocity uses observed dated rows instead of assuming full window coverage', () => {
+  const velocity = growth.salesVelocity([
+    { date: '2026-08-01', units: 4, orders: 3 },
+    { date: '2026-08-03', units: 6, orders: 5 }
+  ], [7])[0];
+  assert.equal(velocity.start, '2026-07-28');
+  assert.equal(velocity.end, '2026-08-03');
+  assert.equal(velocity.observedDays, 2);
+  assert.equal(velocity.unitsPerDay, 5);
+});
+
+test('replenishment plan requires actual sales and lead-time inputs', () => {
+  assert.equal(growth.replenishmentPlan({ available: 20, dailySales: 0, leadTimeDays: 7 }).available, false);
+  assert.equal(growth.replenishmentPlan({ available: 20, dailySales: 2 }).available, false);
+  const plan = growth.replenishmentPlan({ available: 10, inbound: 4, reserved: 2, dailySales: 2, leadTimeDays: 7, safetyDays: 3 });
+  assert.equal(plan.sellable, 12);
+  assert.equal(plan.target, 20);
+  assert.equal(plan.recommendedQuantity, 8);
+  assert.equal(plan.daysUntilReorder, 0);
+});
+
 test('counts UTF-8 backend search-term bytes', () => {
   assert.equal(growth.utf8Bytes('abc'), 3);
   assert.equal(growth.utf8Bytes('中文'), 6);
