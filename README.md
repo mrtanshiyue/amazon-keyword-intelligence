@@ -75,6 +75,7 @@ KeywordOS 的差异化不是复制 Helium 10 或卖家精灵的外部数据库�
 | [dataset-registry.js](./dataset-registry.js) | Store 级数据集、元数据、IndexedDB 与 ranks/competitor stable merge | ✅ 数据中枢与追加快照幂等边界已存在 |
 | [data-provenance-guard.js](./data-provenance-guard.js) | Store 01 Ads 来源判定与 seed 审批 fail-closed | 🟡 Ads 子路径已覆盖，其他来源/派生指标仍待统一 |
 | [growth-import-validation.js](./growth-import-validation.js)、[growth-import-gate.js](./growth-import-gate.js) | 8 类 Growth CSV 严格校验、partial handoff 与拒绝行下载 | ✅ 用户 Growth 文件输入边界 fail-closed |
+| [growth-consistency-actions.js](./growth-consistency-actions.js) | Inventory observed-day velocity 与 Listing field profile 的运行时一致性边界 | ✅ 复用现有 Growth 计算器，统一用户可见口径 |
 | [navigation-taxonomy.js](./navigation-taxonomy.js) | Growth 页面套件分组 | 🟡 与其他页面清单重复维护 |
 | [productivity-actions.js](./productivity-actions.js) | 套件首页、搜索、侧栏折叠与历史 | 🟡 套件归属集合不完整 |
 | [workflow-canonicalization.js](./workflow-canonicalization.js) | Tracker / Listing 旧路由兼容 | 🟡 路由已兼容，可见入口仍有重复 |
@@ -127,7 +128,7 @@ KeywordOS 的差异化不是复制 Helium 10 或卖家精灵的外部数据库�
 - ✅ 词组/词根覆盖、字段覆盖、重复与 stuffing 提示、品牌词排除、backend UTF-8 byte 检查、关键词缺口与 placement 建议。
 - ✅ 本地版本、字段 diff、evidence checklist 和导入竞品标题对比；不发布到 Amazon。
 - 🟡 页面实际版本名仍为 Listing Optimizer 2.0，旧 README 的 “3.0 已完成”不准确。
-- 🟡 Search Terms 限制可以编辑，但部分 KPI/建议仍写死为 250 bytes，必须统一读取同一设置源。
+- ✅ Listing field profile 是 Backend Bytes KPI、field validation 与 placement suggestion 的同一限制源；`searchTermsLimit` 可编辑，非法/非正整数 profile 会 fail-closed，不再由建议路径另写死 250 bytes。
 
 ### Marketing / Advertising
 
@@ -143,7 +144,7 @@ KeywordOS 的差异化不是复制 Helium 10 或卖家精灵的外部数据库�
 
 - ✅ Unified Transaction 收入、费用、退款、settlement 分析。
 - ✅ 导入成本、库存、可售/入库/残损状态、days of cover、补货日期和采购计划 CSV。
-- 🟡 库存速度同时存在“总 Ads units ÷ 30”和按实际 observed days 两套口径，必须统一为有日期覆盖的算法。
+- ✅ Inventory Risk、Anomaly Center、Replenishment 与 Inventory Capital 的日销量口径统一为 `productSalesVelocity()` 的 observed-day 模型：按同一 product 在所选窗口内实际出现的 distinct dated Ads report days 计算 units/day；没有 dated sales evidence 时保持 unavailable，而不是除以固定 30 天。
 - ✅ 本地单单利润情景、贡献毛利、break-even ACoS、退款成本暴露；缺少明确成本或映射时保持 unavailable。
 - ✅ SQP/ABA Search Query Funnel、趋势、Evidence drill-down、Anomaly Center、套件首页和移动表格处理。
 - 🟡 CSV 页面的 exact filter 主要隐藏现有表格行，主 KPI/汇总不一定同步重算。
@@ -168,7 +169,6 @@ KeywordOS 的差异化不是复制 Helium 10 或卖家精灵的外部数据库�
 | P0 | Keyword Research 的批量标签、保存筛选和 Common Words 语义不完整 | UI 承诺大于功能 | 完成真实工作流，或在完成前准确改名/隐藏 |
 | P1 | 页面清单分散，套件 page set 漏项 | 顶部套件高亮、侧栏和 command palette 不一致 | 单一 page registry 驱动 route、suite、标题、侧栏、搜索和 i18n key |
 | P1 | 旧/新入口并存及中英混杂 | 找同一功能要猜路由，语言切换不可信 | 只显示 canonical route；全页面、空态、modal 和 aria 文案审计通过 |
-| P1 | Listing byte limit 与库存速度存在双口径 | 用户设置与 KPI/建议矛盾 | 每项指标只有一个明确、可追溯的计算源 |
 | P1 | 多 ASIN 只有通用导入层 | H10/卖家精灵导出需要人工清洗 | provider CSV profile、列映射预览和未知列保留 |
 
 ## 竞品基准：截至 2026-09-02
@@ -288,7 +288,8 @@ UI 统一规则：
   - 2026-09-02：Local Data Operations 升级为 backup v3，纳入当前全部 Registry kind 与已知用户 localStorage 状态；manifest 记录 local key 数、dataset 数、总行数和内容 checksum。v3 导入先校验 manifest，恢复后重新读取 IndexedDB/localStorage 做同一 manifest 校验，任何不一致都会触发回滚；v1/v2 旧备份继续兼容。CI 为 **272 passed / 0 failed**，`npm run build` 通过。
 - [x] 修复 Data Health recency 接线，并以状态模型驱动 UI，不从 DOM 文案反向取数据。
   - 2026-09-02：`data-recency-actions.js` 直接读取现有 `KeywordOSUIBridge` 的 Ads / Finance 活动行与 Dataset Registry 状态；Registry coverage 只有在 validation、rowCount 与活动数据最新日期一致时才采用，过期 Registry 元数据不会覆盖当前数据。Data Health notice 与 Sync Center tooltip 共用同一 recency model，不再读取 `.schema-list`、coverage 标签或 coverage cell 文本。Ads / Finance 状态模型接线与反 DOM 回归测试已覆盖。CI 为 **276 passed / 0 failed**，`npm run build` 通过。
-- [ ] 统一库存 observed-day velocity 和 Listing field profile，消除双口径。
+- [x] 统一库存 observed-day velocity 和 Listing field profile，消除双口径。
+  - 2026-09-02：`growth-consistency-actions.js` 复用既有 `productSalesVelocity()`、`listingCoverage()`、`listingEvidenceTerms()` 与 UTF-8 byte 计算器，把 Inventory Risk / Anomaly Center 的可见日销量、days cover 与风险状态统一为实际 observed dated Ads days；无日期销量证据保持 unavailable。Listing Backend Bytes KPI、field validation 与 placement suggestion 统一读取当前 listing draft 的 `titleLimit` / `searchTermsLimit` profile，非法 profile fail-closed，不再由 placement 路径硬编码 250。CI 为 **282 passed / 0 failed**，`npm run build` 通过。
 - [ ] 建立 source → dist 资产一致性检查，重新构建并验证当前发布产物。
 - [ ] 建立中央 page registry；统一 route、suite、侧栏、breadcrumb、command palette、标题与 i18n key。
 - [ ] 去除重复 Tracker/Listing 入口，修正套件 active 状态、Cerebro 残留、中文混杂和 Advertising 语义碰撞。
