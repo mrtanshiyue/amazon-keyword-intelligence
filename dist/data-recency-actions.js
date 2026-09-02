@@ -1,11 +1,6 @@
 (() => {
   'use strict';
 
-  function extractLatestDate(value) {
-    const dates = String(value || '').match(/\b\d{4}-\d{2}-\d{2}\b/g) || [];
-    return dates.at(-1) || '';
-  }
-
   function validIsoDate(value) {
     const match = String(value || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
     if (!match) return false;
@@ -14,6 +9,36 @@
     const day = Number(match[3]);
     const date = new Date(Date.UTC(year, month - 1, day));
     return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
+  }
+
+  function latestDateFromRows(rows) {
+    const dates = (Array.isArray(rows) ? rows : [])
+      .map((row) => String(row?.date || '').trim())
+      .filter(validIsoDate)
+      .sort();
+    return dates.at(-1) || '';
+  }
+
+  function datasetRecency(records, kind, rows, storeId = 'store-a') {
+    const activeRows = Array.isArray(rows) ? rows : [];
+    const rowDate = latestDateFromRows(activeRows);
+    const record = (Array.isArray(records) ? records : []).find((item) => {
+      if (!item || item.kind !== kind || item.storeId !== storeId) return false;
+      if (!['validated', 'migrated'].includes(String(item.validation?.status || '').toLowerCase())) return false;
+      if (Number(item.rowCount) !== activeRows.length) return false;
+      return validIsoDate(item.coverage?.max) && item.coverage.max === rowDate;
+    });
+    if (record) return { latestDate: record.coverage.max, origin: 'registry' };
+    return { latestDate: rowDate, origin: rowDate ? 'active-rows' : 'missing' };
+  }
+
+  function recencyModel(bridge) {
+    const source = bridge || {};
+    const records = Array.isArray(source.datasetRegistry) ? source.datasetRegistry : [];
+    return {
+      ads: datasetRecency(records, 'ads', source.adsRows),
+      finance: datasetRecency(records, 'finance', source.financeRows)
+    };
   }
 
   function ageDays(latestDate, todayDate) {
@@ -37,8 +62,21 @@
     return local.toISOString().slice(0, 10);
   }
 
+  function dataHealthRecencyText(model, todayDate) {
+    const data = model || { ads: {}, finance: {} };
+    return `Amazon Ads ${formatRecency(data.ads?.latestDate, todayDate)} · Unified Transaction ${formatRecency(data.finance?.latestDate, todayDate)}`;
+  }
+
   if (typeof globalThis !== 'undefined') {
-    globalThis.KeywordOSDataRecencyTest = { extractLatestDate, validIsoDate, ageDays, formatRecency };
+    globalThis.KeywordOSDataRecencyTest = {
+      validIsoDate,
+      latestDateFromRows,
+      datasetRecency,
+      recencyModel,
+      ageDays,
+      formatRecency,
+      dataHealthRecencyText
+    };
   }
 
   if (typeof document === 'undefined') return;
@@ -50,9 +88,8 @@
     return ($('#page-title')?.textContent || '').trim();
   }
 
-  function coverageDate(label) {
-    const row = $$('.schema-list p').find((item) => $('b', item)?.textContent.trim() === label);
-    return extractLatestDate($('span', row)?.textContent || '');
+  function currentRecencyModel() {
+    return recencyModel(window.KeywordOSUIBridge);
   }
 
   function clarifyReadiness() {
@@ -66,30 +103,36 @@
 
   function enhanceDataHealth() {
     if (pageTitle() !== 'Data Health') return;
-    const adsDate = coverageDate('Ads date coverage');
-    const financeDate = coverageDate('Finance date coverage');
     const healthGrid = $('.health-grid');
-    if (!healthGrid || $('#keywordos-data-recency')) return;
+    if (!healthGrid) return;
 
     const today = localTodayIso();
-    const notice = document.createElement('div');
-    notice.id = 'keywordos-data-recency';
-    notice.className = 'notice-banner top-gap';
-    notice.innerHTML = `<b>Loaded data recency:</b> Amazon Ads ${formatRecency(adsDate, today)} · Unified Transaction ${formatRecency(financeDate, today)}<br><span>Recency is informational. Analytics remains scoped to the dates actually loaded and does not imply live Amazon synchronization.</span>`;
-    healthGrid.insertAdjacentElement('afterend', notice);
+    const model = currentRecencyModel();
+    let notice = $('#keywordos-data-recency');
+    if (!notice) {
+      notice = document.createElement('div');
+      notice.id = 'keywordos-data-recency';
+      notice.className = 'notice-banner top-gap';
+      healthGrid.insertAdjacentElement('afterend', notice);
+    }
+    notice.innerHTML = `<b>Loaded data recency:</b> ${dataHealthRecencyText(model, today)}<br><span>Recency is derived from the active Store 01 data model. Analytics remains scoped to the dates actually loaded and does not imply live Amazon synchronization.</span>`;
     clarifyReadiness();
   }
 
   function enhanceSyncCenter() {
     if (pageTitle() !== 'Sync Center') return;
     const today = localTodayIso();
+    const model = currentRecencyModel();
+    const latestByName = new Map([
+      ['Amazon Ads dataset', model.ads.latestDate],
+      ['Unified Transaction dataset', model.finance.latestDate]
+    ]);
     $$('.data-table tbody tr').forEach((row) => {
       const name = row.cells?.[0]?.textContent.trim() || '';
-      if (!['Amazon Ads dataset', 'Unified Transaction dataset'].includes(name)) return;
+      if (!latestByName.has(name)) return;
       const coverageCell = row.cells?.[3];
       if (!coverageCell) return;
-      const latest = extractLatestDate(coverageCell.textContent);
-      coverageCell.title = `Loaded data recency: ${formatRecency(latest, today)}`;
+      coverageCell.title = `Loaded data recency: ${formatRecency(latestByName.get(name), today)}`;
     });
   }
 

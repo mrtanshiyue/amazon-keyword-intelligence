@@ -2,13 +2,13 @@
   'use strict';
 
   const BACKUP_FORMAT = 'keywordos-local-workspace-backup';
-  const BACKUP_VERSION = 2;
+  const BACKUP_VERSION = 3;
   const MAX_BACKUP_BYTES = 32 * 1024 * 1024;
   const MAX_DATASET_ROWS = 250000;
   const DB_NAME = 'keywordos_v9_workspace';
   const DB_VERSION = 2;
   const DATASET_STORE = 'datasets';
-  const DATASET_KINDS = new Set(['ads', 'finance', 'sqp', 'costs', 'inventory', 'ranks', 'competitor', 'reviews', 'reverse-asin', 'listing', 'product-master', 'keyword-assets', 'action-outcomes']);
+  const DATASET_KINDS = new Set(['ads', 'finance', 'sqp', 'costs', 'inventory', 'ranks', 'competitor', 'competitor-ads', 'competitor-creative', 'reviews', 'reverse-asin', 'listing', 'product-master', 'keyword-assets', 'action-outcomes']);
   const SAFE_LOCAL_KEYS = new Set([
     'keywordos_v9_actions',
     'keywordos_v9_negatives',
@@ -31,7 +31,23 @@
     'keywordos_v9_dashboard_ui',
     'keywordos_v9_data_ops',
     'keywordos_v9_store_workspaces',
-    'keywordos_v9_shell_ui'
+    'keywordos_v9_workspace_organizer',
+    'keywordos_v9_shell_ui',
+    'keywordos_growth_sqp_v1',
+    'keywordos_growth_costs_v1',
+    'keywordos_growth_inventory_v1',
+    'keywordos_growth_ranks_v1',
+    'keywordos_growth_product_master_v1',
+    'keywordos_growth_action_baselines_v1',
+    'keywordos_growth_listing_v1',
+    'keywordos_growth_listing_versions_v1',
+    'keywordos_growth_listing_evidence_checklist_v1',
+    'keywordos_growth_competitor_v1',
+    'keywordos_growth_competitor_groups_v1',
+    'keywordos_growth_reviews_v1',
+    'keywordos_growth_reverse_asin_v1',
+    'keywordos_growth_competitor_ads_v1',
+    'keywordos_competitor_creative_evidence_v1'
   ]);
 
   function isRecord(value) {
@@ -53,7 +69,22 @@
     'keywordos_v9_presets',
     'keywordos_v9_schedules',
     'keywordos_v9_research_history',
-    'keywordos_v9_store_workspaces'
+    'keywordos_v9_store_workspaces',
+    'keywordos_growth_sqp_v1',
+    'keywordos_growth_costs_v1',
+    'keywordos_growth_inventory_v1',
+    'keywordos_growth_ranks_v1',
+    'keywordos_growth_product_master_v1',
+    'keywordos_growth_action_baselines_v1',
+    'keywordos_growth_listing_v1',
+    'keywordos_growth_listing_versions_v1',
+    'keywordos_growth_listing_evidence_checklist_v1',
+    'keywordos_growth_competitor_v1',
+    'keywordos_growth_competitor_groups_v1',
+    'keywordos_growth_reviews_v1',
+    'keywordos_growth_reverse_asin_v1',
+    'keywordos_growth_competitor_ads_v1',
+    'keywordos_competitor_creative_evidence_v1'
   ]);
   const LOCAL_STRING_KEYS = new Set(['keywordos_v9_preset_default']);
 
@@ -144,9 +175,46 @@
     }
   }
 
+  function checksum(value) {
+    let hash = 2166136261;
+    const text = String(value ?? '');
+    for (let index = 0; index < text.length; index += 1) {
+      hash ^= text.charCodeAt(index);
+      hash = Math.imul(hash, 16777619);
+    }
+    return `fnv1a32:${(hash >>> 0).toString(16).padStart(8, '0')}`;
+  }
+
+  function backupManifest(localState, datasets) {
+    const localEntries = Object.keys(localState || {}).sort().map((key) => [key, localState[key]]);
+    const datasetEntries = (Array.isArray(datasets) ? datasets : []).map((record) => ({
+      storeId: String(record?.storeId || 'store-a'),
+      kind: datasetKind(record),
+      rows: Array.isArray(record?.rows) ? record.rows : []
+    })).sort((a, b) => `${a.storeId}::${a.kind}`.localeCompare(`${b.storeId}::${b.kind}`));
+    return {
+      version: 1,
+      localKeys: localEntries.length,
+      datasetCount: datasetEntries.length,
+      datasetRows: datasetEntries.reduce((sum, record) => sum + record.rows.length, 0),
+      localChecksum: checksum(JSON.stringify(localEntries)),
+      datasetChecksum: checksum(JSON.stringify(datasetEntries))
+    };
+  }
+
+  function manifestsMatch(expected, actual) {
+    if (!isRecord(expected) || !isRecord(actual)) return false;
+    return expected.version === actual.version
+      && expected.localKeys === actual.localKeys
+      && expected.datasetCount === actual.datasetCount
+      && expected.datasetRows === actual.datasetRows
+      && expected.localChecksum === actual.localChecksum
+      && expected.datasetChecksum === actual.datasetChecksum;
+  }
+
   function validateBackupObject(value) {
     if (!isRecord(value)) return { ok: false, error: 'Backup root must be an object.' };
-    if (value.format !== BACKUP_FORMAT || ![1, BACKUP_VERSION].includes(value.version)) {
+    if (value.format !== BACKUP_FORMAT || ![1, 2, BACKUP_VERSION].includes(value.version)) {
       return { ok: false, error: 'This is not a supported KeywordOS local workspace backup.' };
     }
     if (!isRecord(value.localStorage)) return { ok: false, error: 'Backup local state is missing.' };
@@ -191,12 +259,18 @@
       });
     }
 
+    const manifest = backupManifest(localState, datasets);
+    if (value.version === BACKUP_VERSION && !manifestsMatch(value.manifest, manifest)) {
+      return { ok: false, error: 'Backup manifest does not match its local state or datasets.' };
+    }
+
     return {
       ok: true,
       backup: {
         format: BACKUP_FORMAT,
         version: BACKUP_VERSION,
         createdAt: String(value.createdAt || ''),
+        manifest,
         localStorage: localState,
         datasets
       }
@@ -207,6 +281,9 @@
     globalThis.KeywordOSLocalOperationsTest = {
       BACKUP_FORMAT,
       BACKUP_VERSION,
+      SAFE_LOCAL_KEYS,
+      backupManifest,
+      manifestsMatch,
       sanitizeScheduleStorage,
       validateLocalStateRaw,
       validNormalizedDate,
@@ -311,12 +388,15 @@
   }
 
   async function buildBackup() {
+    const localStorage = collectLocalState();
+    const datasets = await readDatasets();
     return {
       format: BACKUP_FORMAT,
       version: BACKUP_VERSION,
       createdAt: new Date().toISOString(),
-      localStorage: collectLocalState(),
-      datasets: await readDatasets()
+      manifest: backupManifest(localStorage, datasets),
+      localStorage,
+      datasets
     };
   }
 
@@ -344,8 +424,7 @@
     try {
       const backup = await buildBackup();
       downloadBackup(serializeBackup(backup));
-      const rows = backup.datasets.reduce((sum, item) => sum + item.rows.length, 0);
-      toast(`Local workspace backup exported · ${rows.toLocaleString()} dataset rows`, 'success');
+      toast(`Local workspace backup exported · ${backup.manifest.datasetRows.toLocaleString()} dataset rows`, 'success');
     } catch (error) {
       console.error('KeywordOS local backup failed', error);
       toast(error.message || 'Unable to export the local workspace backup', 'error');
@@ -354,10 +433,10 @@
 
   function restoreSummary(backup) {
     return {
-      localKeys: Object.keys(backup.localStorage).length,
+      localKeys: backup.manifest?.localKeys ?? Object.keys(backup.localStorage).length,
       adsRows: backup.datasets.find((item) => item.kind === 'ads')?.rows.length || 0,
       financeRows: backup.datasets.find((item) => item.kind === 'finance')?.rows.length || 0,
-      registryDatasets: backup.datasets.length
+      registryDatasets: backup.manifest?.datasetCount ?? backup.datasets.length
     };
   }
 
@@ -367,6 +446,10 @@
     try {
       await replaceDatasets(backup.datasets);
       replaceLocalState(backup.localStorage);
+      const restoredManifest = backupManifest(collectLocalState(), await readDatasets());
+      if (!manifestsMatch(backup.manifest, restoredManifest)) {
+        throw new Error('Restore verification failed: restored state does not match the backup manifest.');
+      }
     } catch (error) {
       try {
         await replaceDatasets(previousDatasets);
