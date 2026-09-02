@@ -20,23 +20,13 @@ KeywordOS 是一个面向 Amazon 广告、关键词、Listing 准备和经营分
 
 At the start of future work, always read the repository's current `main`; do not rely on a permanently embedded SHA in documentation.
 
-Current repository feature baseline at this documentation update:
+Current repository feature baseline at this documentation update is the repository's current `main`; feature work is no longer pinned to the historical `fa135d5` checkpoint.
 
-`fa135d5` — CSV-first growth intelligence workspaces
+Verification rule for every new completed task:
 
-Local acceptance on `fa135d5`:
-
-- `npm run check`: **PASS — 88/88 tests**
-- `npm run build`: **PASS**
-
-Latest recorded production acceptance remains the earlier PR #79 baseline (`22517172eca251703d028d081fb7c9466d9404be`):
-
-- GitHub `check-and-build`: **PASS**
-- Cloudflare Workers Build: **PASS**
-  - Build ID: `c78fafaa-84d1-4a00-b917-0228783ac247`
-  - Version ID: `4a3b6f0e-4782-4336-b2ea-9ec71c7ea0e7`
-- GitHub-only `/cloudflare status`: **PASS**
-  - run `33454956950`
+- GitHub `check-and-build` must pass `npm run check` and `npm run build`.
+- Cloudflare Workers Build must pass for the production rollout.
+- Read the latest commit checks for exact run/build/version IDs rather than treating a historical SHA as a permanent acceptance baseline.
 
 The authoritative continuation instructions are in [`CURRENT_HANDOFF.md`](./CURRENT_HANDOFF.md).
 
@@ -111,7 +101,7 @@ It emits PASS/FAIL only. It must not be silently expanded into Access identity/s
 - Local `Staged` / `Approved` states never mean executed on Amazon.
 - Listing drafts are preparation-only and never mean published to Amazon.
 
-Completed product workflows include Dashboard/Analytics, Ad Manager, Suggestions, supported local Rules, Action Center/Change Log, Cerebro, Keyword Tracker, Keyword/Negative libraries, Conflict Guard, Protected Keywords, Unified Transaction analytics, browser-local Ads/Unified imports, Local Data Operations, Store management, responsive/mobile hardening, keyboard accessibility, URL page history, suite workspace homes, first-class Listing preparation, CSV-first Search Query Funnel, Product 360, Action Outcomes, Rank & Index Tracker, Listing Optimizer 2.0, Inventory Risk, and deterministic Anomaly Center.
+Completed product workflows include Dashboard/Analytics, Ad Manager, Suggestions, supported local Rules, Action Center/Change Log, Cerebro, Keyword Tracker, Keyword/Negative libraries, Conflict Guard, Protected Keywords, Unified Transaction analytics, browser-local Ads/Unified imports, Local Data Operations, Store management, responsive/mobile hardening, keyboard accessibility, URL page history, suite workspace homes, first-class Listing preparation, CSV-first Search Query Funnel, Product 360, Action Outcomes, Rank & Index Tracker, Listing Optimizer 2.0, Inventory Risk, deterministic Anomaly Center, imported competitor snapshot trends/seasonality evidence, and local purchase-order planning CSV export.
 
 ## Product roadmap
 
@@ -225,7 +215,7 @@ Status rules:
 - [x] Reorder review date and coverage-gap calculator with formula disclosure. It requires explicit supplier lead time and safety-stock inputs plus a literal Inventory-to-dated-Ads product-label match; it creates no purchase order and stays unavailable when evidence is missing.
 - [x] Inventory capital, inbound capital, unfulfillable capital and slow-stock review from explicit Product Master cost joins and dated Ads unit evidence. “Slow-moving” means 90+ observed-velocity days of cover; aging/stranded status remains unavailable without an authoritative aging report.
 - [x] Evidence-led inventory review priority that ranks critical cover, low cover, damaged inventory and missing sales evidence without creating a purchase order or reorder quantity.
-- [ ] Purchase-order planning/export without implying submission to Amazon or suppliers.
+- [x] Local purchase-order planning preview and CSV export for the currently selected inventory SKU, reusing the explicit lead-time, safety-stock, inventory snapshot and observed Ads velocity inputs. Exported rows are labelled planning-only and are never submitted to Amazon or suppliers.
 - [x] Refund cost-exposure review based on imported Unified refund rows, explicit Product Master joins and imported unit cost. It is a manual follow-up queue, not an Amazon reimbursement eligibility or amount decision.
 
 ### P2 — advanced automation and assistance
