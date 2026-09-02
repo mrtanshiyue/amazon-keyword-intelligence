@@ -208,7 +208,7 @@ Status rules:
 - [x] Separate title, bullets, description and backend-term coverage/scoring.
 - [x] User-configured brand-term exclusion, duplicate-root control and keyword-stuffing warnings.
 - [x] High-value unused keyword placement suggestions based on imported evidence, with manual relevance confirmation.
-- [ ] Competitor Listing keyword-gap comparison.
+- [x] Competitor Listing title phrase-gap comparison using only imported snapshots and the local draft; it does not infer ranking, traffic or relevance.
 - [ ] Amazon field character/byte rules with marketplace-specific validation.
 - [ ] Listing versions, diff, notes and linkage to later rank/conversion outcomes.
 - [ ] Product image and selling-point evidence checklist.

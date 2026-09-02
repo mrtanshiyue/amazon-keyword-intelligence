@@ -68,6 +68,13 @@ test('listing quality excludes configured brands and flags backend brands plus r
   assert.deepEqual(quality.repeated, [['rack', 5]]);
 });
 
+test('competitor listing gaps compare only imported title phrases to the local draft', () => {
+  const gaps = growth.competitorListingGaps({ title: 'Blue shoe rack', bullets: '', description: '', searchTerms: '' }, [{ asin: 'B1', title: 'Blue shoe rack with storage shelf' }]);
+  assert.equal(gaps.length, 1);
+  assert.ok(gaps[0].phrases.includes('with storage'));
+  assert.ok(!gaps[0].phrases.includes('blue shoe rack'));
+});
+
 test('listing placement suggestions rank only imported evidence and preserve its metrics', () => {
   const evidence = growth.listingEvidenceTerms([{ query: 'shoe rack', purchases: 3, volume: 500 }], [{ searchTerm: 'shoe rack', orders: 4 }, { searchTerm: 'rack organiser', orders: 2 }]);
   const suggestions = growth.listingPlacementSuggestions({ title: '', bullets: '', description: '', searchTerms: '' }, evidence);
