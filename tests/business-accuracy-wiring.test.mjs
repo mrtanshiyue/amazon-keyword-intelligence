@@ -44,10 +44,11 @@ test('suggestions do not invent campaign budgets and preserve campaign scope', (
   assert.match(source, /scope:x\.campaign\|\|'Campaign review'/);
 });
 
-test('suite navigation uses stable suite ids instead of translated labels', () => {
-  assert.match(productivitySource, /button\.dataset\.suite = suite/);
-  assert.match(productivitySource, /const action = suiteAction\(suite\)/);
-  assert.match(productivitySource, /button\.dataset\.suite \|\| normalizeSearch/);
+test('suite navigation uses stable registry suite ids instead of translated labels', () => {
+  assert.match(productivitySource, /registry\.SUITE_ORDER\[i\]/);
+  assert.match(productivitySource, /b\.dataset\.suite=s/);
+  assert.match(productivitySource, /registry\.suite\(s\)/);
+  assert.doesNotMatch(productivitySource, /Object\.keys\(SUITE_WORKSPACES\)\[index\]/);
 });
 
 test('responsive shell keeps suites available and uses a narrow accessible mobile rail', () => {

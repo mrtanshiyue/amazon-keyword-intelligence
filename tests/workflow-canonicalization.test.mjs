@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
+await import('../navigation-taxonomy.js');
 await import('../workflow-canonicalization.js');
 const canonical = globalThis.KeywordOSWorkflowCanonicalizationTest;
 
@@ -53,11 +54,12 @@ test('canonicalization intentionally does not merge distinct analytics scopes', 
   assert.equal(canonical.canonicalPage('analytics'), 'analytics');
 });
 
-test('canonicalization script loads before legacy Listing interceptor', async () => {
+test('canonicalization runtime prerequisite is loaded before route interception', async () => {
   const index = await readFile(new URL('../index.html', import.meta.url), 'utf8');
+  const registryIndex = index.indexOf('<script src="navigation-taxonomy.js"></script>');
   const canonicalIndex = index.indexOf('<script src="workflow-canonicalization.js"></script>');
   const listingIndex = index.indexOf('<script src="listing-workspace-actions.js"></script>');
-  assert.ok(canonicalIndex >= 0, 'canonicalization script should be loaded');
-  assert.ok(listingIndex >= 0, 'legacy listing script should remain for compatibility helpers');
-  assert.ok(canonicalIndex < listingIndex, 'canonical click/hash interception must register before the legacy Listing interceptor');
+  assert.ok(registryIndex >= 0, 'page registry should be loaded');
+  assert.ok(canonicalIndex > registryIndex, 'canonicalization must load after the page registry');
+  assert.ok(listingIndex > canonicalIndex, 'legacy listing interceptor must load after canonicalization');
 });
