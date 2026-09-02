@@ -74,6 +74,7 @@ KeywordOS 的差异化不是复制 Helium 10 或卖家精灵的外部数据库�
 | [growth-workspaces.js](./growth-workspaces.js) | SQP、产品、竞品、评论、排名、Listing、库存工作区 | 🟡 功能多，解析和持久化一致性需补强 |
 | [dataset-registry.js](./dataset-registry.js) | Store 级数据集、元数据与 IndexedDB | ✅ 数据中枢已存在 |
 | [data-provenance-guard.js](./data-provenance-guard.js) | Store 01 Ads 来源判定与 seed 审批 fail-closed | 🟡 Ads 子路径已覆盖，其他来源/派生指标仍待统一 |
+| [growth-import-validation.js](./growth-import-validation.js)、[growth-import-gate.js](./growth-import-gate.js) | 8 类 Growth CSV 严格校验、partial handoff 与拒绝行下载 | ✅ 用户 Growth 文件输入边界 fail-closed |
 | [navigation-taxonomy.js](./navigation-taxonomy.js) | Growth 页面套件分组 | 🟡 与其他页面清单重复维护 |
 | [productivity-actions.js](./productivity-actions.js) | 套件首页、搜索、侧栏折叠与历史 | 🟡 套件归属集合不完整 |
 | [workflow-canonicalization.js](./workflow-canonicalization.js) | Tracker / Listing 旧路由兼容 | 🟡 路由已兼容，可见入口仍有重复 |
@@ -93,6 +94,7 @@ KeywordOS 的差异化不是复制 Helium 10 或卖家精灵的外部数据库�
 - ✅ Dataset Registry 支持 ads、finance、sqp、costs、inventory、ranks、competitor、competitor-ads、competitor-creative、reviews、reverse-asin、listing、product-master、keyword-assets、action-outcomes。
 - ✅ 数据元信息包括来源、导入时间、覆盖期、行数、schema、checksum 和校验状态。
 - ✅ Data Health、16 MiB 浏览器导入限制、畸形未闭合 CSV 拒绝、旧浏览器数据迁移。
+- ✅ 8 类 Growth CSV 用户导入在进入现有 parser 前执行严格 header / identity / date / nonblank numeric 校验；界面展示 accepted / rejected / skipped，partial 文件只把 accepted rows 交给现有 parser，拒绝行可下载 CSV。
 - 🟡 Local Data Operations 可以备份/恢复主要数据，但当前白名单遗漏 competitor-creative，也未覆盖 Listing evidence/version 和 competitor group 等部分 localStorage 状态，不能宣称完整无损备份。
 - 🟡 仓库内 Store 01 bundled seed 含 Ads 8,753 行、Unified 3,643 行；它是 public-test 种子数据。Store 01 Ads 现已由 provenance guard 区分 USER IMPORT / BUNDLED SEED / NO DATA，并在没有有效用户 Ads 导入时禁止 Action Center 批准、批量批准和导出批准动作；Finance、Growth 及 calculated / third-party estimate / missing 的全局状态仍未统一。
 
@@ -160,7 +162,7 @@ KeywordOS 的差异化不是复制 Helium 10 或卖家精灵的外部数据库�
 | 优先级 | 问题 | 影响 | 完成标准 |
 |---|---|---|---|
 | P0 | 种子数据与真实导入标识混淆 | 用户可能基于演示数据批准动作 | seed / import / calculated / estimated / missing 全局一致；seed 默认不可批准 |
-| P0 | Growth parser 把非数值静默转为 0、缺身份行静默跳过，部分数据直接 append | 假零值、漏行和重复快照污染决策 | 严格字段校验、拒绝行统计与下载、稳定 merge key、重复策略测试 |
+| P0 | Growth 追加导入仍缺稳定 merge key / 重复策略 | ranks、competitor 等重复快照仍可能污染决策 | 为追加型数据定义稳定 merge key、覆盖/追加策略和幂等测试 |
 | P0 | 本地备份白名单不完整 | 恢复后丢竞品创意、Listing 版本/清单或竞品组 | 所有用户状态纳入 manifest；往返恢复 checksum/数量一致 |
 | P0 | dist 与源码漂移 | 发布物可能缺少竞品、Agent、evidence 和 suite 模块 | source/dist 资产清单一致，CI 对源入口和产物做闭包校验 |
 | P0 | Data Health recency DOM 接线与实际标签/节点不一致 | 页面显示 date unavailable | 使用数据模型而非抓取文案；DOM 集成测试覆盖 Ads/Finance 日期 |
@@ -279,7 +281,8 @@ UI 统一规则：
 
 - [ ] 全局修正 bundled seed、用户导入、计算值、第三方估算和缺失的状态标识；seed 数据禁止进入可批准动作。
   - 2026-09-02 已完成子项：Store 01 Ads 仅在 Dataset Registry 中的浏览器持久化记录通过现有 Ads 校验器时标为 `USER IMPORT`；否则明确回退为 `BUNDLED SEED` / `NO DATA`，并 fail-closed 禁止 Action Center 单项批准、批量批准和批准动作导出。该总项仍未完成，因为 Finance、Growth、calculated、third-party estimate 与 missing 尚未全局统一。
-- [ ] Growth CSV 严格数值、日期与身份校验：禁止无效值默认为 0，展示接受/拒绝/跳过数量，允许下载拒绝行。
+- [x] Growth CSV 严格数值、日期与身份校验：禁止无效值默认为 0，展示接受/拒绝/跳过数量，允许下载拒绝行。
+  - 2026-09-02：8 个 Growth schema 的 `growth-file-*` 用户导入统一经过严格 gate；非空非法数值、非法日期、缺失身份和列数错误进入 rejected，空记录计 skipped，partial 文件仅把 accepted rows 交给现有 parser，并提供 rejected CSV 下载。CI 为 **264 passed / 0 failed**，`npm run build` 通过。稳定 merge key 与重复导入策略仍由下一项处理。
 - [ ] 为 ranks、competitor 等追加导入定义稳定 merge key、覆盖/追加策略和幂等测试。
 - [ ] 补齐所有 Dataset Registry 与 localStorage 用户状态的备份 manifest 和恢复校验。
 - [ ] 修复 Data Health recency 接线，并以状态模型驱动 UI，不从 DOM 文案反向取数据。
