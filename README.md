@@ -97,6 +97,7 @@ KeywordOS 的差异化不是复制 Helium 10 或卖家精灵的外部数据库�
 - ✅ 8 类 Growth CSV 用户导入在进入现有 parser 前执行严格 header / identity / date / nonblank numeric 校验；界面展示 accepted / rejected / skipped，partial 文件只把 accepted rows 交给现有 parser，拒绝行可下载 CSV。
 - ✅ Growth 中当前两个追加型数据集已经定义稳定 merge：ranks 使用 date + ASIN + normalized keyword；competitor 使用 date + ASIN，有日期时保留历史，同 key 后导入覆盖旧行；日期缺失时使用 UNDATED + ASIN，只把无法形成时间序列的重复观察视为 correction。重复导入幂等，其他 replace 型数据集不受该策略影响。
 - ✅ Local Data Operations v3 覆盖全部当前 Dataset Registry kind（含 competitor-creative）和已知用户 localStorage 状态，包括 Listing versions/evidence checklist、competitor groups 与 Growth fallback；备份 manifest 记录 local key 数、dataset 数、总行数及内容 checksum。恢复后重新读取 IndexedDB/localStorage 核对 manifest，不一致则回滚；旧 v1/v2 备份仍可恢复。
+- ✅ Data Health 与 Sync Center 的 Ads / Finance recency 已改为读取当前 Store 01 状态模型；只有 Dataset Registry coverage 与当前活动行数和最新日期一致时才采用 Registry 元数据，否则使用活动数据行日期。运行时不再从 `.schema-list`、coverage 标签或表格文案反向解析日期。
 - 🟡 仓库内 Store 01 bundled seed 含 Ads 8,753 行、Unified 3,643 行；它是 public-test 种子数据。Store 01 Ads 现已由 provenance guard 区分 USER IMPORT / BUNDLED SEED / NO DATA，并在没有有效用户 Ads 导入时禁止 Action Center 批准、批量批准和导出批准动作；Finance、Growth 及 calculated / third-party estimate / missing 的全局状态仍未统一。
 
 ### Products / Competitors / Reviews
@@ -164,7 +165,6 @@ KeywordOS 的差异化不是复制 Helium 10 或卖家精灵的外部数据库�
 |---|---|---|---|
 | P0 | 种子数据与真实导入标识混淆 | 用户可能基于演示数据批准动作 | seed / import / calculated / estimated / missing 全局一致；seed 默认不可批准 |
 | P0 | dist 与源码漂移 | 发布物可能缺少竞品、Agent、evidence 和 suite 模块 | source/dist 资产清单一致，CI 对源入口和产物做闭包校验 |
-| P0 | Data Health recency DOM 接线与实际标签/节点不一致 | 页面显示 date unavailable | 使用数据模型而非抓取文案；DOM 集成测试覆盖 Ads/Finance 日期 |
 | P0 | Keyword Research 的批量标签、保存筛选和 Common Words 语义不完整 | UI 承诺大于功能 | 完成真实工作流，或在完成前准确改名/隐藏 |
 | P1 | 页面清单分散，套件 page set 漏项 | 顶部套件高亮、侧栏和 command palette 不一致 | 单一 page registry 驱动 route、suite、标题、侧栏、搜索和 i18n key |
 | P1 | 旧/新入口并存及中英混杂 | 找同一功能要猜路由，语言切换不可信 | 只显示 canonical route；全页面、空态、modal 和 aria 文案审计通过 |
@@ -286,7 +286,8 @@ UI 统一规则：
   - 2026-09-02：当前 Growth 中只有 ranks / competitor 使用 append。Dataset Registry 对 ranks 使用 `date + ASIN + normalized keyword`，对 competitor 使用 `date + ASIN`；同 key 的后导入作为 correction 覆盖旧值，不同日期保留历史。competitor 日期仍保持可选；缺日期时使用 `UNDATED + ASIN`，因此重复无日期观察会幂等折叠且不会伪装成时间序列。其他 replace 型数据集不参与该 merge。CI 为 **268 passed / 0 failed**，`npm run build` 通过。
 - [x] 补齐所有 Dataset Registry 与 localStorage 用户状态的备份 manifest 和恢复校验。
   - 2026-09-02：Local Data Operations 升级为 backup v3，纳入当前全部 Registry kind 与已知用户 localStorage 状态；manifest 记录 local key 数、dataset 数、总行数和内容 checksum。v3 导入先校验 manifest，恢复后重新读取 IndexedDB/localStorage 做同一 manifest 校验，任何不一致都会触发回滚；v1/v2 旧备份继续兼容。CI 为 **272 passed / 0 failed**，`npm run build` 通过。
-- [ ] 修复 Data Health recency 接线，并以状态模型驱动 UI，不从 DOM 文案反向取数据。
+- [x] 修复 Data Health recency 接线，并以状态模型驱动 UI，不从 DOM 文案反向取数据。
+  - 2026-09-02：`data-recency-actions.js` 直接读取现有 `KeywordOSUIBridge` 的 Ads / Finance 活动行与 Dataset Registry 状态；Registry coverage 只有在 validation、rowCount 与活动数据最新日期一致时才采用，过期 Registry 元数据不会覆盖当前数据。Data Health notice 与 Sync Center tooltip 共用同一 recency model，不再读取 `.schema-list`、coverage 标签或 coverage cell 文本。Ads / Finance 状态模型接线与反 DOM 回归测试已覆盖。CI 为 **276 passed / 0 failed**，`npm run build` 通过。
 - [ ] 统一库存 observed-day velocity 和 Listing field profile，消除双口径。
 - [ ] 建立 source → dist 资产一致性检查，重新构建并验证当前发布产物。
 - [ ] 建立中央 page registry；统一 route、suite、侧栏、breadcrumb、command palette、标题与 i18n key。
