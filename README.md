@@ -152,7 +152,7 @@ Status rules:
 - [x] Keyword Workflow now displays the exact Ads, SQP/ABA and imported rank evidence available for each keyword asset rather than reducing every source to Ads.
 - [x] Tracked keywords surface exact imported organic and sponsored rank snapshots by ASIN; multi-ASIN evidence stays separated rather than being collapsed into a guessed rank.
 - [x] Unified Dataset Registry covering Ads, Unified, SQP/ABA, cost, inventory, rank, competitor, review and Listing datasets.
-- [x] Dataset provenance: Store, source, import time, coverage dates, row count, schema version, validation state.
+- [x] Dataset provenance: Store, source, import time, coverage dates, row count, schema version, checksum and validation state.
 - [x] Bring all growth datasets into Data Health, backup/restore and Store isolation instead of independent `localStorage` silos.
 - [x] Product master-data workspace for ASIN, Parent ASIN, SKU, FNSKU, product family, marketplace and Store.
 - [x] Explicit unmapped-record queue; no heuristic Product 360 join may silently become authoritative.
