@@ -180,7 +180,7 @@ Status rules:
 - [x] Compare 2–20 imported ASINs in one project.
 - [x] Shared, own-only, competitor-only and missing-keyword sets, with ownership derived only from Product Master ASINs.
 - [x] Organic-rank, sponsored-rank, search-volume, conversion and traffic-share side-by-side gaps when both sides are present in imported evidence.
-- [x] Keyword overlap/coverage score from imported comparison sets. One-click addition to the shared keyword asset library remains pending.
+- [x] Keyword overlap/coverage score from imported comparison sets and one-click staging of competitor-only/missing terms in the shared keyword asset library.
 - [ ] Traffic Comparison and keyword-distribution views without synthesizing unavailable external metrics.
 
 #### Product, market and competitor monitoring
