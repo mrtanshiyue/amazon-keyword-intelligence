@@ -204,6 +204,13 @@ test('ASIN overlap score is based only on the imported comparison sets', () => {
   assert.equal(score.shared, 1);
 });
 
+test('traffic distribution sums supplied share values without normalizing them', () => {
+  const distribution = growth.asinTrafficDistribution([{ segment: 'Shared', ownTrafficShares: [0.2], competitorTrafficShares: [0.4] }]);
+  assert.equal(distribution.available, true);
+  assert.equal(distribution.shared.own, 0.2);
+  assert.equal(distribution.shared.competitor, 0.4);
+});
+
 test('rejects reverse-ASIN imports above the 20-ASIN comparison limit', () => {
   const header = 'ASIN,Keyword';
   const rows = Array.from({ length: 21 }, (_, index) => `B${index},keyword ${index}`);

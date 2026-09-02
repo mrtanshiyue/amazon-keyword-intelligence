@@ -181,7 +181,7 @@ Status rules:
 - [x] Shared, own-only, competitor-only and missing-keyword sets, with ownership derived only from Product Master ASINs.
 - [x] Organic-rank, sponsored-rank, search-volume, conversion and traffic-share side-by-side gaps when both sides are present in imported evidence.
 - [x] Keyword overlap/coverage score from imported comparison sets and one-click staging of competitor-only/missing terms in the shared keyword asset library.
-- [ ] Traffic Comparison and keyword-distribution views without synthesizing unavailable external metrics.
+- [x] Imported traffic-share comparison and keyword-set distribution view. It sums only supplied Traffic Share values by own/shared/competitor-only set, explicitly avoids normalization and remains unavailable when Traffic Share is absent.
 
 #### Product, market and competitor monitoring
 
