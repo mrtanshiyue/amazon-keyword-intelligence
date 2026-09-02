@@ -41,3 +41,30 @@ test('accepts Store-scoped action outcome baseline records', () => {
   assert.equal(record.kind, 'action-outcomes');
   assert.equal(record.rowCount, 1);
 });
+
+test('rank snapshots append new dates and replace corrections with the same stable key', () => {
+  const rows = registry.mergeAppendRows('ranks', [
+    { date: '2026-08-30', asin: 'B000000001', keyword: 'Reading Glasses', organicRank: 18 },
+    { date: '2026-08-31', asin: 'B000000001', keyword: 'reading glasses', organicRank: 15 },
+    { date: '2026-08-31', asin: 'b000000001', keyword: '  READING   GLASSES ', organicRank: 12 }
+  ]);
+  assert.equal(rows.length, 2);
+  assert.equal(rows[1].organicRank, 12);
+});
+
+test('competitor snapshots use date plus ASIN and repeated imports are idempotent', () => {
+  const first = { date: '2026-08-31', asin: 'B000000001', price: 19.99 };
+  const correction = { date: '2026-08-31', asin: 'b000000001', price: 18.99 };
+  const later = { date: '2026-09-01', asin: 'B000000001', price: 17.99 };
+  const once = registry.mergeAppendRows('competitor', [first, correction, later]);
+  const twice = registry.mergeAppendRows('competitor', [...once, correction, later]);
+  assert.equal(once.length, 2);
+  assert.equal(once[0].price, 18.99);
+  assert.deepEqual(twice, once);
+});
+
+test('replace-style datasets are not deduplicated by append merge policy', () => {
+  const rows = [{ sku: 'SKU-1', unitCost: 1 }, { sku: 'SKU-1', unitCost: 2 }];
+  assert.equal(registry.mergeAppendRows('costs', rows), rows);
+  assert.equal(registry.normalizeRecord({ kind: 'costs', rows }).rowCount, 2);
+});
