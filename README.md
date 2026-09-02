@@ -212,7 +212,7 @@ Status rules:
 - [x] User-configured brand-term exclusion, duplicate-root control and keyword-stuffing warnings.
 - [x] High-value unused keyword placement suggestions based on imported evidence, with manual relevance confirmation.
 - [x] Competitor Listing title phrase-gap comparison using only imported snapshots and the local draft; it does not infer ranking, traffic or relevance.
-- [ ] Amazon field character/byte rules with marketplace-specific validation.
+- [x] Marketplace field-validation profile with editable title-character and backend UTF-8-byte limits, plus title/backend over-limit warnings and bullet/description counts. Defaults are explicitly presented as review thresholds that must be confirmed against the current Seller Central category policy.
 - [ ] Listing versions, diff, notes and linkage to later rank/conversion outcomes.
 - [ ] Product image and selling-point evidence checklist.
 

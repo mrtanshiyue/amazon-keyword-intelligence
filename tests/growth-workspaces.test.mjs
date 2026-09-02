@@ -125,6 +125,15 @@ test('listing quality excludes configured brands and flags backend brands plus r
   assert.deepEqual(quality.repeated, [['rack', 5]]);
 });
 
+test('listing field validation counts title characters and backend UTF-8 bytes against editable limits', () => {
+  const validation = growth.listingFieldValidation({ title: 'hello', bullets: 'bullet', description: 'detail', searchTerms: '中文' }, { titleLimit: 4, searchTermsLimit: 5 });
+  assert.equal(validation.title.status, 'Over limit');
+  assert.equal(validation.backend.used, 6);
+  assert.equal(validation.backend.status, 'Over limit');
+  assert.equal(validation.bullets.used, 6);
+  assert.equal(growth.listingFieldValidation({}, { titleLimit: 0 }).available, false);
+});
+
 test('competitor listing gaps compare only imported title phrases to the local draft', () => {
   const gaps = growth.competitorListingGaps({ title: 'Blue shoe rack', bullets: '', description: '', searchTerms: '' }, [{ asin: 'B1', title: 'Blue shoe rack with storage shelf' }]);
   assert.equal(gaps.length, 1);
