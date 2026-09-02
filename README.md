@@ -226,7 +226,7 @@ Status rules:
 - [x] Inventory capital, inbound capital, unfulfillable capital and slow-stock review from explicit Product Master cost joins and dated Ads unit evidence. “Slow-moving” means 90+ observed-velocity days of cover; aging/stranded status remains unavailable without an authoritative aging report.
 - [x] Evidence-led inventory review priority that ranks critical cover, low cover, damaged inventory and missing sales evidence without creating a purchase order or reorder quantity.
 - [ ] Purchase-order planning/export without implying submission to Amazon or suppliers.
-- [ ] Refund/reimbursement opportunity workspace based on imported inventory and transaction reports.
+- [x] Refund cost-exposure review based on imported Unified refund rows, explicit Product Master joins and imported unit cost. It is a manual follow-up queue, not an Amazon reimbursement eligibility or amount decision.
 
 ### P2 — advanced automation and assistance
 
