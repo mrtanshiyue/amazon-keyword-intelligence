@@ -16,12 +16,50 @@
     'competitor', 'competitor-ads', 'competitor-creative', 'reviews', 'reverse-asin', 'listing', 'product-master', 'keyword-assets', 'action-outcomes'
   ]);
   const DATASET_KIND_SET = new Set(DATASET_KINDS);
+  const APPEND_MERGE_KINDS = new Set(['ranks', 'competitor']);
 
   const text = (value, fallback = '') => String(value ?? fallback).trim();
   const clone = (value) => JSON.parse(JSON.stringify(value));
   const isRecord = (value) => Boolean(value) && typeof value === 'object' && !Array.isArray(value);
   const validDate = (value) => /^\d{4}-\d{2}-\d{2}$/.test(text(value));
   const storeKey = (storeId, kind) => `${text(storeId, 'store-a')}::${text(kind).toLowerCase()}`;
+  const normalizedText = (value) => text(value).toLowerCase().replace(/\s+/g, ' ');
+
+  function stableRowKey(kind, row) {
+    if (!isRecord(row)) return '';
+    if (kind === 'ranks') {
+      const date = text(row.date);
+      const asin = text(row.asin).toUpperCase();
+      const keyword = normalizedText(row.keyword);
+      return date && asin && keyword ? `${date}|${asin}|${keyword}` : '';
+    }
+    if (kind === 'competitor') {
+      const date = text(row.date);
+      const asin = text(row.asin).toUpperCase();
+      return date && asin ? `${date}|${asin}` : '';
+    }
+    return '';
+  }
+
+  function mergeAppendRows(kind, rows) {
+    if (!APPEND_MERGE_KINDS.has(kind)) return rows;
+    const merged = [];
+    const positions = new Map();
+    for (const row of rows) {
+      const key = stableRowKey(kind, row);
+      if (!key) {
+        merged.push(row);
+        continue;
+      }
+      if (positions.has(key)) {
+        merged[positions.get(key)] = row;
+        continue;
+      }
+      positions.set(key, merged.length);
+      merged.push(row);
+    }
+    return merged;
+  }
 
   function coverage(rows) {
     const dates = rows.map((row) => text(row?.date)).filter(validDate).sort();
@@ -42,9 +80,10 @@
     if (!isRecord(input)) throw new Error('Dataset record must be an object.');
     const kind = text(input.kind || input.datasetKind || input.key).toLowerCase();
     if (!DATASET_KIND_SET.has(kind)) throw new Error(`Unsupported dataset kind: ${kind || 'unknown'}.`);
-    const rows = Array.isArray(input.rows) ? input.rows : [];
-    if (rows.length > MAX_DATASET_ROWS) throw new Error(`Dataset ${kind} exceeds the browser safety limit.`);
-    if (!rows.every(isRecord)) throw new Error(`Dataset ${kind} contains a non-object row.`);
+    const inputRows = Array.isArray(input.rows) ? input.rows : [];
+    if (inputRows.length > MAX_DATASET_ROWS) throw new Error(`Dataset ${kind} exceeds the browser safety limit.`);
+    if (!inputRows.every(isRecord)) throw new Error(`Dataset ${kind} contains a non-object row.`);
+    const rows = mergeAppendRows(kind, inputRows);
     const storeId = text(input.storeId, 'store-a');
     const importedAt = text(input.importedAt) || new Date().toISOString();
     const source = text(input.source, 'Browser-local import').slice(0, 500);
@@ -97,6 +136,9 @@
 
   async function save(input) {
     const record = normalizeRecord(input);
+    if (Array.isArray(input?.rows) && APPEND_MERGE_KINDS.has(record.kind) && input.rows.length !== record.rows.length) {
+      input.rows.splice(0, input.rows.length, ...record.rows);
+    }
     await transaction('readwrite', (store) => store.put(record));
     return clone(record);
   }
@@ -152,5 +194,5 @@
     return normalized.map(clone);
   }
 
-  return { DB_NAME, DB_VERSION, STORE_NAME, SCHEMA_VERSION, MAX_DATASET_ROWS, DATASET_KINDS, storeKey, coverage, quickChecksum, normalizeRecord, save, get, list, remove, replaceAll };
+  return { DB_NAME, DB_VERSION, STORE_NAME, SCHEMA_VERSION, MAX_DATASET_ROWS, DATASET_KINDS, APPEND_MERGE_KINDS, storeKey, stableRowKey, mergeAppendRows, coverage, quickChecksum, normalizeRecord, save, get, list, remove, replaceAll };
 });
