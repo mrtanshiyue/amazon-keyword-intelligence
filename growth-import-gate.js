@@ -16,7 +16,7 @@ function summaryText(report){
   if(!report)return'';
   return `${report.acceptedCount} accepted · ${report.rejectedCount} rejected · ${report.skippedCount} skipped`;
 }
-function escapeHtml(value){return String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[ch]));}
+function escapeHtml(value){return String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));}
 function downloadRejected(report){
   if(!root?.document||!report?.rejectedCsv)return false;
   const blob=new Blob(['\uFEFF',report.rejectedCsv],{type:'text/csv;charset=utf-8'});
