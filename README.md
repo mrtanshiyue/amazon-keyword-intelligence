@@ -76,6 +76,7 @@ KeywordOS 的差异化不是复制 Helium 10 或卖家精灵的外部数据库�
 | [data-provenance-guard.js](./data-provenance-guard.js) | Store 01 Ads 来源判定与 seed 审批 fail-closed | 🟡 Ads 子路径已覆盖，其他来源/派生指标仍待统一 |
 | [growth-import-validation.js](./growth-import-validation.js)、[growth-import-gate.js](./growth-import-gate.js) | 8 类 Growth CSV 严格校验、partial handoff 与拒绝行下载 | ✅ 用户 Growth 文件输入边界 fail-closed |
 | [growth-consistency-actions.js](./growth-consistency-actions.js) | Inventory observed-day velocity 与 Listing field profile 的运行时一致性边界 | ✅ 复用现有 Growth 计算器，统一用户可见口径 |
+| [scripts/check-dist-assets.mjs](./scripts/check-dist-assets.mjs)、[.github/workflows/ci.yml](./.github/workflows/ci.yml) | source → dist 静态资产闭包、字节一致性与提交后重建校验 | ✅ 当前 50 个发布文件受 CI parity gate 约束 |
 | [navigation-taxonomy.js](./navigation-taxonomy.js) | Growth 页面套件分组 | 🟡 与其他页面清单重复维护 |
 | [productivity-actions.js](./productivity-actions.js) | 套件首页、搜索、侧栏折叠与历史 | 🟡 套件归属集合不完整 |
 | [workflow-canonicalization.js](./workflow-canonicalization.js) | Tracker / Listing 旧路由兼容 | 🟡 路由已兼容，可见入口仍有重复 |
@@ -157,6 +158,7 @@ KeywordOS 的差异化不是复制 Helium 10 或卖家精灵的外部数据库�
 - 🟡 Access JWT、Store membership 查询和 D1/R2 持久化代码已经存在，但 membership 未初始化，产品写入路由未接线。
 - 🟡 Amazon Connections、Users & Permissions、Sync Center 中没有可用的 Amazon 连接流程；相关 UI 必须继续明确显示 disabled / unavailable。
 - ✅ 服务端数据校验、R2 create-only、SHA-256 校验和 D1 current pointer 基础已经实现；这表示代码基础存在，不表示用户数据已保存到云端。
+- ✅ 当前 tracked `dist/` 已由源码重新构建；CI 同时验证静态入口闭包、source/dist byte identity 与 clean rebuild，提交中的发布目录不再允许静默漂移。
 
 ## 本次审计确认的优先问题
 
@@ -165,7 +167,6 @@ KeywordOS 的差异化不是复制 Helium 10 或卖家精灵的外部数据库�
 | 优先级 | 问题 | 影响 | 完成标准 |
 |---|---|---|---|
 | P0 | 种子数据与真实导入标识混淆 | 用户可能基于演示数据批准动作 | seed / import / calculated / estimated / missing 全局一致；seed 默认不可批准 |
-| P0 | dist 与源码漂移 | 发布物可能缺少竞品、Agent、evidence 和 suite 模块 | source/dist 资产清单一致，CI 对源入口和产物做闭包校验 |
 | P0 | Keyword Research 的批量标签、保存筛选和 Common Words 语义不完整 | UI 承诺大于功能 | 完成真实工作流，或在完成前准确改名/隐藏 |
 | P1 | 页面清单分散，套件 page set 漏项 | 顶部套件高亮、侧栏和 command palette 不一致 | 单一 page registry 驱动 route、suite、标题、侧栏、搜索和 i18n key |
 | P1 | 旧/新入口并存及中英混杂 | 找同一功能要猜路由，语言切换不可信 | 只显示 canonical route；全页面、空态、modal 和 aria 文案审计通过 |
@@ -290,7 +291,8 @@ UI 统一规则：
   - 2026-09-02：`data-recency-actions.js` 直接读取现有 `KeywordOSUIBridge` 的 Ads / Finance 活动行与 Dataset Registry 状态；Registry coverage 只有在 validation、rowCount 与活动数据最新日期一致时才采用，过期 Registry 元数据不会覆盖当前数据。Data Health notice 与 Sync Center tooltip 共用同一 recency model，不再读取 `.schema-list`、coverage 标签或 coverage cell 文本。Ads / Finance 状态模型接线与反 DOM 回归测试已覆盖。CI 为 **276 passed / 0 failed**，`npm run build` 通过。
 - [x] 统一库存 observed-day velocity 和 Listing field profile，消除双口径。
   - 2026-09-02：`growth-consistency-actions.js` 复用既有 `productSalesVelocity()`、`listingCoverage()`、`listingEvidenceTerms()` 与 UTF-8 byte 计算器，把 Inventory Risk / Anomaly Center 的可见日销量、days cover 与风险状态统一为实际 observed dated Ads days；无日期销量证据保持 unavailable。Listing Backend Bytes KPI、field validation 与 placement suggestion 统一读取当前 listing draft 的 `titleLimit` / `searchTermsLimit` profile，非法 profile fail-closed，不再由 placement 路径硬编码 250。CI 为 **282 passed / 0 failed**，`npm run build` 通过。
-- [ ] 建立 source → dist 资产一致性检查，重新构建并验证当前发布产物。
+- [x] 建立 source → dist 资产一致性检查，重新构建并验证当前发布产物。
+  - 2026-09-02：`scripts/check-dist-assets.mjs` 以源码 `index.html` 为入口推导静态发布闭包，拒绝缺失/多余文件、越界路径和 source/dist 字节差异；当前 `npm run build` 生成 **50 个发布文件（40 个 JS、9 个 CSS、1 个 HTML）**。CI 在 clean build 后继续要求 `git status --porcelain --untracked-files=all -- dist` 为空，阻止未提交、陈旧或额外 dist 进入 main；本次已重建并同步整个 `dist/`。CI 为 **282 passed / 0 failed**，build 与 committed-dist parity gate 均通过。该结论只覆盖仓库发布产物，不等同于声明 Cloudflare 生产部署已经更新。
 - [ ] 建立中央 page registry；统一 route、suite、侧栏、breadcrumb、command palette、标题与 i18n key。
 - [ ] 去除重复 Tracker/Listing 入口，修正套件 active 状态、Cerebro 残留、中文混杂和 Advertising 语义碰撞。
 - [ ] 把 AI Bids 改为准确名称；所有按钮必须有真实 handler，否则隐藏或 disabled 并说明原因。
@@ -392,7 +394,7 @@ P3 验收：每个分数和建议均可展开查看输入、公式和限制；�
 
     npm run db:migrate
 
-正常发布路径为 GitHub main → Cloudflare Workers Build → Wrangler deploy。在当前 dist 漂移修复前，不应根据源码测试通过就宣称生产静态资源已经同步。
+正常发布路径为 GitHub main → Cloudflare Workers Build → Wrangler deploy。当前仓库提交已通过 source/dist parity；是否已部署到 Cloudflare 仍应以实际部署状态为准，不能仅凭源码/CI 推断生产已更新。
 
 ## 永久边界与相关文档
 
