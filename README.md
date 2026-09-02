@@ -101,7 +101,7 @@ It emits PASS/FAIL only. It must not be silently expanded into Access identity/s
 - Local `Staged` / `Approved` states never mean executed on Amazon.
 - Listing drafts are preparation-only and never mean published to Amazon.
 
-Completed product workflows include Dashboard/Analytics, Ad Manager, Suggestions, supported local Rules, Action Center/Change Log, Keyword Research, Keyword Tracker, Keyword/Negative libraries, Conflict Guard, Protected Keywords, Unified Transaction analytics, browser-local Ads/Unified imports, Local Data Operations, Store management, responsive/mobile hardening, keyboard accessibility, URL page history, suite workspace homes, suite-aligned Growth navigation taxonomy, first-class Listing preparation, CSV-first Search Query Funnel, Product 360, Action Outcomes, Rank & Index Tracker, Listing Optimizer 2.0, Inventory Risk, deterministic Anomaly Center, imported competitor snapshot trends/seasonality evidence, storefront/new-listing snapshot comparisons, imported competitor Ads Insights, review marketplace/language normalization, imported market structure/opportunity screening, and local purchase-order planning CSV export.
+Completed product workflows include Dashboard/Analytics, Ad Manager, Suggestions, supported local Rules, Action Center/Change Log, Keyword Research, Keyword Tracker, Keyword/Negative libraries, Conflict Guard, Protected Keywords, Unified Transaction analytics, browser-local Ads/Unified imports, Local Data Operations, Store management, responsive/mobile hardening, keyboard accessibility, URL page history, suite workspace homes, suite-aligned Growth navigation taxonomy, first-class Listing preparation, CSV-first Search Query Funnel, Product 360, Action Outcomes, Rank & Index Tracker, Listing Optimizer 2.0, Inventory Risk, deterministic Anomaly Center, imported competitor snapshot trends/seasonality evidence, storefront/new-listing snapshot comparisons, imported competitor Ads Insights, review marketplace/language normalization, explicit review VOC labels, imported market structure/opportunity screening, and local purchase-order planning CSV export.
 
 ## Product roadmap
 
@@ -188,7 +188,7 @@ Status rules:
 #### Review and voice-of-customer intelligence
 
 - [x] Review CSV import with ASIN, variation, rating, date, title and body validation plus optional explicit marketplace/language labels.
-- [ ] Positive/negative themes, complaints, purchasing motivations, use cases and requested features.
+- [x] Explicit imported positive/negative themes, complaints, purchase motivations, use cases and requested features are summarized from optional review CSV fields with evidence-row references. Multiple labels may use `|`; stored label strings and review text remain unchanged, and KeywordOS never derives these labels from star rating, title, body, marketplace or language.
 - [x] Literal two-word frequency review by explicit 1–2-star versus 4–5-star imported samples; this is not inferred sentiment, themes or intent.
 - [x] Variant-level imported rating and star-band comparison, with raw review text retained.
 - [x] Own-versus-competitor imported review sample comparison when Product Master identifies the owned ASINs.
