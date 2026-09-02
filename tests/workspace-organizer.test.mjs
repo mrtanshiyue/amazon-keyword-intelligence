@@ -59,9 +59,18 @@ test('context capture never invents a filter when selector value is empty',()=>{
   assert.deepEqual(org.contextFromValues('inventory-risk','Inventory','SKU',''),{page:'inventory-risk',label:'Inventory',filter:null});
 });
 
-test('workspace organizer state is accepted by the existing local backup contract',()=>{
+test('workspace organizer state is accepted by the current local backup contract',()=>{
   const raw=JSON.stringify(org.emptyState());
-  const result=ops.validateBackupObject({format:ops.BACKUP_FORMAT,version:ops.BACKUP_VERSION,createdAt:'2026-09-02T00:00:00Z',localStorage:{[org.STORAGE_KEY]:raw},datasets:[]});
+  const localStorage={[org.STORAGE_KEY]:raw};
+  const datasets=[];
+  const result=ops.validateBackupObject({
+    format:ops.BACKUP_FORMAT,
+    version:ops.BACKUP_VERSION,
+    createdAt:'2026-09-02T00:00:00Z',
+    manifest:ops.backupManifest(localStorage,datasets),
+    localStorage,
+    datasets
+  });
   assert.equal(result.ok,true);
   assert.equal(result.backup.localStorage[org.STORAGE_KEY],raw);
 });
