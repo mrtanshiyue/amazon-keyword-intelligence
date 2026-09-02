@@ -13,6 +13,14 @@ test('rule-based bid labels are accurate in all language modes', () => {
   assert.equal(guard.bidSettingsLabel('en'), 'Bid Recommendation Settings');
 });
 
+test('Keyword Research labels match the current one-phrase and word-frequency behavior', () => {
+  assert.equal(guard.researchTruthLabels('en').phraseTab, 'Phrase Filter');
+  assert.equal(guard.researchTruthLabels('en').phrasePlaceholder, 'Enter one keyword phrase');
+  assert.equal(guard.researchTruthLabels('en').wordFrequency, 'Word Frequency');
+  assert.equal(guard.researchTruthLabels('zh').phraseTab, '短语筛选');
+  assert.equal(guard.researchTruthLabels('bi').wordFrequency, '词频 / Word Frequency');
+});
+
 test('button capability fails closed when no action is connected', () => {
   assert.deepEqual(guard.capabilityDecision({}), { enabled: false, reason: guard.UNAVAILABLE_REASON, source: 'unbound' });
   assert.deepEqual(guard.capabilityDecision({ direct: true }), { enabled: true, reason: '', source: 'direct' });
@@ -40,6 +48,15 @@ test('known document-delegated controls remain recognized without treating every
 test('page detection uses the canonical registry route instead of translated visible titles', () => {
   const registry = { pageFromHash(hash) { return hash === '#page=cerebro' ? 'cerebro' : ''; } };
   assert.equal(guard.currentPageId({ hash: '#page=cerebro' }, registry), 'cerebro');
+});
+
+test('Keyword Research truth pass does not advertise unimplemented batch, Common Words, or saved-preset workflows', async () => {
+  const source = await readFile(new URL('../ui-capability-guard.js', import.meta.url), 'utf8');
+  assert.match(source, /\[data-research-mode="analyze"\]/);
+  assert.match(source, /Single phrase only:/);
+  assert.match(source, /no Common Words exclusion manager is implemented yet/);
+  assert.match(source, /savePreset\.hidden=true/);
+  assert.match(source, /Saved filter presets are not implemented/);
 });
 
 test('capability guard loads before application renderers and is included in the publish build', async () => {
