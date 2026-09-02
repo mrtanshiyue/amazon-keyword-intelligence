@@ -3,7 +3,6 @@
 
   const ADS_KIND = 'ads';
   const STORE_ID = 'store-a';
-  const ACTIONS_KEY = 'keywordos_v9_actions';
   const APPROVAL_SELECTOR = '[data-action-approve],#approve-all,#export-approved';
 
   function classifyAdsSource({ record = null, seedRows = [], validation = null } = {}) {
