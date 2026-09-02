@@ -85,6 +85,10 @@ test('recent suite, import, evidence and organizer UI strings have Chinese trans
     ['Export PO CSV', '导出采购 CSV'],
     ['Expand sidebar', '展开侧栏'],
     ['Collapse sidebar', '收起侧栏'],
+    ['Close dialog', '关闭对话框'],
+    ['Close drawer', '关闭抽屉'],
+    ['Data table', '数据表'],
+    ['Keyword set', '关键词集合'],
   ];
   for (const [en, zh] of pairs) assert.equal(api.zhFor(en), zh, en);
 });
@@ -94,6 +98,11 @@ test('dynamic row and source-count patterns translate without inventing metrics'
   assert.equal(api.zhFor('1,234 rows'), '1,234 行');
   assert.equal(api.zhFor('3/5 sources loaded'), '已加载 3/5 个数据源');
   assert.equal(api.zhFor('Coverage 2026-06-01 → 2026-06-30'), '覆盖范围 2026-06-01 → 2026-06-30');
+  assert.equal(api.zhFor('ASIN filter'), 'ASIN筛选');
+  assert.equal(api.zhFor('Marketplace filter'), '站点筛选');
+  assert.equal(api.zhFor('Keyword set filter'), '关键词集合筛选');
+  assert.equal(api.zhFor('All ASIN values · 4'), '全部 ASIN · 4 个值');
+  assert.equal(api.zhFor('No imported Marketplace values'), '没有已导入的站点值');
 });
 
 test('table translation allowlist covers system status columns but protects evidence columns', () => {

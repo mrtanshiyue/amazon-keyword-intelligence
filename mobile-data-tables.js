@@ -29,9 +29,8 @@ function scrollDeltaForKey(key,step=160){
   if(key==='ArrowRight')return step;
   return 0;
 }
-function tableLabel(headers=[],fallback='Data table'){
-  const first=headers.map(clean).find(Boolean);
-  return first?`${first} data table`:fallback;
+function tableLabel(_headers=[],fallback='Data table'){
+  return fallback;
 }
 function headerCells(table){return [...table.querySelectorAll('thead th')];}
 function bodyRows(table){return [...table.querySelectorAll('tbody tr')];}

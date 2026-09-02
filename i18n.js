@@ -13,7 +13,7 @@ const ZH={
   'Settings':'设置','Help Center':'帮助中心','US · Local workspace':'美国站 · 本地工作区','Tools':'工具',
   'Products':'产品','Keywords':'关键词','Listing':'Listing','Marketing':'营销','Operations':'运营','Analytics':'数据分析',
   'Profile':'店铺账户','Date range':'日期范围','Last 7 days':'最近 7 天','Last 14 days':'最近 14 天','Last 30 days':'最近 30 天','Last 60 days':'最近 60 天','All available data':'全部数据','＋ Import Data':'＋ 导入数据','Import Data':'导入数据',
-  'Search':'搜索','Notifications':'通知','Help':'帮助','Collapse':'收起侧栏','Expand sidebar':'展开侧栏','Collapse sidebar':'收起侧栏',
+  'Search':'搜索','Notifications':'通知','Help':'帮助','Collapse':'收起侧栏','Expand sidebar':'展开侧栏','Collapse sidebar':'收起侧栏','Close dialog':'关闭对话框','Close drawer':'关闭抽屉','Data table':'数据表','Keyword set':'关键词集合',
   // Navigation
   'OVERVIEW':'概览','Account Overview':'账户概览','Dashboard':'广告仪表盘','ADVERTISING':'广告管理','Suggestions':'优化建议','Ad Manager':'广告管理器','Rules & Automation':'规则与自动化','Dayparting Schedules':'分时投放计划','Action Center':'操作中心','Change Log':'变更记录',
   'FINANCE':'财务','Unified Report':'联合报告分析','KEYWORD RESEARCH':'关键词研究','Cerebro':'关键词研究','Keyword Tracker':'关键词追踪','Keyword Library':'关键词库','Negative Library':'否定词库','Conflict Guard':'冲突保护','DATA & SETTINGS':'数据与设置','Workspace Settings':'工作区设置','DATA':'数据','SETTINGS':'设置',
@@ -87,6 +87,14 @@ const ZH={
 function preserveWhitespace(text, replacement){
   const m=text.match(/^(\s*)([\s\S]*?)(\s*)$/); return (m?.[1]||'')+replacement+(m?.[3]||'');
 }
+function systemTermZh(term){
+  const clean=String(term||'').trim();
+  if(!clean)return null;
+  if(ZH[clean])return ZH[clean];
+  if(/^(ASIN|SKU)$/i.test(clean))return clean.toUpperCase();
+  if(/[\u3400-\u9fff]/.test(clean))return clean;
+  return null;
+}
 function translatePattern(en){
   let m;
   if((m=en.match(/^(\d[\d,]*) clicks · (\d[\d,]*) orders$/))) return `${m[1]} 次点击 · ${m[2]} 个订单`;
@@ -104,6 +112,9 @@ function translatePattern(en){
   if((m=en.match(/^(\d[\d,]*) rows$/))) return `${m[1]} 行`;
   if((m=en.match(/^(\d+)\/(\d+) sources loaded$/))) return `已加载 ${m[1]}/${m[2]} 个数据源`;
   if((m=en.match(/^Coverage (\d{4}-\d{2}-\d{2}) → (\d{4}-\d{2}-\d{2})$/))) return `覆盖范围 ${m[1]} → ${m[2]}`;
+  if((m=en.match(/^(.+) filter$/))){const label=systemTermZh(m[1]);if(label)return `${label}筛选`;}
+  if((m=en.match(/^All (.+) values · (\d+)$/))){const label=systemTermZh(m[1]);if(label)return `全部 ${label} · ${m[2]} 个值`;}
+  if((m=en.match(/^No imported (.+) values$/))){const label=systemTermZh(m[1]);if(label)return `没有已导入的${label}值`;}
   return null;
 }
 function zhFor(en){const checked=en.startsWith('✓ ')?ZH[en.slice(2)]:null;return ZH[en]||(checked?`✓ ${checked}`:null)||translatePattern(en)||null;}

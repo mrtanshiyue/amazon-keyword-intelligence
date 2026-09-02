@@ -26,8 +26,8 @@ test('arrow keys map to bounded horizontal scroll deltas only',()=>{
   assert.equal(mobile.scrollDeltaForKey('Enter'),0);
 });
 
-test('table labels use the first explicit header and fail closed to a generic label',()=>{
-  assert.equal(mobile.tableLabel(['','ASIN','Price']),'ASIN data table');
+test('table regions use a language-stable generic accessible label',()=>{
+  assert.equal(mobile.tableLabel(['','ASIN','Price']),'Data table');
   assert.equal(mobile.tableLabel([]),'Data table');
 });
 
