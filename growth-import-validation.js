@@ -34,7 +34,7 @@ const SCHEMAS={
     [['Sponsored Rank','Ad Rank'],'nonnegative']
   ]},
   'product-master':{required:[['Product ID','Product Code','Product']],requiredAny:[[['SKU','Seller SKU'],['ASIN','Child ASIN']]]},
-  competitor:{required:[['Date','Snapshot Date'],['ASIN','Child ASIN']],requiredDates:[['Date','Snapshot Date']],numbers:[
+  competitor:{required:[['ASIN','Child ASIN']],dates:[['Date','Snapshot Date']],numbers:[
     [['Price','Current Price'],'nonnegative'],
     [['BSR','Best Sellers Rank'],'nonnegative'],
     [['Rating','Star Rating'],'rating'],
