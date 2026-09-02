@@ -190,6 +190,7 @@ Status rules:
 - [ ] Trend and seasonality charts with explicit snapshot dates.
 - [x] Alerts for imported price, BSR, rating, review-count, variant and availability changes between consecutive dated snapshots of the same ASIN; no alert is fabricated without a baseline.
 - [ ] Competitor storefront and new-listing snapshot imports with 7/15/30/60-day change summaries.
+- [x] Existing imported competitor snapshots provide conservative 7/15/30/60-day lookbacks only when a dated historical baseline is available; storefront and new-listing-specific adapters remain pending.
 - [ ] Imported competitor advertising/Ads Insights workspace for observed keywords, placements and inferred structures.
 - [ ] Market concentration, price-band, review-barrier and opportunity scoring based only on imported/licensed evidence.
 

@@ -153,6 +153,16 @@ test('reports changes only when an ASIN has consecutive dated snapshots', () => 
   assert.match(changes[0].changes.join(' '), /Reviews: 10 → 12/);
 });
 
+test('uses only imported historical baselines for competitor lookback windows', () => {
+  const periods = growth.competitorPeriodChanges([
+    { asin: 'B1', date: '2026-07-01', price: 25, bsr: 200, reviewCount: 10 },
+    { asin: 'B1', date: '2026-08-01', price: 20, bsr: 150, reviewCount: 12 }
+  ], [30]);
+  assert.equal(periods.length, 1);
+  assert.equal(periods[0].before.date, '2026-07-01');
+  assert.equal(periods[0].priceDelta, -5);
+});
+
 test('product master resolves only explicit identifiers', () => {
   const master = growth.masterIndex([{ productId: 'P1', product: 'Example', sku: 'SKU-1', asin: 'B000000001' }]);
   assert.equal(growth.resolveMaster(master, { sku: 'SKU-1' }).productId, 'P1');
