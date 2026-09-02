@@ -50,6 +50,12 @@ test('inventory risk only derives cover when sales evidence exists', () => {
   assert.equal(rows.find((row) => row.sku === 'B').risk, 'No sales evidence');
 });
 
+test('inventory review priority remains explicit when sales evidence is unavailable', () => {
+  const rows = growth.inventoryPriority([{ sku: 'A', risk: 'No sales evidence', daysCover: null }, { sku: 'B', risk: 'Critical', daysCover: 3 }]);
+  assert.equal(rows[0].sku, 'B');
+  assert.match(rows[1].priority, /Import sales evidence/);
+});
+
 test('counts UTF-8 backend search-term bytes', () => {
   assert.equal(growth.utf8Bytes('abc'), 3);
   assert.equal(growth.utf8Bytes('中文'), 6);

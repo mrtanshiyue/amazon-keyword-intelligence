@@ -224,6 +224,7 @@ Status rules:
 - [ ] Supplier lead time, safety stock, inbound/reserved/unfulfillable inventory and stockout forecast.
 - [ ] Recommended reorder date and quantity with formula disclosure.
 - [ ] Inventory capital, overstock, aged/slow inventory and stranded/damaged inventory risks.
+- [x] Evidence-led inventory review priority that ranks critical cover, low cover, damaged inventory and missing sales evidence without creating a purchase order or reorder quantity.
 - [ ] Purchase-order planning/export without implying submission to Amazon or suppliers.
 - [ ] Refund/reimbursement opportunity workspace based on imported inventory and transaction reports.
 
