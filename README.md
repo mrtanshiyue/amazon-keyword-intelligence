@@ -223,7 +223,7 @@ Status rules:
 - [x] 7/30/60/90-day sales velocity from dated imported Ads units/orders, with observed-day coverage shown so incomplete reports are not treated as full windows. Transaction/order-led velocity remains a future enhancement when an authoritative order feed is connected.
 - [ ] Supplier lead time, safety stock, inbound/reserved/unfulfillable inventory and stockout forecast.
 - [x] Reorder review date and coverage-gap calculator with formula disclosure. It requires explicit supplier lead time and safety-stock inputs plus a literal Inventory-to-dated-Ads product-label match; it creates no purchase order and stays unavailable when evidence is missing.
-- [ ] Inventory capital, overstock, aged/slow inventory and stranded/damaged inventory risks.
+- [x] Inventory capital, inbound capital, unfulfillable capital and slow-stock review from explicit Product Master cost joins and dated Ads unit evidence. “Slow-moving” means 90+ observed-velocity days of cover; aging/stranded status remains unavailable without an authoritative aging report.
 - [x] Evidence-led inventory review priority that ranks critical cover, low cover, damaged inventory and missing sales evidence without creating a purchase order or reorder quantity.
 - [ ] Purchase-order planning/export without implying submission to Amazon or suppliers.
 - [ ] Refund/reimbursement opportunity workspace based on imported inventory and transaction reports.

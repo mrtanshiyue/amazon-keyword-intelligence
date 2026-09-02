@@ -87,6 +87,17 @@ test('replenishment plan requires actual sales and lead-time inputs', () => {
   assert.equal(plan.daysUntilReorder, 0);
 });
 
+test('inventory capital risk keeps cost and dated sales evidence explicit', () => {
+  const rows = growth.inventoryCapitalRows(
+    [{ sku: 'A', product: 'Blue', available: 20, inbound: 5, unfulfillable: 2 }, { sku: 'B', product: 'No cost', available: 10 }],
+    [{ product: 'Blue', unitCost: 3 }],
+    [{ product: 'Blue', unitsPerDay: 0.2 }]
+  );
+  assert.equal(rows.find(row => row.sku === 'A').availableValue, 60);
+  assert.equal(rows.find(row => row.sku === 'A').risk, 'Unfulfillable inventory');
+  assert.equal(rows.find(row => row.sku === 'B').risk, 'Cost unavailable');
+});
+
 test('counts UTF-8 backend search-term bytes', () => {
   assert.equal(growth.utf8Bytes('abc'), 3);
   assert.equal(growth.utf8Bytes('中文'), 6);
