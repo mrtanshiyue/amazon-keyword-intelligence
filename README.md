@@ -76,7 +76,7 @@ KeywordOS 的差异化不是复制 Helium 10 或卖家精灵的外部数据库�
 | [data-provenance-guard.js](./data-provenance-guard.js) | Ads / Finance / Growth 数据集与 metric provenance、Action lineage、seed/stale approval fail-closed | ✅ USER IMPORT / BUNDLED SEED / CALCULATED / THIRD-PARTY ESTIMATE / MISSING 统一契约 |
 | [growth-import-validation.js](./growth-import-validation.js)、[growth-import-gate.js](./growth-import-gate.js) | 8 类 Growth CSV 严格校验、partial handoff 与拒绝行下载 | ✅ 用户 Growth 文件输入边界 fail-closed |
 | [growth-consistency-actions.js](./growth-consistency-actions.js) | Inventory observed-day velocity 与 Listing field profile 的运行时一致性边界 | ✅ 复用现有 Growth 计算器，统一用户可见口径 |
-| [ui-capability-guard.js](./ui-capability-guard.js) | 按钮能力契约、Rule-based Bids 可见命名与 Keyword Research 稳定交互接线 | ✅ 未接线按钮 fail-closed；disabled 控件有原因 |
+| [ui-capability-guard.js](./ui-capability-guard.js) | 按钮能力契约、Rule-based Bids 命名、Keyword Research 可见能力与实际行为一致性 | ✅ 未接线按钮 fail-closed；Keyword Research 未实现能力准确改名/隐藏 |
 | [scripts/check-dist-assets.mjs](./scripts/check-dist-assets.mjs)、[.github/workflows/ci.yml](./.github/workflows/ci.yml) | source → dist 静态资产闭包、字节一致性与提交后重建校验 | ✅ 当前 51 个发布文件受 CI parity gate 约束 |
 | [navigation-taxonomy.js](./navigation-taxonomy.js) | 中央 Page Registry：canonical page、route alias、suite、sidebar、标题与 page-level i18n key | ✅ Core + Growth 页面身份单一来源，legacy 按钮直接隐藏 |
 | [productivity-actions.js](./productivity-actions.js) | 套件首页、command palette、history、breadcrumb 与 page shell 消费者 | ✅ suite / route / page shell 统一读取 registry |
@@ -116,10 +116,10 @@ KeywordOS 的差异化不是复制 Helium 10 或卖家精灵的外部数据库�
 
 ### Keywords
 
-- 🟡 Keyword Research 已有 Find Suggestions / Analyze Keywords、筛选预设、词频、分布、表格、导出、历史和批量加入词库/追踪/否定词；但目前只筛选 Ads Search Term，Analyze Keywords 仍把输入当一个短语，并不是真正的最多 200 词批量分析。
+- 🟡 Keyword Research 当前仍只分析 Ads Search Term；第二模式已按真实能力从 `Analyze Keywords` 收口为 **Phrase Filter / 短语筛选**，只接受一个关键词短语并对已加载 Ads search-term 证据做 substring 过滤。真正的 ≤200 词批量分析继续留在 P1 Keyword Lab。
 - ✅ 内部 `cerebro` route 为历史兼容继续保留，但 Page Registry、侧栏、command palette、页面标题与 breadcrumb 对外统一显示 Keyword Research；第三方名称只应出现在来源/格式上下文。
-- 🟡 Common Words 目前主要是滚动到词频，不是完整的词根排除管理；删除词恢复、统一列偏好和可靠的保存筛选仍不完整。
-- ✅ Keyword Research 的 Common Words / Learn / Search / Settings 工具按钮改为按 canonical `cerebro` route id 直接接线，不再依赖可见标题是否仍叫 Cerebro；这只修复按钮可用性，不把 Common Words 当前“滚动到词频”的有限语义升级为完整词根管理。
+- ✅ P0 语义收口：原 `Common Words` 入口已准确改名为 **Word Frequency / 词频**，继续只滚动到当前过滤结果的字面词频；无 handler 的 `Save as Filter Preset` 已隐藏。Common Words 排除、删除/恢复、保存筛选和完整列视图仍作为 P1 功能，不再在当前页伪装为已可用。
+- ✅ Keyword Research 的 Word Frequency / Learn / Search / Settings 工具按钮按 canonical `cerebro` route id 直接接线，不依赖可见标题；Phrase Filter、Word Frequency 与隐藏保存预设的状态同样由该 route 的 truth pass 驱动。
 - ✅ Store 级 keyword assets、稳定 ID、标签、intent、保护状态和 Ads/SQP/rank/Listing/action evidence 汇总。
 - ✅ Keyword Library、Negative Library、Conflict Guard、Protected Keywords、Keyword Workflow。
 - 🟡 Rank & Index 支持用户导入的自然位、广告位和收录快照；没有自动日更、实时收录查询、Boost 或 Amazon 前台抓取，因此应称“快照追踪”。
@@ -171,7 +171,6 @@ KeywordOS 的差异化不是复制 Helium 10 或卖家精灵的外部数据库�
 
 | 优先级 | 问题 | 影响 | 完成标准 |
 |---|---|---|---|
-| P0 | Keyword Research 的批量标签、保存筛选和 Common Words 语义不完整 | UI 承诺大于功能 | 完成真实工作流，或在完成前准确改名/隐藏 |
 | P1 | 动态文案与可访问性双语仍需全量审计 | modal、空态或 aria 可能存在局部翻译遗漏 | canonical route/page/suite 已统一；继续覆盖全页面、空态、modal 和 aria 文案 |
 | P1 | 多 ASIN 只有通用导入层 | H10/卖家精灵导出需要人工清洗 | provider CSV profile、列映射预览和未知列保留 |
 
@@ -185,9 +184,9 @@ Helium 10 于 2026-01-06 开始把 Magnet 合并进 Cerebro。当前方向是一
 
 | 官方当前能力 / UI | KeywordOS 应吸收 | 当前差距 |
 |---|---|---|
-| Cerebro 两标签：Find Suggestions 与 Analyze Keywords；后者最多 200 词，可从 My List 进入 | 保留两模式，但共用来源、筛选、摘要和结果表 | 🟡 现有批量模式仍是单短语筛选 |
+| Cerebro 两标签：Find Suggestions 与 Analyze Keywords；后者最多 200 词，可从 My List 进入 | 保留两模式，但共用来源、筛选、摘要和结果表 | 🟡 当前仅有单短语 Phrase Filter；真正批量分析尚未实现 |
 | 可折叠筛选；搜索量、词数、竞争产品、Title Density、自然/广告/推荐排名、include/exclude 等列 | 仅展示导入中实际存在的列；缺失为 — | 🟡 当前主要只有 Ads 指标 |
-| Keyword Distribution、Word Frequency、可拖动/显隐列、删除/恢复、历史、复制和导出 | 做成真实可操作的词根筛选、列视图和回收站 | 🟡 部分 UI 已有，闭环不完整 |
+| Keyword Distribution、Word Frequency、可拖动/显隐列、删除/恢复、历史、复制和导出 | 做成真实可操作的词根筛选、列视图和回收站 | 🟡 当前 Word Frequency 只展示字面词频，闭环仍未实现 |
 | 多 ASIN Relative Rank、竞品平均排名/数量和 advanced rank filters | 用用户导入快照做 own/shared/gap 矩阵与透明筛选 | 🟡 已有集合比较，provider schema 和交互不足 |
 | Tracker 以 ASIN 为主层，展开 Keywords / Competitors / Suggested Keywords；支持备注、标签、热力图 | 将真实 rank CSV 按 ASIN → Keywords 组织；重复导入后才显示趋势/heat map | 🟡 当前更像扁平关键词表 |
 | Listing Builder：Find Keywords → Keyword Bank → 编辑器；研究阶段最多 9 个竞品 ASIN，词根/短语竞品矩阵最多 20 个 | 复用已有 keyword assets 和 Listing Optimizer，建立最短传递链 | 🟡 两边已有数据但交互仍分散 |
@@ -302,6 +301,8 @@ UI 统一规则：
   - 2026-09-02：`navigation-taxonomy.js` 现在直接隐藏 `tracker` / `listing-workspace` legacy 按钮，并在 canonical 排序时显式排除 legacy page；历史 hash 仍由既有 alias 重定向。`listing-workspace-actions.js` 已收缩为兼容纯 helper，不再注入独立 Listing Workspace、拦截 Listing 顶部套件或根据可见文本维护第二套 active 状态。内部 `cerebro` route 保持兼容，但 registry 可见名称统一为 Keyword Research；`product-language.js` 为全部 canonical page 提供 registry-id 驱动的 EN / 中文 / 双语 page/suite shell 文案，并让 tool workspace 使用 Marketing suite id，因此导航不再受财务上下文 `Advertising`→“广告费”影响。CI 为 **294 passed / 0 failed**；`npm run build`、40 JS + 9 CSS 静态闭包、50-file source/dist byte identity 与 committed-dist parity gate 全部通过。该项只宣告已知 route / page / suite / title 漂移闭环；动态 modal、空态和 aria 文案仍保留为更广的 P1 文案审计。
 - [x] 把 AI Bids 改为准确名称；所有按钮必须有真实 handler，否则隐藏或 disabled 并说明原因。
   - 2026-09-02：新增 `ui-capability-guard.js` 并在 `app.js` 等渲染器之前加载。Suggestions 原 `AI Bids` 用户可见 tab 改为 `Rule-based Bids` / `规则化调价建议`，并明确其输入只是已导入表现、配置阈值和固定 bid multiplier；内部 `AI Bids` key 仅保留兼容。guard 通过早期包装 button `addEventListener('click', ...)` 记录真实 direct handler，显式允许现有 document-delegated/navigation contract；任何没有 action contract 却仍 enabled 的按钮会 fail-closed 为 disabled + `aria-disabled` + 原因，已有 disabled 控件缺 title 时也补充原因。Keyword Research 的 Common Words / Learn / Search / Settings 同时改为 canonical route-id 直接接线，消除旧 `pageTitle() === 'Cerebro'` 漂移。CI 为 **300 passed / 0 failed**；`npm run build` 生成 **51 个发布文件（41 个 JS、9 个 CSS、1 个 HTML）**，source/dist byte identity 与 committed-dist parity gate 全部通过。
+- [x] 收紧 Keyword Research 当前能力文案：单短语过滤、Word Frequency 与未实现的保存筛选不得冒充批量分析、Common Words 或保存预设。
+  - 2026-09-03：`ui-capability-guard.js` 在 canonical `cerebro` route 上把现有 `Analyze Keywords` 准确显示为 `Phrase Filter / 短语筛选`，并明确只对已加载 Ads search-term 证据做单短语过滤；原 `Common Words` 改为 `Word Frequency / 词频`，继续执行既有滚动到词频动作；无 handler 的 `Save as Filter Preset` 隐藏。真正的 ≤200 词批量分析、Common Words 排除、删除/恢复与保存筛选仍保留在 P1 Keyword Lab，不在本 P0 提前伪实现。CI 为 **308 passed / 0 failed**；`npm run build`、**51 个发布文件**的 source/dist byte identity 与 committed-dist parity gate 全部通过。
 
 P0 验收：所有可见指标能追到来源；坏行不会变成零；备份往返不丢状态；源码、dist 和已部署入口同版本；中英模式无已知路由/标题漂移。
 
