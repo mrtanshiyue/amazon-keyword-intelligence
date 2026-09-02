@@ -75,6 +75,18 @@ test('competitor listing gaps compare only imported title phrases to the local d
   assert.ok(!gaps[0].phrases.includes('blue shoe rack'));
 });
 
+test('review phrase evidence groups literal phrases by imported star rating', () => {
+  const phrases = growth.reviewPhraseEvidence([{ rating: 1, title: 'Too small', body: 'too small for use' }, { rating: 5, title: 'Very useful', body: 'very useful shelf' }]);
+  assert.equal(phrases.find(item => item.phrase === 'too small').low, 1);
+  assert.equal(phrases.find(item => item.phrase === 'very useful').high, 1);
+});
+
+test('review breakdown compares variants and explicit own-ASIN membership only', () => {
+  const rows = growth.reviewBreakdown([{ asin: 'OWN', variant: 'Blue', rating: 5 }, { asin: 'COMP', variant: 'Blue', rating: 1 }], ['OWN']);
+  assert.equal(rows.find(item => item.key === 'Variant: Blue').average, 3);
+  assert.equal(rows.find(item => item.key === 'Ownership: own ASIN').rows, 1);
+});
+
 test('listing placement suggestions rank only imported evidence and preserve its metrics', () => {
   const evidence = growth.listingEvidenceTerms([{ query: 'shoe rack', purchases: 3, volume: 500 }], [{ searchTerm: 'shoe rack', orders: 4 }, { searchTerm: 'rack organiser', orders: 2 }]);
   const suggestions = growth.listingPlacementSuggestions({ title: '', bullets: '', description: '', searchTerms: '' }, evidence);

@@ -197,8 +197,9 @@ Status rules:
 
 - [x] Review CSV import with ASIN, variation, rating, date, title and body validation.
 - [ ] Positive/negative themes, complaints, purchasing motivations, use cases and requested features.
-- [ ] Variant-level sentiment and issue comparison.
-- [ ] Own-versus-competitor VOC comparison.
+- [x] Literal two-word frequency review by explicit 1–2-star versus 4–5-star imported samples; this is not inferred sentiment, themes or intent.
+- [x] Variant-level imported rating and star-band comparison, with raw review text retained.
+- [x] Own-versus-competitor imported review sample comparison when Product Master identifies the owned ASINs.
 - [ ] Evidence-linked product improvement backlog and Listing claim/selling-point suggestions.
 - [ ] Multi-market/language review normalization while preserving original review text.
 
