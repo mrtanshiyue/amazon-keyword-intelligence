@@ -29,6 +29,15 @@ test('canonical route aliases live in the page registry', () => {
   assert.equal(registry.isLegacy('rank-intelligence'), false);
 });
 
+test('registry exposes only canonical KeywordOS product names to navigation and commands', () => {
+  const research = registry.page('cerebro');
+  assert.equal(research.navLabel, 'Keyword Research');
+  assert.equal(research.title, 'Keyword Research');
+  assert.equal(registry.commandEntries().some(entry => /\bCerebro\b/.test(entry.label)), false);
+  assert.equal(registry.commandEntries().some(entry => entry.page === 'tracker'), false);
+  assert.equal(registry.commandEntries().some(entry => entry.page === 'listing-workspace'), false);
+});
+
 test('every canonical page belongs to at most one suite and one sidebar group', () => {
   const grouped = registry.sidebarGroups().flatMap(group => group.pages.map(page => page.id));
   assert.equal(new Set(grouped).size, grouped.length);
