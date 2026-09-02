@@ -28,6 +28,15 @@ Verification rule for every new completed task:
 - Cloudflare Workers Build must pass for the production rollout.
 - Read the latest commit checks for exact run/build/version IDs rather than treating a historical SHA as a permanent acceptance baseline.
 
+Latest verified snapshot for this 2026-09-02 documentation drift audit:
+
+- `main`: `31ed6843442d18b8c4e959e327d9e1f86ba16ffb`
+- GitHub `check-and-build`: **PASS** — run `33595323081`
+- Cloudflare Workers Build: **PASS** — Build ID `5d2376f8-1669-439d-a11e-dc0e310c8777`, Version ID `070fca2e-52f2-434b-b007-78bfb9d02dfa`
+- GitHub-only `/cloudflare status`: **PASS** — run `33595663524`
+
+This snapshot is informational only. Future work must still read the then-current `main` and its exact checks before treating any historical identifiers as authoritative.
+
 The authoritative continuation instructions are in [`CURRENT_HANDOFF.md`](./CURRENT_HANDOFF.md).
 
 ## Runtime architecture
@@ -287,6 +296,8 @@ Recent merged work:
 - #77 — Listing prefers only validated browser-persisted Ads evidence; otherwise visibly labeled bundled fallback
 - #78 — Listing/sidebar async startup race fix
 - #79 — Products / Keywords / Marketing / Operations / Analytics promoted to stable first-class main-workspace suite homes
+
+The 2026-09-02 drift audit confirmed that the previous documentation checkpoint was no longer a valid product-code baseline: current `main` is 88 commits ahead of `6a453244e4f148d082d169cc7893b56667e53f94`. The roadmap above already reflects the completed post-checkpoint product work. `CURRENT_HANDOFF.md` is synchronized in the same documentation batch so future sessions do not restart from the historical #79 baseline.
 
 ### Current suite navigation
 

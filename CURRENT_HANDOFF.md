@@ -1,6 +1,6 @@
 # KeywordOS — Current Authoritative Handoff
 
-**Updated:** 2026-09-01 (Asia/Singapore)  
+**Updated:** 2026-09-02 (Asia/Singapore)  
 **Repository:** `mrtanshiyue/amazon-keyword-intelligence`
 
 This is the single authoritative continuation checkpoint for Amazon Keyword Intelligence / KeywordOS.
@@ -12,22 +12,25 @@ Do one short read-only drift check first:
 1. Read the repository's current `main` SHA.
 2. Treat current `main` as authoritative.
 3. Read this file plus Issue #17 for continuation rules/state; do not restart from historical V5/V6/V7/V8/V9 handoffs.
-4. If current `main` is newer only because of docs synchronization, keep the verified product baseline below as the last product-code checkpoint.
+4. Read the exact checks attached to current `main`; never reuse an old build/version identifier as if it were permanent.
 
-Verified product baseline immediately before this documentation synchronization:
+Latest verified snapshot at this documentation update:
 
-`22517172eca251703d028d081fb7c9466d9404be` — PR #79
+`31ed6843442d18b8c4e959e327d9e1f86ba16ffb`
 
-Acceptance on that exact product baseline:
+Acceptance on that exact `main`:
 
 - GitHub `check-and-build`: **PASS**
+  - run: `33595323081`
 - Cloudflare Production Workers Build: **PASS**
-  - Build ID: `c78fafaa-84d1-4a00-b917-0228783ac247`
-  - Version ID: `4a3b6f0e-4782-4336-b2ea-9ec71c7ea0e7`
+  - Build ID: `5d2376f8-1669-439d-a11e-dc0e310c8777`
+  - Version ID: `070fca2e-52f2-434b-b007-78bfb9d02dfa`
 - GitHub-only `/cloudflare status` acceptance on Issue #63: **PASS**
-  - latest accepted run: `33454956950`
+  - run: `33595663524`
 
-Do not pin future work to this SHA when current `main` is newer. Always read current `main` first.
+This snapshot is informational only. Do not pin future work to it when current `main` is newer.
+
+The previous documentation checkpoint (`6a453244e4f148d082d169cc7893b56667e53f94`) is no longer a valid product-code baseline; current `main` was confirmed 88 commits ahead during the 2026-09-02 drift audit. The README roadmap is the authoritative source for which product capabilities are currently `[x]` versus `[ ]`.
 
 ## 2. Permanent owner boundaries
 
@@ -92,6 +95,13 @@ Do not restart or redesign completed foundations without new evidence:
 - Worker / D1 / R2 resource creation
 - persistence architecture
 - authorization architecture
+- Dataset Registry / provenance
+- Product Master mapping and unmapped queue
+- shared keyword assets and workflow bridges
+- competitor snapshot / Ads evidence imports
+- review/VOC imported-evidence tooling
+- inventory/replenishment planning already marked `[x]` in README
+- current i18n/runtime accessibility label hardening already marked `[x]` in README
 
 Do not introduce React/Vue, a second persistence system, a second authorization system, a new routing framework, or speculative service/repository/factory layers merely to continue coding.
 
@@ -156,7 +166,7 @@ No owner/member bootstrap has occurred. Keep `access_users` and `store_membershi
 
 ## 6. Product integrity and workspace UX completed while auth is frozen
 
-Merged hardening / UX work:
+Merged hardening / UX work through the historical #79 phase included:
 
 - #56 — shell productivity controls: sidebar collapse, global page search, page help, notification truth
 - #57 — minimal repository CI
@@ -179,13 +189,15 @@ Merged hardening / UX work:
 - #78 — Listing/sidebar startup race fixed so valid non-Listing hash routes survive async startup
 - #79 — Products / Keywords / Marketing / Operations / Analytics promoted from modal launchers to stable first-class main-workspace suite homes; suite homes participate in existing hash/history routing; Listing remains its dedicated first-class page
 
+The repository has materially advanced beyond that historical #79 checkpoint. Current completed product work is represented directly by README `[x]` roadmap entries; do not use this historical list as a ceiling or as a reason to redo already-landed capabilities.
+
 ### Current top-level suite behavior
 
 The six suite entries are now real first-class navigation surfaces:
 
 - **Products** — first-class suite home, links only to existing truthful product/store workspace capabilities
 - **Keywords** — first-class suite home, links to existing keyword intelligence workspaces
-- **Listing** — first-class preparation workspace using validated Ads evidence where available; draft-only, no publishing
+- **Listing** — canonical Listing Optimizer/preparation workflow; no Amazon publishing
 - **Marketing** — first-class suite home for existing advertising workflows
 - **Operations** — first-class suite home for existing data/finance operating workflows
 - **Analytics** — first-class suite home for existing analytics surfaces
@@ -210,7 +222,7 @@ Accepted probes:
 - D1 databases read
 - R2 buckets read
 
-Latest accepted exact-main run on the product baseline: `33454956950` — **SUCCESS**.
+Latest accepted owner-command run at this documentation update: `33595663524` — **SUCCESS** on `31ed6843442d18b8c4e959e327d9e1f86ba16ffb`.
 
 The workflow emits PASS/FAIL only and must not print token values, account IDs, resource IDs/names, database contents, bucket contents, or application data.
 
@@ -240,7 +252,7 @@ Store truth:
 - Store 02 and Store 03 have no real data and must not display fabricated metrics
 - custom Store workspace metadata is browser-local only
 - local `Staged` / `Approved` states never mean an action was executed on Amazon
-- Listing draft text is session-only and never means it was published to Amazon
+- Listing draft text is local/session preparation and never means it was published to Amazon
 
 ## 9. Runtime boundary
 
@@ -258,22 +270,24 @@ Anonymous runtime smoke may reach the external redirect gate before product HTML
 
 ## 10. Current execution rule
 
-Continue only **evidenced P1/P2 product defects or operator-usability regressions** that can be completed truthfully from existing imported/local data without authentication, Amazon API access, or anonymous mutable server routes.
+Follow the current README roadmap and owner instruction, but preserve all permanent boundaries above.
 
-Good audit targets:
+Without an explicit owner override for authentication/Amazon/server mutation, continue only work that can be completed truthfully from existing imported/local data and does not require authentication, Amazon API access, or anonymous mutable server routes.
+
+For defect/hardening work, good audit targets remain:
 
 - data correctness and source lineage
 - restore/import integrity
 - local-state consistency and recovery
-- suite home / sidebar / URL-history consistency
+- navigation / URL-history consistency
 - Listing evidence and draft-state truth
 - mobile/operator usability regressions
 - regression coverage around already-supported local workflows
 - hardcoded performance/money/state values only when not already neutralized by truth layers
 
-The suite/Listing optimization phase through #79 is complete. Do not keep changing those surfaces without a demonstrated usability or correctness defect.
+For roadmap work, do not mark an item `[x]` unless the implementation and verification actually exist. Items that require authoritative external data, explicit product-scope decisions, authentication, Amazon APIs, licensed connectors, remote mutation or publishing must remain `[ ]` until their prerequisites are genuinely available.
 
-If a targeted audit finds no real P1/P2 defect, state that the current product-hardening surface is clean and stop. Do not manufacture work.
+If a targeted audit finds no real defect, do not manufacture one.
 
 ## 11. Known repository administration gap
 
@@ -296,4 +310,4 @@ Cloudflare Access external configuration gate
 -> only then authenticated server-side persistence wiring
 ```
 
-Until then, leave the authentication lane frozen and continue only legitimate non-auth product work.
+Until then, leave the authentication lane frozen and do not cross the runtime mutation boundary.
