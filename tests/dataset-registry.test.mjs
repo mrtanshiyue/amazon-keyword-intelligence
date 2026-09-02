@@ -52,11 +52,11 @@ test('rank snapshots append new dates and replace corrections with the same stab
   assert.equal(rows[1].organicRank, 12);
 });
 
-test('competitor snapshots use date plus ASIN and repeated imports are idempotent', () => {
-  const first = { date: '2026-08-31', asin: 'B000000001', price: 19.99 };
-  const correction = { date: '2026-08-31', asin: 'b000000001', price: 18.99 };
+test('competitor snapshots use date plus ASIN and collapse undated corrections conservatively', () => {
+  const undated = { date: '', asin: 'B000000001', price: 19.99 };
+  const correction = { date: '', asin: 'b000000001', price: 18.99 };
   const later = { date: '2026-09-01', asin: 'B000000001', price: 17.99 };
-  const once = registry.mergeAppendRows('competitor', [first, correction, later]);
+  const once = registry.mergeAppendRows('competitor', [undated, correction, later]);
   const twice = registry.mergeAppendRows('competitor', [...once, correction, later]);
   assert.equal(once.length, 2);
   assert.equal(once[0].price, 18.99);
