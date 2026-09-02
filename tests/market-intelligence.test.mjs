@@ -27,8 +27,8 @@ test('derives market concentration, price distribution and review barrier from i
   assert.equal(summary.prices.q3, 25);
   assert.equal(summary.reviews.median, 20);
   assert.equal(summary.concentration.available, true);
-  assert.equal(summary.concentration.top3Share, 1);
-  assert.equal(summary.concentration.hhi, 0.54);
+  assert.ok(Math.abs(summary.concentration.top3Share - 1) < 1e-12);
+  assert.ok(Math.abs(summary.concentration.hhi - 0.54) < 1e-12);
 });
 
 test('relative opportunity score requires at least three rows with sales and review evidence', () => {
