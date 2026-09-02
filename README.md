@@ -101,7 +101,7 @@ It emits PASS/FAIL only. It must not be silently expanded into Access identity/s
 - Local `Staged` / `Approved` states never mean executed on Amazon.
 - Listing drafts are preparation-only and never mean published to Amazon.
 
-Completed product workflows include Dashboard/Analytics, Ad Manager, Suggestions, supported local Rules, Action Center/Change Log, Cerebro, Keyword Tracker, Keyword/Negative libraries, Conflict Guard, Protected Keywords, Unified Transaction analytics, browser-local Ads/Unified imports, Local Data Operations, Store management, responsive/mobile hardening, keyboard accessibility, URL page history, suite workspace homes, first-class Listing preparation, CSV-first Search Query Funnel, Product 360, Action Outcomes, Rank & Index Tracker, Listing Optimizer 2.0, Inventory Risk, deterministic Anomaly Center, imported competitor snapshot trends/seasonality evidence, and local purchase-order planning CSV export.
+Completed product workflows include Dashboard/Analytics, Ad Manager, Suggestions, supported local Rules, Action Center/Change Log, Cerebro, Keyword Tracker, Keyword/Negative libraries, Conflict Guard, Protected Keywords, Unified Transaction analytics, browser-local Ads/Unified imports, Local Data Operations, Store management, responsive/mobile hardening, keyboard accessibility, URL page history, suite workspace homes, first-class Listing preparation, CSV-first Search Query Funnel, Product 360, Action Outcomes, Rank & Index Tracker, Listing Optimizer 2.0, Inventory Risk, deterministic Anomaly Center, imported competitor snapshot trends/seasonality evidence, imported market structure/opportunity screening, and local purchase-order planning CSV export.
 
 ## Product roadmap
 
@@ -182,7 +182,7 @@ Status rules:
 - [ ] Competitor storefront and new-listing snapshot imports with 7/15/30/60-day change summaries.
 - [x] Existing imported competitor snapshots provide conservative 7/15/30/60-day lookbacks only when a dated historical baseline is available; storefront and new-listing-specific adapters remain pending.
 - [ ] Imported competitor advertising/Ads Insights workspace for observed keywords, placements and inferred structures.
-- [ ] Market concentration, price-band, review-barrier and opportunity scoring based only on imported/licensed evidence.
+- [x] Latest-snapshot market structure screen provides price quartiles/bands, review-count median/Q3 barrier, Estimated Sales share concentration (HHI/top-3) when 3+ ASINs have sales evidence, and a disclosed relative opportunity score (65% sales percentile + 35% inverse review-count percentile) only when 3+ ASINs have both inputs. Missing values are never estimated; price bands do not affect the score and no external concentration benchmark is asserted.
 
 #### Review and voice-of-customer intelligence
 
