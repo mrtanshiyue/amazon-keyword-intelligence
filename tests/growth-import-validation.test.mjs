@@ -46,11 +46,11 @@ test('blank records are counted as skipped and rejected CSV preserves original e
   assert.match(result.rejectedCsv, /BAD-SKU,abc/);
 });
 
-test('competitor snapshots require a valid date so append merges have a stable identity', () => {
-  const missingDate = validation.validateGrowthCsv('competitor', 'Date,ASIN,Price\n,B000000001,19.99');
+test('competitor snapshots allow an undated correction but reject an invalid supplied date', () => {
+  const undated = validation.validateGrowthCsv('competitor', 'Date,ASIN,Price\n,B000000001,19.99');
   const badDate = validation.validateGrowthCsv('competitor', 'Date,ASIN,Price\n2026-02-30,B000000001,19.99');
-  assert.equal(missingDate.acceptedCount, 0);
-  assert.match(missingDate.rejectedRows[0].reasons.join(' '), /Date is required/);
+  assert.equal(undated.acceptedCount, 1);
+  assert.equal(undated.rejectedCount, 0);
   assert.equal(badDate.acceptedCount, 0);
   assert.match(badDate.rejectedRows[0].reasons.join(' '), /valid ISO-style date/);
 });
