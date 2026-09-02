@@ -31,6 +31,7 @@
     'keywordos_v9_dashboard_ui',
     'keywordos_v9_data_ops',
     'keywordos_v9_store_workspaces',
+    'keywordos_v9_workspace_organizer',
     'keywordos_v9_shell_ui'
   ]);
 
