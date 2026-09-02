@@ -101,7 +101,7 @@ It emits PASS/FAIL only. It must not be silently expanded into Access identity/s
 - Local `Staged` / `Approved` states never mean executed on Amazon.
 - Listing drafts are preparation-only and never mean published to Amazon.
 
-Completed product workflows include Dashboard/Analytics, Ad Manager, Suggestions, supported local Rules, Action Center/Change Log, Keyword Research, Keyword Tracker, Keyword/Negative libraries, Conflict Guard, Protected Keywords, Unified Transaction analytics, browser-local Ads/Unified imports, Local Data Operations, Store management, responsive/mobile hardening, keyboard accessibility, URL page history, suite workspace homes, suite-aligned Growth navigation taxonomy, first-class Listing preparation, CSV-first Search Query Funnel, Product 360, Action Outcomes, Rank & Index Tracker, Listing Optimizer 2.0, Inventory Risk, deterministic Anomaly Center, imported competitor snapshot trends/seasonality evidence, storefront/new-listing snapshot comparisons, imported competitor Ads Insights, imported market structure/opportunity screening, and local purchase-order planning CSV export.
+Completed product workflows include Dashboard/Analytics, Ad Manager, Suggestions, supported local Rules, Action Center/Change Log, Keyword Research, Keyword Tracker, Keyword/Negative libraries, Conflict Guard, Protected Keywords, Unified Transaction analytics, browser-local Ads/Unified imports, Local Data Operations, Store management, responsive/mobile hardening, keyboard accessibility, URL page history, suite workspace homes, suite-aligned Growth navigation taxonomy, first-class Listing preparation, CSV-first Search Query Funnel, Product 360, Action Outcomes, Rank & Index Tracker, Listing Optimizer 2.0, Inventory Risk, deterministic Anomaly Center, imported competitor snapshot trends/seasonality evidence, storefront/new-listing snapshot comparisons, imported competitor Ads Insights, review marketplace/language normalization, imported market structure/opportunity screening, and local purchase-order planning CSV export.
 
 ## Product roadmap
 
@@ -187,14 +187,14 @@ Status rules:
 
 #### Review and voice-of-customer intelligence
 
-- [x] Review CSV import with ASIN, variation, rating, date, title and body validation.
+- [x] Review CSV import with ASIN, variation, rating, date, title and body validation plus optional explicit marketplace/language labels.
 - [ ] Positive/negative themes, complaints, purchasing motivations, use cases and requested features.
 - [x] Literal two-word frequency review by explicit 1–2-star versus 4–5-star imported samples; this is not inferred sentiment, themes or intent.
 - [x] Variant-level imported rating and star-band comparison, with raw review text retained.
 - [x] Own-versus-competitor imported review sample comparison when Product Master identifies the owned ASINs.
 - [x] Evidence-linked product investigation and Listing selling-point candidate backlog from literal imported review phrases, with sample date/ASIN/rating/title references. Low-star rows are investigation prompts and high-star rows require manual claim substantiation; neither is inferred sentiment, root cause or automatic Listing text.
-- [ ] Multi-market/language review normalization while preserving original review text.
-- [x] Marketplace-level imported review breakdown while preserving original text and labels; cross-language normalization remains unavailable without an authoritative source.
+- [x] Multi-market/language review metadata normalization maps explicit marketplace aliases to stable marketplace codes and explicit language names/BCP-47-style tags to comparable language keys while preserving original marketplace/language/title/body values; missing language is never inferred from marketplace or text, and no translation or cross-language phrase merging occurs.
+- [x] Marketplace-level imported review breakdown remains available while original text and labels are preserved; normalized marketplace/language grouping is metadata-only and never alters raw review evidence.
 
 #### Listing Optimizer 3.0
 
