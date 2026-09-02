@@ -214,7 +214,7 @@ Status rules:
 - [x] Competitor Listing title phrase-gap comparison using only imported snapshots and the local draft; it does not infer ranking, traffic or relevance.
 - [x] Marketplace field-validation profile with editable title-character and backend UTF-8-byte limits, plus title/backend over-limit warnings and bullet/description counts. Defaults are explicitly presented as review thresholds that must be confirmed against the current Seller Central category policy.
 - [x] Browser-local Listing snapshots with timestamp, note and field-level diff for title, bullets, description, backend terms, brand exclusions and policy-profile settings. Versions do not imply publishing status or later rank/conversion attribution; that requires separately imported evidence.
-- [ ] Product image and selling-point evidence checklist.
+- [x] Browser-local product-image and selling-point evidence checklist. It is a human review aid only and does not imply Amazon compliance approval.
 
 #### Profitability, inventory and replenishment
 
