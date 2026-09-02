@@ -76,7 +76,8 @@ KeywordOS 的差异化不是复制 Helium 10 或卖家精灵的外部数据库�
 | [data-provenance-guard.js](./data-provenance-guard.js) | Store 01 Ads 来源判定与 seed 审批 fail-closed | 🟡 Ads 子路径已覆盖，其他来源/派生指标仍待统一 |
 | [growth-import-validation.js](./growth-import-validation.js)、[growth-import-gate.js](./growth-import-gate.js) | 8 类 Growth CSV 严格校验、partial handoff 与拒绝行下载 | ✅ 用户 Growth 文件输入边界 fail-closed |
 | [growth-consistency-actions.js](./growth-consistency-actions.js) | Inventory observed-day velocity 与 Listing field profile 的运行时一致性边界 | ✅ 复用现有 Growth 计算器，统一用户可见口径 |
-| [scripts/check-dist-assets.mjs](./scripts/check-dist-assets.mjs)、[.github/workflows/ci.yml](./.github/workflows/ci.yml) | source → dist 静态资产闭包、字节一致性与提交后重建校验 | ✅ 当前 50 个发布文件受 CI parity gate 约束 |
+| [ui-capability-guard.js](./ui-capability-guard.js) | 按钮能力契约、Rule-based Bids 可见命名与 Keyword Research 稳定交互接线 | ✅ 未接线按钮 fail-closed；disabled 控件有原因 |
+| [scripts/check-dist-assets.mjs](./scripts/check-dist-assets.mjs)、[.github/workflows/ci.yml](./.github/workflows/ci.yml) | source → dist 静态资产闭包、字节一致性与提交后重建校验 | ✅ 当前 51 个发布文件受 CI parity gate 约束 |
 | [navigation-taxonomy.js](./navigation-taxonomy.js) | 中央 Page Registry：canonical page、route alias、suite、sidebar、标题与 page-level i18n key | ✅ Core + Growth 页面身份单一来源，legacy 按钮直接隐藏 |
 | [productivity-actions.js](./productivity-actions.js) | 套件首页、command palette、history、breadcrumb 与 page shell 消费者 | ✅ suite / route / page shell 统一读取 registry |
 | [workflow-canonicalization.js](./workflow-canonicalization.js) | Tracker / Listing legacy route 兼容 | ✅ legacy hash 仅兼容跳转，不再拥有独立可见入口 |
@@ -118,6 +119,7 @@ KeywordOS 的差异化不是复制 Helium 10 或卖家精灵的外部数据库�
 - 🟡 Keyword Research 已有 Find Suggestions / Analyze Keywords、筛选预设、词频、分布、表格、导出、历史和批量加入词库/追踪/否定词；但目前只筛选 Ads Search Term，Analyze Keywords 仍把输入当一个短语，并不是真正的最多 200 词批量分析。
 - ✅ 内部 `cerebro` route 为历史兼容继续保留，但 Page Registry、侧栏、command palette、页面标题与 breadcrumb 对外统一显示 Keyword Research；第三方名称只应出现在来源/格式上下文。
 - 🟡 Common Words 目前主要是滚动到词频，不是完整的词根排除管理；删除词恢复、统一列偏好和可靠的保存筛选仍不完整。
+- ✅ Keyword Research 的 Common Words / Learn / Search / Settings 工具按钮改为按 canonical `cerebro` route id 直接接线，不再依赖可见标题是否仍叫 Cerebro；这只修复按钮可用性，不把 Common Words 当前“滚动到词频”的有限语义升级为完整词根管理。
 - ✅ Store 级 keyword assets、稳定 ID、标签、intent、保护状态和 Ads/SQP/rank/Listing/action evidence 汇总。
 - ✅ Keyword Library、Negative Library、Conflict Guard、Protected Keywords、Keyword Workflow。
 - 🟡 Rank & Index 支持用户导入的自然位、广告位和收录快照；没有自动日更、实时收录查询、Boost 或 Amazon 前台抓取，因此应称“快照追踪”。
@@ -137,7 +139,8 @@ KeywordOS 的差异化不是复制 Helium 10 或卖家精灵的外部数据库�
 
 - ✅ Advertising Dashboard、campaign → ad group → target → search term 下钻。
 - ✅ 基于已加载数据的 Suggestions、受支持的本地 Rules、Protected Negative 检查。
-- 🟡 名为 AI Bids 的建议实际是固定阈值和 bid 倍率规则，应改名为“规则化调价建议”。
+- ✅ Suggestions 原 `AI Bids` 用户可见名称已改为 **Rule-based Bids / 规则化调价建议**，设置区改为 Bid Recommendation Settings / 调价建议设置；推荐仍完全来自已导入表现、配置阈值和固定 bid 倍率，没有 AI/ML 模型。内部 `AI Bids` key 仅为现有状态兼容，不作为产品名称展示。
+- ✅ `ui-capability-guard.js` 在应用渲染器之前记录真实 direct click handler，显式识别现有 document-delegated/navigation 动作；任何仍处于 enabled 但没有已知 action contract 的按钮会 fail-closed 为 disabled 并给出原因，已有 disabled 控件若缺原因也会补充说明。后续真实 handler 绑定时 guard 会恢复该按钮，不把占位入口伪装成可用功能。
 - ✅ Action Center、Change Log、本地 staged/approved 状态和后续导入窗口的 Action Outcome 对比。
 - ✅ Spend、Sales、Orders、ACoS、ROAS、CPC、CVR 与小样本、窗口不完整、并发动作、Amazon 外部混杂因素提示。
 - 🟡 Dayparting 只能保存本地计划，没有小时表现数据或执行能力。
@@ -293,12 +296,13 @@ UI 统一规则：
 - [x] 统一库存 observed-day velocity 和 Listing field profile，消除双口径。
   - 2026-09-02：`growth-consistency-actions.js` 复用既有 `productSalesVelocity()`、`listingCoverage()`、`listingEvidenceTerms()` 与 UTF-8 byte 计算器，把 Inventory Risk / Anomaly Center 的可见日销量、days cover 与风险状态统一为实际 observed dated Ads days；无日期销量证据保持 unavailable。Listing Backend Bytes KPI、field validation 与 placement suggestion 统一读取当前 listing draft 的 `titleLimit` / `searchTermsLimit` profile，非法 profile fail-closed，不再由 placement 路径硬编码 250。CI 为 **282 passed / 0 failed**，`npm run build` 通过。
 - [x] 建立 source → dist 资产一致性检查，重新构建并验证当前发布产物。
-  - 2026-09-02：`scripts/check-dist-assets.mjs` 以源码 `index.html` 为入口推导静态发布闭包，拒绝缺失/多余文件、越界路径和 source/dist 字节差异；当前 `npm run build` 生成 **50 个发布文件（40 个 JS、9 个 CSS、1 个 HTML）**。CI 在 clean build 后继续要求 `git status --porcelain --untracked-files=all -- dist` 为空，阻止未提交、陈旧或额外 dist 进入 main；本次已重建并同步整个 `dist/`。CI 为 **282 passed / 0 failed**，build 与 committed-dist parity gate 均通过。该结论只覆盖仓库发布产物，不等同于声明 Cloudflare 生产部署已经更新。
+  - 2026-09-02：`scripts/check-dist-assets.mjs` 以源码 `index.html` 为入口推导静态发布闭包，拒绝缺失/多余文件、越界路径和 source/dist 字节差异；当时 `npm run build` 生成 **50 个发布文件（40 个 JS、9 个 CSS、1 个 HTML）**。CI 在 clean build 后继续要求 `git status --porcelain --untracked-files=all -- dist` 为空，阻止未提交、陈旧或额外 dist 进入 main；该轮已重建并同步整个 `dist/`。CI 为 **282 passed / 0 failed**，build 与 committed-dist parity gate 均通过。后续增加 `ui-capability-guard.js` 后当前发布闭包为 51 个文件；该结论只覆盖仓库发布产物，不等同于声明 Cloudflare 生产部署已经更新。
 - [x] 建立中央 page registry；统一 route、suite、侧栏、breadcrumb、command palette、标题与 i18n key。
   - 2026-09-02：`navigation-taxonomy.js` 升级为中央 Page Registry，每个 canonical page 统一保存 page id、suite、sidebar group/order、title/subtitle、icon 与稳定 `page.<id>` i18n key；`tracker → rank-intelligence`、`listing-workspace → listing-optimizer` alias 也由同一 registry 提供。`productivity-actions.js` 的 suite home、suite active、history/hash、command palette、breadcrumb/title/subtitle 与 page-level i18n key，`workflow-canonicalization.js` 的 legacy alias，以及 `suite-home-intelligence.js` 的 suite route/title 均改为读取 registry。新增 coverage/uniqueness 回归确保现有 Core `NAV` 与 Growth `PAGE_META` 的 page id 全部受 registry 覆盖且无重复。CI 为 **289 passed / 0 failed**；`npm run build`、50-file source/dist byte identity 与 committed-dist parity gate 全部通过。该项不等于已去除 legacy DOM 入口，也不等于全局可见文案 i18n 已完成；这两项继续留在下一 P0。
 - [x] 去除重复 Tracker/Listing 入口，修正套件 active 状态、Cerebro 残留、中文混杂和 Advertising 语义碰撞。
   - 2026-09-02：`navigation-taxonomy.js` 现在直接隐藏 `tracker` / `listing-workspace` legacy 按钮，并在 canonical 排序时显式排除 legacy page；历史 hash 仍由既有 alias 重定向。`listing-workspace-actions.js` 已收缩为兼容纯 helper，不再注入独立 Listing Workspace、拦截 Listing 顶部套件或根据可见文本维护第二套 active 状态。内部 `cerebro` route 保持兼容，但 registry 可见名称统一为 Keyword Research；`product-language.js` 为全部 canonical page 提供 registry-id 驱动的 EN / 中文 / 双语 page/suite shell 文案，并让 tool workspace 使用 Marketing suite id，因此导航不再受财务上下文 `Advertising`→“广告费”影响。CI 为 **294 passed / 0 failed**；`npm run build`、40 JS + 9 CSS 静态闭包、50-file source/dist byte identity 与 committed-dist parity gate 全部通过。该项只宣告已知 route / page / suite / title 漂移闭环；动态 modal、空态和 aria 文案仍保留为更广的 P1 文案审计。
-- [ ] 把 AI Bids 改为准确名称；所有按钮必须有真实 handler，否则隐藏或 disabled 并说明原因。
+- [x] 把 AI Bids 改为准确名称；所有按钮必须有真实 handler，否则隐藏或 disabled 并说明原因。
+  - 2026-09-02：新增 `ui-capability-guard.js` 并在 `app.js` 等渲染器之前加载。Suggestions 原 `AI Bids` 用户可见 tab 改为 `Rule-based Bids` / `规则化调价建议`，并明确其输入只是已导入表现、配置阈值和固定 bid multiplier；内部 `AI Bids` key 仅保留兼容。guard 通过早期包装 button `addEventListener('click', ...)` 记录真实 direct handler，显式允许现有 document-delegated/navigation contract；任何没有 action contract 却仍 enabled 的按钮会 fail-closed 为 disabled + `aria-disabled` + 原因，已有 disabled 控件缺 title 时也补充原因。Keyword Research 的 Common Words / Learn / Search / Settings 同时改为 canonical route-id 直接接线，消除旧 `pageTitle() === 'Cerebro'` 漂移。CI 为 **300 passed / 0 failed**；`npm run build` 生成 **51 个发布文件（41 个 JS、9 个 CSS、1 个 HTML）**，source/dist byte identity 与 committed-dist parity gate 全部通过。
 
 P0 验收：所有可见指标能追到来源；坏行不会变成零；备份往返不丢状态；源码、dist 和已部署入口同版本；中英模式无已知路由/标题漂移。
 
