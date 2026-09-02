@@ -213,7 +213,7 @@ Status rules:
 - [x] High-value unused keyword placement suggestions based on imported evidence, with manual relevance confirmation.
 - [x] Competitor Listing title phrase-gap comparison using only imported snapshots and the local draft; it does not infer ranking, traffic or relevance.
 - [x] Marketplace field-validation profile with editable title-character and backend UTF-8-byte limits, plus title/backend over-limit warnings and bullet/description counts. Defaults are explicitly presented as review thresholds that must be confirmed against the current Seller Central category policy.
-- [ ] Listing versions, diff, notes and linkage to later rank/conversion outcomes.
+- [x] Browser-local Listing snapshots with timestamp, note and field-level diff for title, bullets, description, backend terms, brand exclusions and policy-profile settings. Versions do not imply publishing status or later rank/conversion attribution; that requires separately imported evidence.
 - [ ] Product image and selling-point evidence checklist.
 
 #### Profitability, inventory and replenishment

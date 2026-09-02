@@ -134,6 +134,14 @@ test('listing field validation counts title characters and backend UTF-8 bytes a
   assert.equal(growth.listingFieldValidation({}, { titleLimit: 0 }).available, false);
 });
 
+test('listing versions preserve tracked fields and diff only changed fields', () => {
+  const first = growth.listingSnapshot({ title: 'Blue rack', bullets: 'Steel', searchTerms: 'rack' }, 'baseline', '2026-09-01T00:00:00.000Z');
+  const next = growth.listingSnapshot({ title: 'Blue shoe rack', bullets: 'Steel', searchTerms: 'rack shoe' }, 'add phrase', '2026-09-02T00:00:00.000Z');
+  const diff = growth.listingVersionDiff(first, next);
+  assert.equal(first.note, 'baseline');
+  assert.deepEqual(diff.map(row => row.field), ['title', 'searchTerms']);
+});
+
 test('competitor listing gaps compare only imported title phrases to the local draft', () => {
   const gaps = growth.competitorListingGaps({ title: 'Blue shoe rack', bullets: '', description: '', searchTerms: '' }, [{ asin: 'B1', title: 'Blue shoe rack with storage shelf' }]);
   assert.equal(gaps.length, 1);
