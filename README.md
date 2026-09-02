@@ -73,6 +73,7 @@ KeywordOS 的差异化不是复制 Helium 10 或卖家精灵的外部数据库�
 | [app.js](./app.js) | 核心状态、导航、主要页面与渲染 | 🟡 体积大，且与后置补丁共同拥有 UI |
 | [growth-workspaces.js](./growth-workspaces.js) | SQP、产品、竞品、评论、排名、Listing、库存工作区 | 🟡 功能多，解析和持久化一致性需补强 |
 | [dataset-registry.js](./dataset-registry.js) | Store 级数据集、元数据与 IndexedDB | ✅ 数据中枢已存在 |
+| [data-provenance-guard.js](./data-provenance-guard.js) | Store 01 Ads 来源判定与 seed 审批 fail-closed | 🟡 Ads 子路径已覆盖，其他来源/派生指标仍待统一 |
 | [navigation-taxonomy.js](./navigation-taxonomy.js) | Growth 页面套件分组 | 🟡 与其他页面清单重复维护 |
 | [productivity-actions.js](./productivity-actions.js) | 套件首页、搜索、侧栏折叠与历史 | 🟡 套件归属集合不完整 |
 | [workflow-canonicalization.js](./workflow-canonicalization.js) | Tracker / Listing 旧路由兼容 | 🟡 路由已兼容，可见入口仍有重复 |
@@ -93,7 +94,7 @@ KeywordOS 的差异化不是复制 Helium 10 或卖家精灵的外部数据库�
 - ✅ 数据元信息包括来源、导入时间、覆盖期、行数、schema、checksum 和校验状态。
 - ✅ Data Health、16 MiB 浏览器导入限制、畸形未闭合 CSV 拒绝、旧浏览器数据迁移。
 - 🟡 Local Data Operations 可以备份/恢复主要数据，但当前白名单遗漏 competitor-creative，也未覆盖 Listing evidence/version 和 competitor group 等部分 localStorage 状态，不能宣称完整无损备份。
-- 🟡 仓库内 Store 01 bundled seed 含 Ads 8,753 行、Unified 3,643 行；它是 public-test 种子数据。当前 UI 部分位置却显示 Connected、Actual imported 或 Imported dataset，需要先修正来源真相。
+- 🟡 仓库内 Store 01 bundled seed 含 Ads 8,753 行、Unified 3,643 行；它是 public-test 种子数据。Store 01 Ads 现已由 provenance guard 区分 USER IMPORT / BUNDLED SEED / NO DATA，并在没有有效用户 Ads 导入时禁止 Action Center 批准、批量批准和导出批准动作；Finance、Growth 及 calculated / third-party estimate / missing 的全局状态仍未统一。
 
 ### Products / Competitors / Reviews
 
@@ -277,6 +278,7 @@ UI 统一规则：
 ### P0 — 可信发布基线
 
 - [ ] 全局修正 bundled seed、用户导入、计算值、第三方估算和缺失的状态标识；seed 数据禁止进入可批准动作。
+  - 2026-09-02 已完成子项：Store 01 Ads 仅在 Dataset Registry 中的浏览器持久化记录通过现有 Ads 校验器时标为 `USER IMPORT`；否则明确回退为 `BUNDLED SEED` / `NO DATA`，并 fail-closed 禁止 Action Center 单项批准、批量批准和批准动作导出。该总项仍未完成，因为 Finance、Growth、calculated、third-party estimate 与 missing 尚未全局统一。
 - [ ] Growth CSV 严格数值、日期与身份校验：禁止无效值默认为 0，展示接受/拒绝/跳过数量，允许下载拒绝行。
 - [ ] 为 ranks、competitor 等追加导入定义稳定 merge key、覆盖/追加策略和幂等测试。
 - [ ] 补齐所有 Dataset Registry 与 localStorage 用户状态的备份 manifest 和恢复校验。
