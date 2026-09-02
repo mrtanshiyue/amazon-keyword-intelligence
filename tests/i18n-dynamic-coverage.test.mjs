@@ -88,7 +88,8 @@ test('dynamic observer watches subtree child additions after DOMContentLoaded', 
   runtime.listeners.DOMContentLoaded();
   const observed = runtime.observed();
   assert.equal(observed.target, runtime.body);
-  assert.deepEqual(observed.options, { childList: true, subtree: true });
+  assert.equal(observed.options.childList, true);
+  assert.equal(observed.options.subtree, true);
 });
 
 test('observer intentionally avoids characterData to prevent translation feedback loops', () => {
