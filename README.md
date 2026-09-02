@@ -185,7 +185,7 @@ Status rules:
 
 #### Product, market and competitor monitoring
 
-- [ ] Product/market monitoring projects and reusable competitor groups.
+- [x] Browser-local reusable competitor groups for imported ASIN snapshots, including per-group imported/missing ASIN counts, snapshot counts and detected consecutive-snapshot changes. Groups organize evidence only and do not provide live monitoring or market-data enrichment.
 - [x] CSV snapshot history for price, BSR, rating, review count, estimated sales, variants and availability.
 - [ ] Trend and seasonality charts with explicit snapshot dates.
 - [x] Alerts for imported price, BSR, rating, review-count, variant and availability changes between consecutive dated snapshots of the same ASIN; no alert is fabricated without a baseline.

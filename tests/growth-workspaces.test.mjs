@@ -238,6 +238,17 @@ test('reports changes only when an ASIN has consecutive dated snapshots', () => 
   assert.match(changes[0].changes.join(' '), /Reviews: 10 → 12/);
 });
 
+test('competitor groups summarize only their imported ASIN snapshot evidence', () => {
+  const groups = growth.competitorGroupSummary([{ id: 'g1', name: 'Set', asins: ['B1', 'MISSING'] }], [
+    { asin: 'B1', date: '2026-08-01', price: 20 },
+    { asin: 'B1', date: '2026-08-02', price: 18 }
+  ]);
+  assert.deepEqual(groups[0].importedAsins, ['B1']);
+  assert.deepEqual(groups[0].missingAsins, ['MISSING']);
+  assert.equal(groups[0].snapshots, 2);
+  assert.equal(groups[0].changes, 1);
+});
+
 test('uses only imported historical baselines for competitor lookback windows', () => {
   const periods = growth.competitorPeriodChanges([
     { asin: 'B1', date: '2026-07-01', price: 25, bsr: 200, reviewCount: 10 },
