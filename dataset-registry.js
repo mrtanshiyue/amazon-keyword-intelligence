@@ -34,9 +34,9 @@
       return date && asin && keyword ? `${date}|${asin}|${keyword}` : '';
     }
     if (kind === 'competitor') {
-      const date = text(row.date);
+      const date = text(row.date) || 'UNDATED';
       const asin = text(row.asin).toUpperCase();
-      return date && asin ? `${date}|${asin}` : '';
+      return asin ? `${date}|${asin}` : '';
     }
     return '';
   }
