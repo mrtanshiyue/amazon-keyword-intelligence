@@ -101,7 +101,7 @@ It emits PASS/FAIL only. It must not be silently expanded into Access identity/s
 - Local `Staged` / `Approved` states never mean executed on Amazon.
 - Listing drafts are preparation-only and never mean published to Amazon.
 
-Completed product workflows include Dashboard/Analytics, Ad Manager, Suggestions, supported local Rules, Action Center/Change Log, Cerebro, Keyword Tracker, Keyword/Negative libraries, Conflict Guard, Protected Keywords, Unified Transaction analytics, browser-local Ads/Unified imports, Local Data Operations, Store management, responsive/mobile hardening, keyboard accessibility, URL page history, suite workspace homes, suite-aligned Growth navigation taxonomy, first-class Listing preparation, CSV-first Search Query Funnel, Product 360, Action Outcomes, Rank & Index Tracker, Listing Optimizer 2.0, Inventory Risk, deterministic Anomaly Center, imported competitor snapshot trends/seasonality evidence, imported market structure/opportunity screening, and local purchase-order planning CSV export.
+Completed product workflows include Dashboard/Analytics, Ad Manager, Suggestions, supported local Rules, Action Center/Change Log, Keyword Research, Keyword Tracker, Keyword/Negative libraries, Conflict Guard, Protected Keywords, Unified Transaction analytics, browser-local Ads/Unified imports, Local Data Operations, Store management, responsive/mobile hardening, keyboard accessibility, URL page history, suite workspace homes, suite-aligned Growth navigation taxonomy, first-class Listing preparation, CSV-first Search Query Funnel, Product 360, Action Outcomes, Rank & Index Tracker, Listing Optimizer 2.0, Inventory Risk, deterministic Anomaly Center, imported competitor snapshot trends/seasonality evidence, imported market structure/opportunity screening, and local purchase-order planning CSV export.
 
 ## Product roadmap
 
@@ -152,7 +152,7 @@ Status rules:
 - [x] Keyword Workflow now displays the exact Ads, SQP/ABA and imported rank evidence available for each keyword asset rather than reducing every source to Ads.
 - [x] Tracked keywords surface exact imported organic and sponsored rank snapshots by ASIN; multi-ASIN evidence stays separated rather than being collapsed into a guessed rank.
 - [x] Unified Dataset Registry covering Ads, Unified, SQP/ABA, cost, inventory, rank, competitor, review and Listing datasets.
-- [x] Dataset provenance: Store, source, import time, coverage dates, row count, schema version, checksum and validation state.
+- [x] Dataset provenance: Store, source, import time, coverage dates, row count, schema version, validation state.
 - [x] Bring all growth datasets into Data Health, backup/restore and Store isolation instead of independent `localStorage` silos.
 - [x] Product master-data workspace for ASIN, Parent ASIN, SKU, FNSKU, product family, marketplace and Store.
 - [x] Explicit unmapped-record queue; no heuristic Product 360 join may silently become authoritative.
@@ -246,7 +246,7 @@ Status rules:
 - [ ] Improve mobile data tables with priority columns, cards or controlled horizontal scrolling.
 - [ ] Add empty/loading/error/partial-data states with schema guidance and template downloads on every import-driven page.
 - [ ] Add saved views, filters, projects, tags, favorites and recent-work shortcuts.
-- [ ] Rename competitor-inspired labels where needed so KeywordOS has its own consistent product language.
+- [x] Replace the user-visible legacy `Cerebro` label with KeywordOS-owned **Keyword Research** language across sidebar navigation, suite cards, page heading/breadcrumb and Listing links while preserving the stable internal `cerebro` route/hash for backward compatibility.
 
 ### Delivery order
 
