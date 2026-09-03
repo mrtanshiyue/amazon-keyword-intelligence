@@ -31,3 +31,18 @@ test('navigation organizer hides legacy buttons and never uses them to satisfy c
   assert.match(source, /!registry\.isLegacy\(item\.dataset\.page\)&&registry\.canonicalPage\(item\.dataset\.page\)===record\.id/);
   assert.match(source, /hasVisibleCanonical/);
 });
+
+test('sidebar navigation is explicitly synchronized without MutationObserver feedback loops', async () => {
+  const [taxonomySource, growthSource, appSource] = await Promise.all([
+    readFile(new URL('../navigation-taxonomy.js', import.meta.url), 'utf8'),
+    readFile(new URL('../growth-workspaces.js', import.meta.url), 'utf8'),
+    readFile(new URL('../app.js', import.meta.url), 'utf8')
+  ]);
+  assert.doesNotMatch(taxonomySource, /new MutationObserver\(schedule\).*sidebar-nav/);
+  assert.doesNotMatch(growthSource, /new MutationObserver\(injectNav\)/);
+  assert.match(taxonomySource, /seenPages\.has\(record\.id\)\)\{button\.remove\(\);continue;\}/);
+  assert.match(growthSource, /const missing=GROWTH_NAV_ITEMS\.filter/);
+  assert.match(growthSource, /ensureNavigation:injectNav/);
+  assert.match(appSource, /KeywordOSGrowth\?\.ensureNavigation\?\.\(\);/);
+  assert.match(appSource, /KeywordOSNavigationTaxonomy\?\.organizeGrowthNavigation\?\.\(\);/);
+});

@@ -143,6 +143,8 @@ function renderNav(){
   $('#sidebar-nav').innerHTML=NAV.map(g=>`<div class="nav-section"><div class="nav-section-title">${g.title}</div>${g.items.map(([id,ic,label,badge])=>{
     const bv=typeof badge==='function'?badge():badge; return `<button class="nav-item ${state.page===id?'active':''}" data-page="${id}"><span class="nav-icon">${ic}</span><span class="nav-label">${label}</span>${bv?`<span class="nav-pill ${bv==='BETA'?'beta':''}">${esc(bv)}</span>`:''}</button>`
   }).join('')}</div>`).join('');
+  window.KeywordOSGrowth?.ensureNavigation?.();
+  window.KeywordOSNavigationTaxonomy?.organizeGrowthNavigation?.();
 }
 function setMeta(){ const [e,t,sub]=META[state.page]||META['portfolio-overview']; const st=activeStore(); $('#page-eyebrow').textContent=e; $('#page-title').textContent=t; $('#page-subtitle').textContent=sub; $('#breadcrumb').textContent=`${e} / ${t}${st?` · ${st.name}`:''}`; updateScopeUI(); }
 

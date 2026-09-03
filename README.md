@@ -88,6 +88,8 @@ KeywordOS 的差异化不是复制 Helium 10 或卖家精灵的外部数据库�
 
 页面身份、canonical route alias、suite membership、sidebar group/order、command palette、page shell title/subtitle/breadcrumb 与 page-level i18n key 已集中到 `navigation-taxonomy.js` 的 Page Registry。legacy `tracker` / `listing-workspace` 只保留历史 route 兼容：导航组织器直接隐藏 legacy 按钮，旧 Listing helper 不再注入侧栏或拦截 Listing 套件。`product-language.js` 继续按 registry page/suite id 处理中英/双语的页面标题、侧栏、套件和 breadcrumb；这已经消除已知路由/标题漂移，但不等于所有动态 modal、空态和 aria 文案都已完成全量审计。
 
+> 2026-09-03 阻断级 UI 回归修复：左侧导航此前同时被 `growth-workspaces.js` 和 `navigation-taxonomy.js` 的 MutationObserver 改写。Growth section 被 canonical organizer 移走后会被再次注入，导致 Product Master / Product 360 / Competitors / Reviews 等按钮无限重复，翻译/重排又持续触发 observer，最终造成点击页面卡死。现在 sidebar 改为显式单次同步：`app.js` 每次导航重绘后只执行一次 Growth 缺项补齐和 canonical organize；两个 sidebar MutationObserver 已移除，Growth 补齐按 page id 幂等，organizer 对 canonical page id 再做去重保护。回归测试明确禁止重新引入该 observer feedback loop。CI 为 **426 passed / 0 failed**；`npm run build` 验证 **49 个 JS + 9 个 CSS，59 个发布文件**，source/dist byte identity 与 committed-dist parity gate 继续生效。
+
 ## 当前已完成与真实状态
 
 ### 数据与 Store 基础
