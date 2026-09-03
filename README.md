@@ -77,7 +77,7 @@ KeywordOS 的差异化不是复制 Helium 10 或卖家精灵的外部数据库�
 | [growth-import-validation.js](./growth-import-validation.js)、[growth-import-gate.js](./growth-import-gate.js) | 8 类 Growth CSV 严格校验、Helium 10 / 卖家精灵 CSV profile、preview、partial handoff 与拒绝行下载 | ✅ 第三方 profile 先补齐来源元数据再进入同一严格 validator；未知供应商列保留 |
 | [growth-consistency-actions.js](./growth-consistency-actions.js) | Inventory observed-day velocity 与 Listing field profile 的运行时一致性边界 | ✅ 复用现有 Growth 计算器，统一用户可见口径 |
 | [ui-capability-guard.js](./ui-capability-guard.js) | 按钮能力契约、Rule-based Bids 命名、Keyword Lab 可见能力与实际行为一致性 | ✅ 未接线按钮 fail-closed；Keyword Lab 未实现能力准确改名/隐藏 |
-| [keyword-lab.js](./keyword-lab.js) | Keyword Lab 三模式运行时壳与 source-aware 统一结果契约 | ✅ 三模式、五来源 exact merge、source-aware 指标冲突与 canonical Keyword Lab 页面身份已统一 |
+| [keyword-lab.js](./keyword-lab.js) | Keyword Lab 三模式、source-aware 结果契约与 n-gram/Common Words 结果视图 | ✅ 三模式、五来源 exact merge、1/2/3+ gram、Common Words 排除、删除/恢复与词根联动已统一 |
 | [scripts/check-dist-assets.mjs](./scripts/check-dist-assets.mjs)、[.github/workflows/ci.yml](./.github/workflows/ci.yml) | source → dist 静态资产闭包、字节一致性与提交后重建校验 | ✅ 当前 52 个发布文件受 CI parity gate 约束 |
 | [navigation-taxonomy.js](./navigation-taxonomy.js) | 中央 Page Registry：canonical page、route alias、suite、sidebar、标题与 page-level i18n key | ✅ Core + Growth 页面身份单一来源，legacy 按钮直接隐藏 |
 | [productivity-actions.js](./productivity-actions.js) | 套件首页、command palette、history、breadcrumb 与 page shell 消费者 | ✅ suite / route / page shell 统一读取 registry |
@@ -119,8 +119,8 @@ KeywordOS 的差异化不是复制 Helium 10 或卖家精灵的外部数据库�
 
 - ✅ Keyword Lab 核心基础已接入：`keyword-lab.js` 在兼容 `cerebro` route 与 `asin-comparison` 之间提供 **Keyword Discovery / Batch Analysis / ASIN Import & Compare** 三模式壳，并统一使用 `keyword / mode / sources / metrics / asins / segment / provenance / matched / reason` 结果 shape。Ads、validated/migrated SQP/ABA、reverse-ASIN、rank 和 keyword-assets 现在按 normalized keyword 精确合并；同名指标跨来源冲突时自动保留 source-qualified key（例如 `ads.clicks` / `sqp.clicks`、`sqp.searchVolume` / `reverse-asin.searchVolume`），不会静默覆盖。Batch 继续支持换行、逗号、关键词 CSV 与 Keyword Library，最多 200 个去重关键词，并对这套统一证据执行 exact left join；未命中输入保留原因。Rank 证据按 ASIN + keyword 取最新快照，但不同 ASIN 观察不会被折叠。
 - ✅ 中央 Page Registry、侧栏、command palette、页面标题与 breadcrumb 已统一使用 **Keyword Lab** canonical 页面身份；内部 `cerebro` route 仅保留兼容，不再拥有独立产品命名。EN / 中文 / 双语 shell 继续由 registry id 驱动。
-- ✅ P0 语义收口：原 `Common Words` 入口已准确改名为 **Word Frequency / 词频**，继续只滚动到当前过滤结果的字面词频；无 handler 的 `Save as Filter Preset` 已隐藏。Common Words 排除、删除/恢复、保存筛选和完整列视图仍作为 P1 功能，不再在当前页伪装为已可用。
-- ✅ Keyword Lab 的 Word Frequency / Learn / Search / Settings 工具按钮按 canonical `cerebro` route id 直接接线，不依赖可见标题；Batch Analysis、Word Frequency 与隐藏保存预设的状态同样由该 route 的 truth pass 驱动。
+- ✅ Keyword Lab 的 **Common Words** 入口现在直接打开统一 n-gram 工作区：支持 1/2/3+ gram、首尾停用词控制、词根筛选/高亮、Common Words 排除以及关键词删除/恢复；这些动作只改变当前结果视图，不修改 Dataset Registry 或原始导入证据。
+- ✅ Keyword Lab 的 Common Words / Learn / Search / Settings 工具按钮按 canonical `cerebro` route id 接线，不依赖可见标题；Batch Analysis 与 Common Words 的状态由同一 route truth pass 驱动，未实现的保存筛选仍继续隐藏。
 - ✅ Store 级 keyword assets、稳定 ID、标签、intent、保护状态和 Ads/SQP/rank/Listing/action evidence 汇总。
 - ✅ Keyword Library、Negative Library、Conflict Guard、Protected Keywords、Keyword Workflow。
 - 🟡 Rank & Index 支持用户导入的自然位、广告位和收录快照；没有自动日更、实时收录查询、Boost 或 Amazon 前台抓取，因此应称“快照追踪”。
@@ -187,7 +187,7 @@ Helium 10 于 2026-01-06 开始把 Magnet 合并进 Cerebro。当前方向是一
 |---|---|---|
 | Cerebro 两标签：Find Suggestions 与 Analyze Keywords；后者最多 200 词，可从 My List 进入 | 保留两模式，但共用来源、筛选、摘要和结果表 | 🟡 本地 ≤200 Batch 已实现四类输入、五来源 exact keyword evidence merge 与 left join，统一页面身份已完成；保存筛选和完整列视图仍不足 |
 | 可折叠筛选；搜索量、词数、竞争产品、Title Density、自然/广告/推荐排名、include/exclude 等列 | 仅展示导入中实际存在的列；缺失为 — | 🟡 Ads / SQP / reverse-ASIN / rank / keyword-assets 已进入统一证据模型；Helium 10 / 卖家精灵 CSV provider profile 已接入，但动态列配置仍不足 |
-| Keyword Distribution、Word Frequency、可拖动/显隐列、删除/恢复、历史、复制和导出 | 做成真实可操作的词根筛选、列视图和回收站 | 🟡 当前 Word Frequency 只展示字面词频，闭环仍未实现 |
+| Keyword Distribution、Word Frequency、可拖动/显隐列、删除/恢复、历史、复制和导出 | 做成真实可操作的词根筛选、列视图和回收站 | 🟡 1/2/3+ gram、Common Words 排除、删除/恢复和词根联动已完成；列视图、历史与导出仍待闭环 |
 | 多 ASIN Relative Rank、竞品平均排名/数量和 advanced rank filters | 用用户导入快照做 own/shared/gap 矩阵与透明筛选 | 🟡 已有集合比较且 provider CSV profile 已接入，primary ASIN / 矩阵交互仍不足 |
 | Tracker 以 ASIN 为主层，展开 Keywords / Competitors / Suggested Keywords；支持备注、标签、热力图 | 将真实 rank CSV 按 ASIN → Keywords 组织；重复导入后才显示趋势/heat map | 🟡 当前更像扁平关键词表 |
 | Listing Builder：Find Keywords → Keyword Bank → 编辑器；研究阶段最多 9 个竞品 ASIN，词根/短语竞品矩阵最多 20 个 | 复用已有 keyword assets 和 Listing Optimizer，建立最短传递链 | 🟡 两边已有数据但交互仍分散 |
@@ -319,7 +319,8 @@ P0 验收：所有可见指标能追到来源；坏行不会变成零；备份�
   - 2026-09-03：现有 `growth-import-validation.js` / `growth-import-gate.js` 直接扩展为第三方 CSV profile 层，不另建第二套 parser。Helium 10 Cerebro 支持 Keyword Phrase / Search Volume / Organic Rank / Sponsored Rank / Position (Rank) 等已公开字段，并可把以 ASIN 为列名的多 ASIN organic-rank 导出展开为 long-form reverse-ASIN 行；卖家精灵支持 Keyword、Searches/M / M. Searches、Organic Position、SP Rank、Impression Share、Conversion 等别名。第三方文件必须先在 preview 中确认或补齐 ASIN（单 ASIN 文件缺失时）、Marketplace 和 Snapshot Date，再进入既有严格 validator；非法 ASIN、日期、数值、列数及 20-ASIN 上限继续 fail-closed。Provider / Report Type / Report Version / Snapshot Date / Source File 随每行进入 reverse-ASIN 证据，Cerebro IQ Score、Title Density、SPR、DSR 等未映射供应商原始列按原列名保存在 `sourceColumns`，不重命名为 KeywordOS 指标。CI 为 **329 passed / 0 failed**；`npm run build` 验证 **42 个 JS + 9 个 CSS，52 个发布文件**，source/dist byte identity 与 committed-dist parity gate 全部通过。
 - [x] 暂不引入 XLSX 依赖；优先要求从第三方导出 CSV，或由用户另存为 CSV。
   - 2026-09-03：本轮只复用浏览器原生 File / CSV 路径与现有 parser，没有新增 npm 依赖；Excel/XLSX 继续不进入当前范围。
-- [ ] 完成可点击 1/2/3+ gram、停用词、Common Words 排除、删除/恢复、词根高亮和原表联动。
+- [x] 完成可点击 1/2/3+ gram、停用词、Common Words 排除、删除/恢复、词根高亮和原表联动。
+  - 2026-09-03：`keyword-lab.js` 在统一 `currentRows()` 结果之上增加可测试的 token / contiguous n-gram / root-view reducer：1/2/3+ gram 统计按结果行计数，停用词模式只忽略 n-gram 首尾常见功能词，不把非连续 token 拼成伪短语；root 点击使用完整 token 序列匹配并联动筛选、高亮当前结果。Common Words 排除、keyword delete/restore 都是可逆 view state，不写回 Ads、第三方 CSV 或 Dataset Registry。`app.js` 的 legacy Ads result table 通过 `filterLegacyAdsItems()` 消费同一 view state，因此页码/结果数会跟随 root、排除与删除状态；Batch 结果表同样消费这套状态。原只读 Word Frequency summary 在 Keyword Lab 中被统一 n-gram workspace 取代，`ui-capability-guard.js` 把 canonical `cerebro` 的第二个工具入口恢复为真实 **Common Words / 常用词** 并滚动到该 workspace。CI 为 **334 passed / 0 failed**；`npm run build` 验证 **42 个 JS + 9 个 CSS，52 个发布文件**，source/dist byte identity 与 committed-dist parity gate 全部通过。
 - [ ] 完成列排序/拖动/显隐、保存视图、可靠的筛选预设、查询历史、选中/当前页导出。
 - [ ] 统一批量动作：Add to List、Track Snapshot、Negative Candidate、Send to Listing、Export。
 - [ ] 所有第三方专有指标保留原名、来源和快照，不生成仿 IQ/CPR/KPS/SPR/DSR 分数。

@@ -17,9 +17,9 @@ test('Keyword Research truth labels expose the implemented 200-keyword Batch Ana
   assert.equal(guard.researchTruthLabels('en').batchTab, 'Batch Analysis');
   assert.equal(guard.researchTruthLabels('en').batchTitle, 'Analyze up to 200 keywords');
   assert.equal(guard.researchTruthLabels('en').batchPlaceholder, 'Batch input is managed by Keyword Lab');
-  assert.equal(guard.researchTruthLabels('en').wordFrequency, 'Word Frequency');
+  assert.equal(guard.researchTruthLabels('en').wordFrequency, 'Common Words');
   assert.equal(guard.researchTruthLabels('zh').batchTab, '批量分析');
-  assert.equal(guard.researchTruthLabels('bi').wordFrequency, '词频 / Word Frequency');
+  assert.equal(guard.researchTruthLabels('bi').wordFrequency, '常用词 / Common Words');
 });
 
 test('button capability fails closed when no action is connected', () => {
@@ -51,12 +51,13 @@ test('page detection uses the canonical registry route instead of translated vis
   assert.equal(guard.currentPageId({ hash: '#page=cerebro' }, registry), 'cerebro');
 });
 
-test('Keyword Research truth pass advertises real Batch Analysis while Common Words and saved presets remain unavailable', async () => {
+test('Keyword Lab truth pass advertises real Batch Analysis and the implemented Common Words workspace while saved presets remain unavailable', async () => {
   const source = await readFile(new URL('../ui-capability-guard.js', import.meta.url), 'utf8');
   assert.match(source, /\[data-research-mode="analyze"\]/);
   assert.match(source, /accepts up to 200 unique keywords/);
   assert.doesNotMatch(source, /Single phrase only:/);
-  assert.match(source, /no Common Words exclusion manager is implemented yet/);
+  assert.match(source, /Keyword Lab n-gram and Common Words workspace/);
+  assert.match(source, /data-keyword-lab-roots/);
   assert.match(source, /savePreset\.hidden=true/);
   assert.match(source, /Saved filter presets are not implemented/);
 });

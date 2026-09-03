@@ -17,9 +17,9 @@ const BID_SETTINGS_LABELS=Object.freeze({
   bi:'调价建议设置 / Bid Recommendation Settings'
 });
 const RESEARCH_TRUTH_LABELS=Object.freeze({
-  en:Object.freeze({batchTab:'Batch Analysis',batchTitle:'Analyze up to 200 keywords',batchPlaceholder:'Batch input is managed by Keyword Lab',wordFrequency:'Word Frequency'}),
-  zh:Object.freeze({batchTab:'批量分析',batchTitle:'最多分析 200 个关键词',batchPlaceholder:'批量输入由关键词实验室管理',wordFrequency:'词频'}),
-  bi:Object.freeze({batchTab:'批量分析 / Batch Analysis',batchTitle:'最多分析 200 个关键词 / Analyze up to 200 keywords',batchPlaceholder:'批量输入由关键词实验室管理 / Batch input is managed by Keyword Lab',wordFrequency:'词频 / Word Frequency'})
+  en:Object.freeze({batchTab:'Batch Analysis',batchTitle:'Analyze up to 200 keywords',batchPlaceholder:'Batch input is managed by Keyword Lab',wordFrequency:'Common Words'}),
+  zh:Object.freeze({batchTab:'批量分析',batchTitle:'最多分析 200 个关键词',batchPlaceholder:'批量输入由关键词实验室管理',wordFrequency:'常用词'}),
+  bi:Object.freeze({batchTab:'批量分析 / Batch Analysis',batchTitle:'最多分析 200 个关键词 / Analyze up to 200 keywords',batchPlaceholder:'批量输入由关键词实验室管理 / Batch input is managed by Keyword Lab',wordFrequency:'常用词 / Common Words'})
 });
 const UNAVAILABLE_REASON='Unavailable: no implemented action is connected in this runtime.';
 const DISABLED_REASON='Unavailable for the current data, selection, or runtime capability.';
@@ -113,7 +113,7 @@ function normalizeKeywordResearchTruth(){
   if(commonWords){
     commonWords.setAttribute('data-no-i18n','');
     setLeadingText(commonWords,labels.wordFrequency);
-    commonWords.title='Scrolls to literal word frequency for the currently filtered Ads terms; no Common Words exclusion manager is implemented yet.';
+    commonWords.title='Opens the Keyword Lab n-gram and Common Words workspace, where roots can filter/highlight linked results or be excluded without mutating source evidence.';
   }
   const savePreset=$('#r-save');
   if(savePreset){
@@ -136,7 +136,7 @@ function normalizeKeywordResearchTruth(){
 function bindKeywordResearchUtilities(){
   if(currentPageId(root.location,root.KeywordOSPageRegistry)!=='cerebro')return;
   const bindings=[
-    ['.utility-links .utility-link:nth-child(2)',()=>$('.wordcloud')?.closest('.summary-card')?.scrollIntoView({block:'center',behavior:'smooth'})],
+    ['.utility-links .utility-link:nth-child(2)',()=> $('[data-keyword-lab-roots]')?.scrollIntoView({block:'center',behavior:'smooth'})],
     ['.utility-links .utility-link:nth-child(3)',()=>$('#page-learn')?.click()],
     ['.data-workspace .toolbar-right button:nth-child(1)',()=>$('#research-query')?.focus()],
     ['.data-workspace .toolbar-right button:nth-child(2)',()=>{if(!$('#r-apply'))$('#research-toggle')?.click();$('#r-word-min')?.focus();}]

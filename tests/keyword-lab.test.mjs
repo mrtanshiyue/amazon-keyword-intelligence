@@ -182,3 +182,52 @@ test('Keyword Lab runtime exposes real Batch CSV and Keyword Library controls an
   assert.match(pkg.scripts.check, /node --check keyword-lab\.js/);
   assert.match(pkg.scripts.build, /keyword-lab\.js/);
 });
+
+
+test('Keyword Lab n-grams use contiguous token matches with 1/2/3+ modes and edge stopword control', () => {
+  assert.deepEqual(lab.keywordTokens('Reading-glasses for Women 2.0'), ['reading-glasses','for','women','2.0']);
+  assert.deepEqual(lab.extractNgrams('reading glasses for women', '1', { ignoreStopwords:true }), ['reading','glasses','women']);
+  assert.deepEqual(lab.extractNgrams('reading glasses for women', '2', { ignoreStopwords:true }), ['reading glasses']);
+  assert.deepEqual(lab.extractNgrams('reading glasses for women', '3+', { ignoreStopwords:true }), ['glasses for women','reading glasses for women']);
+  assert.equal(lab.containsGram('reading glasses for women', 'glasses for'), true);
+  assert.equal(lab.containsGram('reading glasses for women', 'reader'), false);
+});
+
+test('n-gram frequency counts result rows once per root and sorts deterministically', () => {
+  const rows = [{keyword:'reading glasses women'},{keyword:'reading glasses men'},{keyword:'blue light glasses'}];
+  assert.deepEqual(lab.ngramFrequency(rows,'2',{ignoreStopwords:true,limit:3}), [
+    {gram:'reading glasses',count:2},
+    {gram:'blue light',count:1},
+    {gram:'glasses men',count:1}
+  ]);
+});
+
+test('Common Words exclusion and delete/restore are reversible view state only', () => {
+  const rows = [{keyword:'reading glasses women'},{keyword:'blue light glasses'},{keyword:'computer readers'}];
+  let state = lab.normalizeRootWorkspaceState({});
+  state = lab.reduceRootWorkspaceState(state,{type:'select-root',value:'glasses'});
+  assert.deepEqual(lab.applyKeywordWorkspace(rows,state).map(row=>row.keyword), ['reading glasses women','blue light glasses']);
+  state = lab.reduceRootWorkspaceState(state,{type:'exclude-root',value:'blue light'});
+  assert.deepEqual(lab.applyKeywordWorkspace(rows,state).map(row=>row.keyword), ['reading glasses women']);
+  state = lab.reduceRootWorkspaceState(state,{type:'delete-keyword',value:'reading glasses women'});
+  assert.deepEqual(lab.applyKeywordWorkspace(rows,state), []);
+  state = lab.reduceRootWorkspaceState(state,{type:'restore-keyword',value:'reading glasses women'});
+  state = lab.reduceRootWorkspaceState(state,{type:'include-root',value:'blue light'});
+  assert.deepEqual(lab.applyKeywordWorkspace(rows,state).map(row=>row.keyword), ['reading glasses women','blue light glasses']);
+  assert.deepEqual(rows.map(row=>row.keyword), ['reading glasses women','blue light glasses','computer readers'], 'source evidence must remain untouched');
+});
+
+test('root highlight marks only the selected phrase and escapes source text', () => {
+  assert.equal(lab.highlightKeywordHtml('Reading Glasses <Women>', 'reading glasses'), '<mark>Reading Glasses</mark> &lt;Women&gt;');
+});
+
+test('Keyword Lab runtime owns the Common Words workspace and links the legacy Ads table through the same view filter', async () => {
+  const source = await readFile(new URL('../keyword-lab.js', import.meta.url), 'utf8');
+  const app = await readFile(new URL('../app.js', import.meta.url), 'utf8');
+  assert.match(source, /data-keyword-lab-gram-mode/);
+  assert.match(source, /data-keyword-lab-exclude-root/);
+  assert.match(source, /data-keyword-lab-delete/);
+  assert.match(source, /data-keyword-lab-restore/);
+  assert.match(app, /KeywordOSKeywordLab\?\.filterLegacyAdsItems/);
+  assert.match(app, /stageKeywordAsset,render,/);
+});
