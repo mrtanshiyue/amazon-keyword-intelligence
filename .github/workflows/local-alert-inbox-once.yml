@@ -21,6 +21,25 @@ jobs:
       - run: npm ci
       - name: Apply guarded alert inbox patch
         run: python .github/scripts/local-alert-inbox-once.py
+      - name: Preserve existing relevance build contract
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('package.json'); text=p.read_text()
+          old='growth-import-validation.js && node --check keyword-relevance-review.js && node --check alert-inbox.js && node --check growth-import-gate.js'
+          new='growth-import-validation.js && node --check alert-inbox.js && node --check keyword-relevance-review.js && node --check growth-import-gate.js'
+          if text.count(old)!=1: raise SystemExit(f'package check sequence: expected one match, found {text.count(old)}')
+          text=text.replace(old,new,1)
+          old='growth-import-validation.js keyword-relevance-review.js alert-inbox.js growth-import-gate.js'
+          new='growth-import-validation.js alert-inbox.js keyword-relevance-review.js growth-import-gate.js'
+          if text.count(old)!=1: raise SystemExit(f'package build sequence: expected one match, found {text.count(old)}')
+          text=text.replace(old,new,1); p.write_text(text)
+          p=Path('tests/alert-inbox.test.mjs'); text=p.read_text()
+          old="assert.match(pkg, /keyword-relevance-review\\.js alert-inbox\\.js growth-import-gate\\.js/);"
+          new="assert.match(pkg, /alert-inbox\\.js keyword-relevance-review\\.js growth-import-gate\\.js/);"
+          if text.count(old)!=1: raise SystemExit(f'alert test sequence: expected one match, found {text.count(old)}')
+          p.write_text(text.replace(old,new,1))
+          PY
       - name: Focused alert inbox tests
         run: node --test tests/alert-inbox.test.mjs tests/dataset-registry.test.mjs tests/rank-snapshots.test.mjs
       - name: Full check
