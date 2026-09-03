@@ -199,9 +199,10 @@ function start(){
   installDirectClickTracking();
   const boot=()=>{
     scheduleAudit();
-    const targets=[doc.body,$('#content'),$('#modal-root'),$('#drawer-root')].filter(Boolean);
+    const targets=[$('#modal-root'),$('#drawer-root')].filter(Boolean);
     const observer=new MutationObserver(scheduleAudit);
     targets.forEach(target=>observer.observe(target,{childList:true,subtree:true}));
+    root.addEventListener('keywordos:page-rendered',scheduleAudit);
     doc.addEventListener('click',event=>{if(event.target instanceof root.Element&&event.target.closest('[data-lang]'))root.setTimeout(()=>{normalizeSuggestionLabels();normalizeKeywordResearchTruth();scheduleAudit();},0);},true);
     root.addEventListener('hashchange',scheduleAudit);
     root.addEventListener('popstate',scheduleAudit);

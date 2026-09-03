@@ -46,3 +46,19 @@ test('sidebar navigation is explicitly synchronized without MutationObserver fee
   assert.match(appSource, /KeywordOSGrowth\?\.ensureNavigation\?\.\(\);/);
   assert.match(appSource, /KeywordOSNavigationTaxonomy\?\.organizeGrowthNavigation\?\.\(\);/);
 });
+
+test('page renderers notify enhancements explicitly instead of relying on global DOM observation', async () => {
+  const [appSource, growthSource, languageSource, runtimeSource, guardSource] = await Promise.all([
+    readFile(new URL('../app.js', import.meta.url), 'utf8'),
+    readFile(new URL('../growth-workspaces.js', import.meta.url), 'utf8'),
+    readFile(new URL('../product-language.js', import.meta.url), 'utf8'),
+    readFile(new URL('../runtime-capabilities.js', import.meta.url), 'utf8'),
+    readFile(new URL('../ui-capability-guard.js', import.meta.url), 'utf8')
+  ]);
+  for (const source of [appSource, growthSource]) assert.match(source, /keywordos:page-rendered/);
+  assert.match(languageSource, /addEventListener\('keywordos:page-rendered'/);
+  assert.doesNotMatch(languageSource, /new MutationObserver\(records=>/);
+  assert.match(runtimeSource, /addEventListener\('keywordos:page-rendered'/);
+  assert.doesNotMatch(runtimeSource, /observer\.observe\(document\.body/);
+  assert.match(guardSource, /root\.addEventListener\('keywordos:page-rendered',scheduleAudit\)/);
+});

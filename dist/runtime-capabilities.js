@@ -110,18 +110,10 @@
     applyCapabilityTruth();
   }
 
-  const observer = new MutationObserver((mutations) => {
-    for (const mutation of mutations) {
-      mutation.addedNodes.forEach((node) => {
-        if (node.nodeType === Node.ELEMENT_NODE) applyCapabilityTruth(node);
-      });
-    }
-  });
-
   function start() {
     renderBanner();
     applyCapabilityTruth();
-    observer.observe(document.body, { childList: true, subtree: true });
+    window.addEventListener('keywordos:page-rendered', () => applyCapabilityTruth());
     loadRuntimeStatus();
   }
 
