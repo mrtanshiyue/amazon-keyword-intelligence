@@ -332,7 +332,8 @@ P1 验收：同一关键词从导入到列表/Listing/追踪不需要复制粘�
 
 ### P2 — 多 ASIN、Library、Tracker 与 Listing 闭环
 
-- [ ] ASIN Comparison 增加 primary owned ASIN、竞品组、共有/自有/缺口、覆盖热力图和按任一有源指标切换的矩阵。
+- [x] ASIN Comparison 增加 primary owned ASIN、竞品组、共有/自有/缺口、覆盖热力图和按任一有源指标切换的矩阵。
+  - 2026-09-03：`growth-workspaces.js` 现在只接受 Product Master 明确拥有且同时存在于当前 reverse-ASIN 导入中的 ASIN 作为 primary；没有显式 ownership 时 fail-closed，不推断共有词或缺口。竞品范围直接复用既有 `competitor-groups`，默认也可使用当前全部 imported non-owned ASIN；保存组会与当前 reverse-ASIN ASIN 集合取交集，组内缺失 ASIN 明确提示。Shared / Own only / Competitor-only gap 均按 primary + 当前竞品 scope 重算，gap 只表示当前导入证据中 primary 缺行，不冒充 Amazon index/rank 结论。Coverage heatmap 按精确 ASIN + keyword 行是否存在着色；矩阵可切换当前文件实际提供的 Search Volume、Organic Rank、Sponsored Rank、Traffic Share、Conversion Rate，以及 `sourceColumns` 中真实存在的第三方原名字段，未导入的指标不会生成选项。primary / group / metric 只保存为 `keywordos_growth_asin_comparison_state_v1` 浏览器视图状态并进入现有 backup manifest，不建立第二套证据库。CI 为 **354 passed / 0 failed**；`npm run build` 验证 **43 个 JS + 9 个 CSS，53 个发布文件**，source/dist byte identity 与 committed-dist parity gate 全部通过。
 - [ ] 只有相同 ASIN/keyword 存在多个日期快照时才显示自然位、广告位、traffic/conversion 的趋势与差值。
 - [ ] Keyword Library 增加 folder、tag、status、note、favorite、move/copy、回收站、custom columns 和 20/50/100 分页。
 - [ ] Rank Snapshots 改为 ASIN → Keywords 层级，增加日期覆盖、断档、备注/事件、自然/广告切换和本地 heat map。

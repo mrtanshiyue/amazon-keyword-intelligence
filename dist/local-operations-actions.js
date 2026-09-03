@@ -45,6 +45,7 @@
     'keywordos_growth_listing_evidence_checklist_v1',
     'keywordos_growth_competitor_v1',
     'keywordos_growth_competitor_groups_v1',
+    'keywordos_growth_asin_comparison_state_v1',
     'keywordos_growth_reviews_v1',
     'keywordos_growth_reverse_asin_v1',
     'keywordos_growth_competitor_ads_v1',
