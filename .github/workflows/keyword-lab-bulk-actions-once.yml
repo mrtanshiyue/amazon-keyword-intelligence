@@ -25,9 +25,12 @@ jobs:
         run: python .github/scripts/keyword-lab-bulk-actions-v3-once.py
       - name: Focused bulk action tests
         run: node --test tests/keyword-lab-bulk-actions.test.mjs
-      - name: Full check and build
+      - name: Full check
         run: |
-          npm run check
+          npm run check > /tmp/keywordos-check.log 2>&1 || { tail -n 140 /tmp/keywordos-check.log; exit 1; }
+          tail -n 25 /tmp/keywordos-check.log
+      - name: Build and diff check
+        run: |
           npm run build
           git diff --check
       - name: Commit implementation
