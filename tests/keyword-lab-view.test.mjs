@@ -6,6 +6,8 @@ await import('../keyword-lab-view.js');
 const view = globalThis.KeywordOSKeywordLabViewTest;
 
 test('Keyword Lab column normalization keeps one stable keyword identity and drops unknown columns', () => {
+  assert.deepEqual(view.normalizeColumns('discovery'),view.allowedKeys('discovery'));
+  assert.deepEqual(view.normalizeState({}).columns.batch,view.allowedKeys('batch'));
   assert.deepEqual(view.normalizeColumns('discovery',['sales','bogus','sales']),['keyword','sales']);
   assert.deepEqual(view.normalizeColumns('batch',['source','keyword','reason']),['source','keyword','reason']);
 });

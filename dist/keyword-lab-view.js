@@ -41,8 +41,10 @@ function modeId(value){return value==='batch'?'batch':'discovery';}
 function catalog(mode){return COLUMN_CATALOG[modeId(mode)];}
 function allowedKeys(mode){return catalog(mode).map(column=>column.key);}
 function normalizeColumns(mode,values){
-  const allowed=allowedKeys(mode),seen=new Set(),out=[];
-  for(const raw of Array.isArray(values)?values:[]){const key=clean(raw);if(!allowed.includes(key)||seen.has(key))continue;seen.add(key);out.push(key);}
+  const allowed=allowedKeys(mode);
+  if(!Array.isArray(values))return[...allowed];
+  const seen=new Set(),out=[];
+  for(const raw of values){const key=clean(raw);if(!allowed.includes(key)||seen.has(key))continue;seen.add(key);out.push(key);}
   if(!seen.has('keyword'))out.unshift('keyword');
   return out.length?out:[...allowed];
 }
