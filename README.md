@@ -63,7 +63,7 @@ KeywordOS 的差异化不是复制 Helium 10 或卖家精灵的外部数据库�
 - 服务端：D1/R2 数据版本与持久化基础已存在，但没有接到产品导入/写入路由。
 - Worker 当前只接受 GET / HEAD；其他方法返回 405。
 - 已有路由：/api/health、/api/data/manifest、/api/data/seed.js、/api/data/unified-seed.js、/api/private/session。
-- Cloudflare Access 已配置；登录验收由项目所有者冻结，不能写成已完成的生产登录流程。
+- **测试阶段认证关闭（2026-09-03 owner override）**：Cloudflare Access application 与原 owner allow policy 保留，但生产 Access app 启用 `Bypass / Everyone`；Worker 默认 `AUTH_MODE=disabled-test`，不要求邮箱登录，也不伪造 authenticated identity。只有项目所有者再次明确要求恢复登录认证时，才允许移除 bypass 并显式切回 `AUTH_MODE=cloudflare-access`。
 
 关键代码入口：
 

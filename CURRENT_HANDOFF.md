@@ -34,9 +34,9 @@ The previous documentation checkpoint (`6a453244e4f148d082d169cc7893b56667e53f94
 
 ## 2. Permanent owner boundaries
 
-### Authentication / Cloudflare Access acceptance is FROZEN
+### Authentication / Cloudflare Access is TEST-BYPASSED
 
-Until the owner explicitly resumes authentication/login verification, do **not**:
+Owner override on **2026-09-03**: this is a test project and email login is intentionally disabled. The Cloudflare Access application and original owner allow policy are retained, but an `Everyone` Bypass policy is active; Worker auth defaults to `AUTH_MODE=disabled-test`. Until the owner explicitly asks to restore login authentication, do **not** remove the bypass or switch `AUTH_MODE` back to `cloudflare-access`. Also do **not**:
 
 - run `/api/private/session` authentication acceptance
 - request/capture canonical Cloudflare Access `sub`
@@ -48,7 +48,7 @@ Until the owner explicitly resumes authentication/login verification, do **not**
 - replace or extend the existing Access/JWT foundation
 - reopen auth merely because anonymous runtime smoke reaches the external redirect gate
 
-Preserve the existing fail-closed Access/JWT foundation unchanged.
+Preserve the existing Access/JWT code, D1 membership schema, and owner allow policy as the dormant restoration foundation; keep enforcement disabled during the owner-authorized test phase.
 
 ### Amazon remains HARD-OFF unless separately authorized
 
@@ -264,9 +264,9 @@ Existing read-only routes include:
 - `/api/data/manifest`
 - `/api/data/seed.js`
 - `/api/data/unified-seed.js`
-- `/api/private/session` — existing fail-closed canary; do not run auth acceptance while frozen
+- `/api/private/session` — defaults to explicit `disabled-test` mode (`authenticated=false`, `authenticationRequired=false`); only `AUTH_MODE=cloudflare-access` reactivates the existing fail-closed JWT path
 
-Anonymous runtime smoke may reach the external redirect gate before product HTML/static assets. Do not pursue identity/authentication through that gate while the owner freeze remains active.
+Anonymous runtime smoke should now reach product HTML/static assets without an Access email-login redirect because the owner-authorized `Bypass / Everyone` policy is active. Do not treat anonymous access as authenticated identity or authorization.
 
 ## 10. Current execution rule
 
@@ -297,12 +297,14 @@ This is an administration gap, not a product-runtime blocker.
 
 ## 12. Authentication resume condition
 
-`#17` remains **OPEN** only because authentication/authorization acceptance is intentionally frozen.
+`#17` remains **OPEN** because authentication/authorization acceptance is intentionally deferred while the owner-authorized test bypass is active.
 
 Authentication resumes only after the owner explicitly asks for it. At that future point continue from the existing foundation rather than rebuilding it:
 
 ```text
-Cloudflare Access external configuration gate
+remove temporary Cloudflare Access `Bypass / Everyone`
+-> set Worker `AUTH_MODE=cloudflare-access`
+-> Cloudflare Access external configuration gate
 -> /api/private/session identity acceptance
 -> canonical intended-owner Access sub
 -> exact Store 01 owner bootstrap

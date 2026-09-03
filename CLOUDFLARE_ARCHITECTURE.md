@@ -14,7 +14,7 @@ KeywordOS uses one Cloudflare Worker deployment unit:
 - **R2 (`DATA`)** — accepted seed/test datasets and the prepared immutable import-object namespace
 - **Workers Builds** — GitHub `main` build/deploy integration
 - **Workers Observability** — enabled
-- **Cloudflare Access** — Worker-level application already configured; further login/session acceptance frozen by owner
+- **Cloudflare Access** — Worker-level application and original owner allow policy retained; owner-authorized `Bypass / Everyone` is active for the current test phase, so email login enforcement is disabled until explicitly restored
 
 Production Worker: `amazon-keyword-intelligence`
 
@@ -62,9 +62,9 @@ Existing routes include:
 - `/api/data/manifest`
 - `/api/data/seed.js`
 - `/api/data/unified-seed.js`
-- `/api/private/session` — existing fail-closed Access canary; do not run login acceptance while frozen
+- `/api/private/session` — explicit test-mode session status by default; the existing fail-closed Access/JWT canary is used only when `AUTH_MODE=cloudflare-access` is explicitly restored
 
-There is no anonymous POST/PUT/PATCH/DELETE business endpoint. The prepared persistence pipeline is intentionally not wired to a mutable runtime route while authentication is frozen.
+There is no anonymous POST/PUT/PATCH/DELETE business endpoint. The prepared persistence pipeline remains intentionally unwired to mutable runtime routes while authentication is disabled for testing.
 
 ## Authentication / Access state
 
@@ -78,9 +78,9 @@ Repository foundations include:
 - D1 `access_users` / `store_memberships`
 - per-Store authorization helpers
 
-The owner has explicitly frozen further login/authentication verification until explicitly resumed.
+Owner override on **2026-09-03** disables login enforcement for testing: Cloudflare Access keeps the original application/allow policy but adds `Bypass / Everyone`, and Worker auth defaults to `AUTH_MODE=disabled-test`. The dormant Access/JWT foundation remains available for later restoration.
 
-While frozen, do not:
+Until the owner explicitly asks to restore authentication, do not remove the bypass or switch Worker auth mode. Also do not:
 
 - run `/api/private/session` authentication acceptance
 - capture canonical Access `sub`
@@ -90,7 +90,7 @@ While frozen, do not:
 - replace or extend the existing Access/JWT foundation
 - fabricate identity or use D1 writes to simulate authenticated acceptance
 
-Preserve the configuration and fail-closed foundation as-is.
+Preserve the Access/JWT code, membership schema and owner allow policy as dormant restoration infrastructure; current runtime enforcement remains intentionally bypassed.
 
 ## Production D1 schema v3
 
@@ -151,7 +151,7 @@ D1 current pointer
 
 Missing or inconsistent objects fail closed.
 
-These server persistence internals remain unexposed through mutable Worker routes while authentication is frozen.
+These server persistence internals remain unexposed through mutable Worker routes while authentication is disabled for testing.
 
 ## Browser-local integrity
 

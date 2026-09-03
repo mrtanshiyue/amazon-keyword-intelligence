@@ -1,8 +1,8 @@
 # Data Boundary Status
 
-Status: **PRODUCT COMPLETE / NON-AUTH PERSISTENCE FOUNDATION READY / LOGIN ACCEPTANCE FROZEN**
+Status: **PRODUCT COMPLETE / NON-AUTH PERSISTENCE FOUNDATION READY / TEST LOGIN BYPASS ACTIVE**
 
-Issue #20 is CLOSED / COMPLETED. Issue #17 remains OPEN because the owner has explicitly frozen login/authentication verification until explicitly resumed.
+Issue #20 is CLOSED / COMPLETED. Issue #17 remains OPEN because production authentication acceptance is deferred; owner override on 2026-09-03 intentionally disables email login for the current test phase until the owner explicitly asks to restore it.
 
 At the start of any continuation, read the current GitHub `main` first and use `CURRENT_HANDOFF.md` as the continuation checkpoint.
 
@@ -22,8 +22,8 @@ The Worker still exposes no mutable business route.
 ## Current contract
 
 - Product mutable state: browser-local where implemented
-- Cloudflare Access: Worker-level Production configuration exists
-- Login/session acceptance: frozen by owner
+- Cloudflare Access: Worker-level Production application and original owner allow policy retained; `Bypass / Everyone` active for testing
+- Login/session enforcement: disabled by owner until an explicit restoration request
 - D1 memberships: schema present, intentionally unbootstrapped
 - Production D1 dataset schema: version 3 applied and verified
 - Server persistence code: prepared internally but not wired to mutable runtime routes
@@ -32,15 +32,15 @@ The Worker still exposes no mutable business route.
 - `/api/data/*`: GET/HEAD-only data delivery
 - `/api/data/manifest`: read-only runtime/data-source manifest
 - `/api/health`: read-only runtime capability/readiness endpoint
-- `/api/private/session`: existing fail-closed canary; do not run acceptance while frozen
+- `/api/private/session`: defaults to `disabled-test`; the fail-closed Access/JWT path is reactivated only by explicit `AUTH_MODE=cloudflare-access`
 - Workers Static Assets: application assets only
 
-## Existing authentication foundation — preserve but do not continue
+## Existing authentication foundation — preserve while test bypass is active
 
 The repository and Production configuration already contain:
 
 - Worker-level Cloudflare Access application
-- owner-only Access allow policy
+- owner-only Access allow policy (retained beneath the temporary test bypass)
 - pinned Access team domain and audience
 - Access JWT signature / issuer / audience verification
 - canonical identity `sub` handling
@@ -55,7 +55,7 @@ access_users = 0
 store_memberships = 0
 ```
 
-While login/authentication is frozen, do not:
+While the owner-authorized test bypass is active, do not remove the bypass or re-enable login unless the owner explicitly asks. Also do not:
 
 - request or capture a real Access `sub`
 - bootstrap users or memberships

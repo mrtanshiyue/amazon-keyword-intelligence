@@ -82,12 +82,36 @@ async function serveTestData(request, env, key) {
   return new Response(request.method === 'HEAD' ? null : object.body, { headers });
 }
 
+function authMode(env) {
+  return String(env.AUTH_MODE || 'disabled-test').trim().toLowerCase() === 'cloudflare-access'
+    ? 'cloudflare-access'
+    : 'disabled-test';
+}
+
+function authenticationRequired(env) {
+  return authMode(env) === 'cloudflare-access';
+}
+
 async function servePrivateSession(request, env) {
+  if (!authenticationRequired(env)) {
+    const response = json({
+      authenticated: false,
+      authenticationRequired: false,
+      authMode: 'disabled-test',
+      identity: null,
+      storeAuthorization: null,
+      amazonApiMode: env.AMAZON_API_MODE || 'disabled',
+    });
+    return request.method === 'HEAD' ? headResponse(response) : response;
+  }
+
   try {
     const identity = await verifyAccessRequest(request, env);
     const storeAuthorization = await readStoreMemberships(env, identity.sub);
     const response = json({
       authenticated: true,
+      authenticationRequired: true,
+      authMode: 'cloudflare-access',
       identity,
       storeAuthorization,
       amazonApiMode: env.AMAZON_API_MODE || 'disabled',
@@ -137,6 +161,8 @@ export default {
           sources: sources.length,
           r2: objects,
           dataMode: 'public-test',
+          authMode: authMode(env),
+          authenticationRequired: authenticationRequired(env),
           accessAuthConfigured: accessAuthConfigured(env),
         });
       } catch (error) {
