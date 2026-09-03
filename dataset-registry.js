@@ -16,7 +16,7 @@
     'competitor', 'competitor-ads', 'competitor-creative', 'reviews', 'reverse-asin', 'listing', 'product-master', 'keyword-assets', 'action-outcomes'
   ]);
   const DATASET_KIND_SET = new Set(DATASET_KINDS);
-  const APPEND_MERGE_KINDS = new Set(['ranks', 'competitor']);
+  const APPEND_MERGE_KINDS = new Set(['inventory', 'ranks', 'competitor']);
 
   const text = (value, fallback = '') => String(value ?? fallback).trim();
   const clone = (value) => JSON.parse(JSON.stringify(value));
@@ -27,6 +27,13 @@
 
   function stableRowKey(kind, row) {
     if (!isRecord(row)) return '';
+    if (kind === 'inventory') {
+      const date = text(row.date) || 'UNDATED';
+      const sku = text(row.sku).toUpperCase();
+      const asin = text(row.asin).toUpperCase();
+      const identity = sku ? `SKU:${sku}` : asin ? `ASIN:${asin}` : '';
+      return identity ? `${date}|${identity}` : '';
+    }
     if (kind === 'ranks') {
       const date = text(row.date);
       const asin = text(row.asin).toUpperCase();

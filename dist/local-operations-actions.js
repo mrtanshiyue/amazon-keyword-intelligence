@@ -30,6 +30,7 @@
     'keywordos_v9_research_history',
     'keywordos_v9_keyword_lab_view',
     'keywordos_v9_local_filter_builder',
+    'keywordos_v9_alert_inbox',
     'keywordos_v9_dashboard_ui',
     'keywordos_v9_data_ops',
     'keywordos_v9_store_workspaces',

@@ -42,6 +42,17 @@ test('accepts Store-scoped action outcome baseline records', () => {
   assert.equal(record.rowCount, 1);
 });
 
+test('inventory snapshots append dated history and replace same-date SKU corrections', () => {
+  const rows = registry.mergeAppendRows('inventory', [
+    { date: '2026-08-30', sku: 'SKU-1', asin: 'B000000001', available: 20 },
+    { date: '2026-08-31', sku: 'SKU-1', asin: 'B000000001', available: 15 },
+    { date: '2026-08-31', sku: 'sku-1', asin: 'B000000001', available: 12 }
+  ]);
+  assert.equal(rows.length, 2);
+  assert.equal(rows[1].available, 12);
+  assert.ok(registry.APPEND_MERGE_KINDS.has('inventory'));
+});
+
 test('rank snapshots append new dates and replace corrections with the same stable key', () => {
   const rows = registry.mergeAppendRows('ranks', [
     { date: '2026-08-30', asin: 'B000000001', keyword: 'Reading Glasses', organicRank: 18 },
