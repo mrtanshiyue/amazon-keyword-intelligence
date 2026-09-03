@@ -89,3 +89,73 @@ test('ASIN comparison view state is backup-safe and UI controls are wired withou
   assert.match(css, /asin-matrix-cell\.has-evidence/);
   assert.doesNotMatch(source, /keywordos_growth_asin_comparison_evidence/);
 });
+
+
+test('dated reverse-ASIN imports append history and same-date same-source rows act as corrections', () => {
+  const existing = [
+    { asin:'OWN', keyword:'Reader', snapshotDate:'2026-09-01', provider:'Helium 10', reportType:'Cerebro', marketplace:'US', organicRank:12 },
+    { asin:'OWN', keyword:'Reader', snapshotDate:'', organicRank:99 }
+  ];
+  const incoming = [
+    { asin:'own', keyword:'reader', snapshotDate:'2026-09-02', provider:'Helium 10', reportType:'Cerebro', marketplace:'US', organicRank:9 },
+    { asin:'OWN', keyword:'Reader', snapshotDate:'2026-09-01', provider:'Helium 10', reportType:'Cerebro', marketplace:'US', organicRank:10 },
+    { asin:'OWN', keyword:'Reader', snapshotDate:'2026-09-01', provider:'SellerSprite', reportType:'Reverse ASIN', marketplace:'US', organicRank:7 }
+  ];
+  const merged = growth.mergeReverseAsinSnapshots(existing, incoming);
+  assert.equal(merged.length, 3);
+  assert.equal(merged.find(row=>row.provider==='Helium 10'&&row.snapshotDate==='2026-09-01').organicRank, 10);
+  assert.equal(merged.some(row=>row.snapshotDate===''), false);
+  assert.ok(merged.find(row=>row.provider==='SellerSprite'));
+});
+
+test('an undated reverse-ASIN import keeps conservative replace semantics', () => {
+  const existing = [{ asin:'OWN', keyword:'reader', snapshotDate:'2026-09-01', organicRank:12 }];
+  const incoming = [{ asin:'OWN', keyword:'reader', organicRank:8 }];
+  assert.deepEqual(growth.mergeReverseAsinSnapshots(existing, incoming), incoming);
+});
+
+test('metric trend requires two distinct dates for the exact ASIN keyword and comparable source series', () => {
+  const rows = [
+    { asin:'OWN', keyword:'reader', snapshotDate:'2026-09-01', provider:'Helium 10', reportType:'Cerebro', marketplace:'US', organicRank:12 },
+    { asin:'OTHER', keyword:'reader', snapshotDate:'2026-09-02', provider:'Helium 10', reportType:'Cerebro', marketplace:'US', organicRank:6 },
+    { asin:'OWN', keyword:'other', snapshotDate:'2026-09-02', provider:'Helium 10', reportType:'Cerebro', marketplace:'US', organicRank:5 },
+    { asin:'OWN', keyword:'reader', snapshotDate:'2026-09-01', provider:'Helium 10', reportType:'Cerebro', marketplace:'US', organicRank:11 }
+  ];
+  const trend = growth.asinMetricTrend(rows, 'OWN', 'reader', 'organicRank');
+  assert.equal(trend.available, false);
+  assert.match(trend.reason, /two dated snapshots/i);
+});
+
+test('metric trend uses the latest two same-source dates and reports raw rank or percentage-point delta', () => {
+  const rows = [
+    { asin:'OWN', keyword:'reader', snapshotDate:'2026-09-01', provider:'Helium 10', reportType:'Cerebro', marketplace:'US', organicRank:12, trafficShare:0.08 },
+    { asin:'OWN', keyword:'reader', snapshotDate:'2026-09-02', provider:'Helium 10', reportType:'Cerebro', marketplace:'US', organicRank:9, trafficShare:0.10 },
+    { asin:'OWN', keyword:'reader', snapshotDate:'2026-09-03', provider:'Helium 10', reportType:'Cerebro', marketplace:'US', organicRank:7, trafficShare:0.13 }
+  ];
+  const rank = growth.asinMetricTrend(rows, 'OWN', 'reader', 'organicRank');
+  assert.equal(rank.available, true);
+  assert.equal(rank.previous.date, '2026-09-02');
+  assert.equal(rank.latest.date, '2026-09-03');
+  assert.equal(rank.delta, -2);
+  assert.equal(growth.formatAsinTrendDelta(rank), '−2');
+  const traffic = growth.asinMetricTrend(rows, 'OWN', 'reader', 'trafficShare');
+  assert.equal(traffic.delta, 0.03);
+  assert.equal(growth.formatAsinTrendDelta(traffic), '+3 pp');
+});
+
+test('matrix exposes a trend only for qualifying standard metric cells and the UI discloses the two-snapshot gate', () => {
+  const source = [
+    { asin:'OWN', keyword:'reader', snapshotDate:'2026-09-01', organicRank:12 },
+    { asin:'OWN', keyword:'reader', snapshotDate:'2026-09-03', organicRank:8 },
+    { asin:'COMP', keyword:'reader', snapshotDate:'2026-09-03', organicRank:5 }
+  ];
+  const scope = growth.asinComparisonScope(source, [{ asin:'OWN' }], [], {});
+  const matrix = growth.asinComparisonMatrix(source, scope, 'organicRank');
+  const row = matrix.rows.find(item=>item.keyword==='reader');
+  assert.equal(row.cells.OWN.value, 8);
+  assert.equal(row.cells.OWN.trend.available, true);
+  assert.equal(row.cells.COMP.trend.available, false);
+  const file = fs.readFileSync(new URL('../growth-workspaces.js', import.meta.url), 'utf8');
+  assert.match(file, /at least two dated snapshots exist in one comparable source series/);
+  assert.match(file, /mergeReverseAsinSnapshots\(load\(kind\),rows\)/);
+});
