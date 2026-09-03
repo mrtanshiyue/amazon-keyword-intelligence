@@ -74,7 +74,7 @@ KeywordOS 的差异化不是复制 Helium 10 或卖家精灵的外部数据库�
 | [growth-workspaces.js](./growth-workspaces.js) | SQP、产品、竞品、评论、排名、Listing、库存工作区 | 🟡 功能多，解析和持久化一致性需补强 |
 | [dataset-registry.js](./dataset-registry.js) | Store 级数据集、元数据、IndexedDB 与 ranks/competitor stable merge | ✅ 数据中枢与追加快照幂等边界已存在 |
 | [data-provenance-guard.js](./data-provenance-guard.js) | Ads / Finance / Growth 数据集与 metric provenance、Action lineage、seed/stale approval fail-closed | ✅ USER IMPORT / BUNDLED SEED / CALCULATED / THIRD-PARTY ESTIMATE / MISSING 统一契约 |
-| [growth-import-validation.js](./growth-import-validation.js)、[growth-import-gate.js](./growth-import-gate.js) | 8 类 Growth CSV 严格校验、partial handoff 与拒绝行下载 | ✅ 用户 Growth 文件输入边界 fail-closed |
+| [growth-import-validation.js](./growth-import-validation.js)、[growth-import-gate.js](./growth-import-gate.js) | 8 类 Growth CSV 严格校验、Helium 10 / 卖家精灵 CSV profile、preview、partial handoff 与拒绝行下载 | ✅ 第三方 profile 先补齐来源元数据再进入同一严格 validator；未知供应商列保留 |
 | [growth-consistency-actions.js](./growth-consistency-actions.js) | Inventory observed-day velocity 与 Listing field profile 的运行时一致性边界 | ✅ 复用现有 Growth 计算器，统一用户可见口径 |
 | [ui-capability-guard.js](./ui-capability-guard.js) | 按钮能力契约、Rule-based Bids 命名、Keyword Lab 可见能力与实际行为一致性 | ✅ 未接线按钮 fail-closed；Keyword Lab 未实现能力准确改名/隐藏 |
 | [keyword-lab.js](./keyword-lab.js) | Keyword Lab 三模式运行时壳与 source-aware 统一结果契约 | ✅ 三模式、五来源 exact merge、source-aware 指标冲突与 canonical Keyword Lab 页面身份已统一 |
@@ -173,7 +173,7 @@ KeywordOS 的差异化不是复制 Helium 10 或卖家精灵的外部数据库�
 | 优先级 | 问题 | 影响 | 完成标准 |
 |---|---|---|---|
 | P1 | 动态文案与可访问性双语仍需全量审计 | modal、空态或 aria 可能存在局部翻译遗漏 | canonical route/page/suite 已统一；继续覆盖全页面、空态、modal 和 aria 文案 |
-| P1 | 多 ASIN 只有通用导入层 | H10/卖家精灵导出需要人工清洗 | provider CSV profile、列映射预览和未知列保留 |
+| P1 | Keyword Lab 词根与列视图闭环未完成 | 当前 Word Frequency、列配置、删除/恢复和保存视图仍分散 | 1/2/3+ gram 与原表联动、列显隐/排序、保存视图和可靠筛选预设 |
 
 ## 竞品基准：截至 2026-09-02
 
@@ -186,9 +186,9 @@ Helium 10 于 2026-01-06 开始把 Magnet 合并进 Cerebro。当前方向是一
 | 官方当前能力 / UI | KeywordOS 应吸收 | 当前差距 |
 |---|---|---|
 | Cerebro 两标签：Find Suggestions 与 Analyze Keywords；后者最多 200 词，可从 My List 进入 | 保留两模式，但共用来源、筛选、摘要和结果表 | 🟡 本地 ≤200 Batch 已实现四类输入、五来源 exact keyword evidence merge 与 left join，统一页面身份已完成；保存筛选和完整列视图仍不足 |
-| 可折叠筛选；搜索量、词数、竞争产品、Title Density、自然/广告/推荐排名、include/exclude 等列 | 仅展示导入中实际存在的列；缺失为 — | 🟡 Ads / SQP / reverse-ASIN / rank / keyword-assets 已进入统一证据模型，但动态列配置和第三方 provider schema 仍不足 |
+| 可折叠筛选；搜索量、词数、竞争产品、Title Density、自然/广告/推荐排名、include/exclude 等列 | 仅展示导入中实际存在的列；缺失为 — | 🟡 Ads / SQP / reverse-ASIN / rank / keyword-assets 已进入统一证据模型；Helium 10 / 卖家精灵 CSV provider profile 已接入，但动态列配置仍不足 |
 | Keyword Distribution、Word Frequency、可拖动/显隐列、删除/恢复、历史、复制和导出 | 做成真实可操作的词根筛选、列视图和回收站 | 🟡 当前 Word Frequency 只展示字面词频，闭环仍未实现 |
-| 多 ASIN Relative Rank、竞品平均排名/数量和 advanced rank filters | 用用户导入快照做 own/shared/gap 矩阵与透明筛选 | 🟡 已有集合比较，provider schema 和交互不足 |
+| 多 ASIN Relative Rank、竞品平均排名/数量和 advanced rank filters | 用用户导入快照做 own/shared/gap 矩阵与透明筛选 | 🟡 已有集合比较且 provider CSV profile 已接入，primary ASIN / 矩阵交互仍不足 |
 | Tracker 以 ASIN 为主层，展开 Keywords / Competitors / Suggested Keywords；支持备注、标签、热力图 | 将真实 rank CSV 按 ASIN → Keywords 组织；重复导入后才显示趋势/heat map | 🟡 当前更像扁平关键词表 |
 | Listing Builder：Find Keywords → Keyword Bank → 编辑器；研究阶段最多 9 个竞品 ASIN，词根/短语竞品矩阵最多 20 个 | 复用已有 keyword assets 和 Listing Optimizer，建立最短传递链 | 🟡 两边已有数据但交互仍分散 |
 | 2026 Tracker 广告出价规则 | 只借鉴“条件 → 建议 → 人工复核”的本地模式 | ⛔ 不接广告账户，不自动调价 |
@@ -315,8 +315,10 @@ P0 验收：所有可见指标能追到来源；坏行不会变成零；备份�
   - 2026-09-03：`parseBatchInput()` 支持换行、逗号与 quote-aware CSV；多列 CSV 必须存在 Keyword/Search Term 类表头，否则 fail-closed。`keywordLibraryInput()` 只读取已验证或迁移的 `keyword-assets`；输入按规范化关键词大小写无关去重并保留首次显示顺序，超过 200 个唯一词会完整拒绝而不是截断。Batch 现在对统一的 Ads / SQP/ABA / reverse-ASIN / rank / keyword-assets exact keyword evidence 执行 left join，substring 不视为命中；未命中输入仍保留 `matched=false`、missing provenance 与明确 reason，不把缺失指标写成 0。CI 为 **325 passed / 0 failed**；`npm run build`、**42 个 JS + 9 个 CSS / 52 个发布文件**、source/dist byte identity 与 committed-dist parity gate 全部通过。
 - [x] 合并 Ads、SQP/ABA、reverse-ASIN、rank 和 keyword-assets 证据；同名指标不跨来源静默覆盖。
   - 2026-09-03：`combinedKeywordEvidence()` 把 Ads 聚合与 validated/migrated `sqp`、`reverse-asin`、`ranks`、`keyword-assets` 按 normalized keyword 精确合并；无效 Registry 记录不会进入证据层。`mergeMetricEvidence()` 仅在指标只来自一个 source 时保留原 key；同名指标出现跨来源冲突时改为 source-qualified key，例如 `ads.clicks` / `sqp.clicks`、`sqp.searchVolume` / `reverse-asin.searchVolume`、`ranks.organicRank` / `reverse-asin.organicRank`，不会静默覆盖。Rank 取每个 ASIN + keyword 的最新快照并保留不同 ASIN observations；Batch 可命中只有 SQP 或 Keyword Library 证据的词；ASIN Compare 以 reverse-ASIN comparison 为主再补充 Ads/SQP/rank/keyword-assets，避免 reverse-ASIN 自重复。CI 为 **325 passed / 0 failed**；`npm run build`、**42 个 JS + 9 个 CSS / 52 个发布文件**、source/dist byte identity 与 committed-dist parity gate 全部通过。
-- [ ] 增加 Helium 10 与卖家精灵 CSV profile：header alias、市场、报告类型、报告版本、快照日期、预览、严格校验和未知列保留。
-- [ ] 暂不引入 XLSX 依赖；优先要求从第三方导出 CSV，或由用户另存为 CSV。
+- [x] 增加 Helium 10 与卖家精灵 CSV profile：header alias、市场、报告类型、报告版本、快照日期、预览、严格校验和未知列保留。
+  - 2026-09-03：现有 `growth-import-validation.js` / `growth-import-gate.js` 直接扩展为第三方 CSV profile 层，不另建第二套 parser。Helium 10 Cerebro 支持 Keyword Phrase / Search Volume / Organic Rank / Sponsored Rank / Position (Rank) 等已公开字段，并可把以 ASIN 为列名的多 ASIN organic-rank 导出展开为 long-form reverse-ASIN 行；卖家精灵支持 Keyword、Searches/M / M. Searches、Organic Position、SP Rank、Impression Share、Conversion 等别名。第三方文件必须先在 preview 中确认或补齐 ASIN（单 ASIN 文件缺失时）、Marketplace 和 Snapshot Date，再进入既有严格 validator；非法 ASIN、日期、数值、列数及 20-ASIN 上限继续 fail-closed。Provider / Report Type / Report Version / Snapshot Date / Source File 随每行进入 reverse-ASIN 证据，Cerebro IQ Score、Title Density、SPR、DSR 等未映射供应商原始列按原列名保存在 `sourceColumns`，不重命名为 KeywordOS 指标。CI 为 **329 passed / 0 failed**；`npm run build` 验证 **42 个 JS + 9 个 CSS，52 个发布文件**，source/dist byte identity 与 committed-dist parity gate 全部通过。
+- [x] 暂不引入 XLSX 依赖；优先要求从第三方导出 CSV，或由用户另存为 CSV。
+  - 2026-09-03：本轮只复用浏览器原生 File / CSV 路径与现有 parser，没有新增 npm 依赖；Excel/XLSX 继续不进入当前范围。
 - [ ] 完成可点击 1/2/3+ gram、停用词、Common Words 排除、删除/恢复、词根高亮和原表联动。
 - [ ] 完成列排序/拖动/显隐、保存视图、可靠的筛选预设、查询历史、选中/当前页导出。
 - [ ] 统一批量动作：Add to List、Track Snapshot、Negative Candidate、Send to Listing、Export。

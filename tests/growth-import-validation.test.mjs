@@ -71,3 +71,59 @@ test('growth input gate recognizes only growth-file inputs and exposes determini
   assert.equal(gate.kindForInputId('hidden-file'), '');
   assert.equal(gate.summaryText({ acceptedCount: 4, rejectedCount: 2, skippedCount: 1 }), '4 accepted · 2 rejected · 1 skipped');
 });
+
+
+test('Helium 10 Cerebro profile maps supported fields and preserves proprietary columns', () => {
+  const csv = 'Keyword Phrase,Search Volume,Organic Rank,Sponsored Rank,Cerebro IQ Score,Title Density\nreading glasses,1200,4,2,3456,7';
+  const profile = validation.profileThirdPartyCsv('reverse-asin', csv, { asin:'B000000001', marketplace:'US', snapshotDate:'2026-09-03', sourceFile:'cerebro.csv' });
+  assert.equal(profile.provider, 'Helium 10');
+  assert.equal(profile.reportType, 'Cerebro');
+  assert.equal(profile.canProfile, true);
+  assert.deepEqual(profile.unknownHeaders, ['Cerebro IQ Score','Title Density']);
+  const checked = validation.validateGrowthCsv('reverse-asin', profile.normalizedCsv);
+  assert.equal(checked.acceptedCount, 1);
+  const [row] = growth.parseKind('reverse-asin', checked.acceptedCsv);
+  assert.equal(row.asin, 'B000000001');
+  assert.equal(row.provider, 'Helium 10');
+  assert.equal(row.marketplace, 'US');
+  assert.equal(row.snapshotDate, '2026-09-03');
+  assert.equal(row.sourceColumns['Cerebro IQ Score'], '3456');
+  assert.equal(row.sourceColumns['Title Density'], '7');
+});
+
+test('Helium 10 multi-ASIN rank columns expand into long-form reverse-ASIN rows', () => {
+  const csv = 'Keyword Phrase,Search Volume,Cerebro IQ Score,B000000001,B000000002\nreading glasses,900,123,3,8';
+  const profile = validation.profileThirdPartyCsv('reverse-asin', csv, { marketplace:'US', snapshotDate:'2026-09-03' });
+  assert.equal(profile.canProfile, true);
+  assert.deepEqual(profile.wideAsins, ['B000000001','B000000002']);
+  const checked = validation.validateGrowthCsv('reverse-asin', profile.normalizedCsv);
+  assert.equal(checked.acceptedCount, 2);
+  const rows = growth.parseKind('reverse-asin', checked.acceptedCsv);
+  assert.deepEqual(rows.map(row => [row.asin,row.organicRank]), [['B000000001',3],['B000000002',8]]);
+  assert.equal(rows[0].sourceColumns['Cerebro IQ Score'], '123');
+});
+
+test('SellerSprite profile maps current reverse-ASIN aliases without renaming proprietary metrics', () => {
+  const csv = 'Keyword,Searches/M,Organic Position,SP Rank,Impression Share,Conversion,SPR,DSR\nreading glasses,1500,5,3,12%,8%,22,4.5';
+  const profile = validation.profileThirdPartyCsv('reverse-asin', csv, { asin:'B000000003', marketplace:'US', snapshotDate:'2026-09-03', reportVersion:'web-export' });
+  assert.equal(profile.provider, 'SellerSprite');
+  assert.equal(profile.canProfile, true);
+  assert.deepEqual(profile.unknownHeaders, ['SPR','DSR']);
+  const checked = validation.validateGrowthCsv('reverse-asin', profile.normalizedCsv);
+  const [row] = growth.parseKind('reverse-asin', checked.acceptedCsv);
+  assert.equal(row.volume, 1500);
+  assert.equal(row.organicRank, 5);
+  assert.equal(row.sponsoredRank, 3);
+  assert.equal(row.trafficShare, 0.12);
+  assert.equal(row.conversionRate, 0.08);
+  assert.equal(row.reportVersion, 'web-export');
+  assert.deepEqual(row.sourceColumns, {SPR:'22',DSR:'4.5'});
+});
+
+test('third-party profiles fail closed until required source metadata exists and generic CSV is not claimed', () => {
+  const h10 = validation.profileThirdPartyCsv('reverse-asin', 'Keyword Phrase,Cerebro IQ Score\nreading glasses,100');
+  assert.deepEqual(new Set(h10.missingMetadata), new Set(['asin','marketplace','snapshotDate']));
+  assert.equal(h10.canProfile, false);
+  assert.throws(() => validation.profileThirdPartyCsv('reverse-asin', 'Keyword Phrase,Cerebro IQ Score\nreading glasses,100', {asin:'bad',marketplace:'US',snapshotDate:'2026-09-03'}), /Fallback ASIN/);
+  assert.equal(validation.profileThirdPartyCsv('reverse-asin', 'ASIN,Keyword,Search Volume\nB000000001,reading glasses,100'), null);
+});
