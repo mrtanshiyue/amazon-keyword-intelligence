@@ -1,0 +1,44 @@
+name: Suggested Keywords Inspect Once
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/suggested-keywords-inspect-once.yml
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Print current suggestion and import call paths
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          text=Path('app.js').read_text()
+          def snippet(label,start_anchor,end_anchor=None,radius=2200):
+              start=text.find(start_anchor)
+              print(f'\n===== {label} start={start} =====')
+              if start<0:
+                  print('ANCHOR NOT FOUND')
+                  return
+              if end_anchor:
+                  end=text.find(end_anchor,start+len(start_anchor))
+                  if end<0: end=min(len(text),start+radius)
+                  else: end=min(len(text),end+len(end_anchor))
+                  print(text[start:end])
+              else:
+                  print(text[max(0,start-radius//3):min(len(text),start+radius)])
+          snippet('suggestionData','function suggestionData(){','function suggestionDatasetKey(){')
+          snippet('suggestion dataset/review','function suggestionDatasetKey(){','function renderSuggestions')
+          snippet('renderSuggestions','function renderSuggestions','function render')
+          snippet('ads import','async function handleImport','function')
+          snippet('persist import','persistWorkspaceDataset(\'ads\'')
+          snippet('syncKeywordAssets','async function syncKeywordAssets(){')
+          snippet('tracked mutation','state.tracked.push')
+          snippet('tracked removal','state.tracked=state.tracked.filter')
+          snippet('keyword delete','deletedAt')
+          PY
