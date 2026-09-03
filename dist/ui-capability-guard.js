@@ -17,9 +17,9 @@ const BID_SETTINGS_LABELS=Object.freeze({
   bi:'调价建议设置 / Bid Recommendation Settings'
 });
 const RESEARCH_TRUTH_LABELS=Object.freeze({
-  en:Object.freeze({phraseTab:'Phrase Filter',phraseTitle:'Filter loaded Ads terms by one phrase',phrasePlaceholder:'Enter one keyword phrase',wordFrequency:'Word Frequency'}),
-  zh:Object.freeze({phraseTab:'短语筛选',phraseTitle:'按一个短语筛选已加载广告词',phrasePlaceholder:'输入一个关键词短语',wordFrequency:'词频'}),
-  bi:Object.freeze({phraseTab:'短语筛选 / Phrase Filter',phraseTitle:'按一个短语筛选已加载广告词 / Filter loaded Ads terms by one phrase',phrasePlaceholder:'输入一个关键词短语 / Enter one keyword phrase',wordFrequency:'词频 / Word Frequency'})
+  en:Object.freeze({batchTab:'Batch Analysis',batchTitle:'Analyze up to 200 keywords',batchPlaceholder:'Batch input is managed by Keyword Lab',wordFrequency:'Word Frequency'}),
+  zh:Object.freeze({batchTab:'批量分析',batchTitle:'最多分析 200 个关键词',batchPlaceholder:'批量输入由关键词实验室管理',wordFrequency:'词频'}),
+  bi:Object.freeze({batchTab:'批量分析 / Batch Analysis',batchTitle:'最多分析 200 个关键词 / Analyze up to 200 keywords',batchPlaceholder:'批量输入由关键词实验室管理 / Batch input is managed by Keyword Lab',wordFrequency:'词频 / Word Frequency'})
 });
 const UNAVAILABLE_REASON='Unavailable: no implemented action is connected in this runtime.';
 const DISABLED_REASON='Unavailable for the current data, selection, or runtime capability.';
@@ -106,8 +106,8 @@ function normalizeKeywordResearchTruth(){
   const analyzeTab=$('[data-research-mode="analyze"]');
   if(analyzeTab){
     analyzeTab.setAttribute('data-no-i18n','');
-    setLeadingText(analyzeTab,labels.phraseTab);
-    analyzeTab.title='Single phrase only: filters the currently loaded Amazon Ads search-term evidence. Batch analysis up to 200 keywords remains a Keyword Lab task.';
+    setLeadingText(analyzeTab,labels.batchTab);
+    analyzeTab.title='Keyword Lab Batch Analysis accepts up to 200 unique keywords from line breaks, comma-separated input, keyword CSV, or Keyword Library. Exact left join preserves unmatched inputs.';
   }
   const commonWords=$('.utility-links .utility-link:nth-child(2)');
   if(commonWords){
@@ -123,12 +123,12 @@ function normalizeKeywordResearchTruth(){
   }
   if(analyzeTab?.classList.contains('active')){
     const heading=$('.cerebro-topline h2');
-    if(heading){heading.setAttribute('data-no-i18n','');setText(heading,labels.phraseTitle);}
+    if(heading){heading.setAttribute('data-no-i18n','');setText(heading,labels.batchTitle);}
     const input=$('#research-query');
     if(input){
       input.setAttribute('data-no-i18n','');
-      if(input.placeholder!==labels.phrasePlaceholder)input.placeholder=labels.phrasePlaceholder;
-      input.setAttribute('aria-label',labels.phrasePlaceholder);
+      if(input.placeholder!==labels.batchPlaceholder)input.placeholder=labels.batchPlaceholder;
+      input.setAttribute('aria-label',labels.batchPlaceholder);
     }
   }
 }

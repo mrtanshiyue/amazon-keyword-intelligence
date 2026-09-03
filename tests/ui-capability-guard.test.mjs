@@ -13,11 +13,12 @@ test('rule-based bid labels are accurate in all language modes', () => {
   assert.equal(guard.bidSettingsLabel('en'), 'Bid Recommendation Settings');
 });
 
-test('Keyword Research labels match the current one-phrase and word-frequency behavior', () => {
-  assert.equal(guard.researchTruthLabels('en').phraseTab, 'Phrase Filter');
-  assert.equal(guard.researchTruthLabels('en').phrasePlaceholder, 'Enter one keyword phrase');
+test('Keyword Research truth labels expose the implemented 200-keyword Batch Analysis boundary', () => {
+  assert.equal(guard.researchTruthLabels('en').batchTab, 'Batch Analysis');
+  assert.equal(guard.researchTruthLabels('en').batchTitle, 'Analyze up to 200 keywords');
+  assert.equal(guard.researchTruthLabels('en').batchPlaceholder, 'Batch input is managed by Keyword Lab');
   assert.equal(guard.researchTruthLabels('en').wordFrequency, 'Word Frequency');
-  assert.equal(guard.researchTruthLabels('zh').phraseTab, '短语筛选');
+  assert.equal(guard.researchTruthLabels('zh').batchTab, '批量分析');
   assert.equal(guard.researchTruthLabels('bi').wordFrequency, '词频 / Word Frequency');
 });
 
@@ -50,10 +51,11 @@ test('page detection uses the canonical registry route instead of translated vis
   assert.equal(guard.currentPageId({ hash: '#page=cerebro' }, registry), 'cerebro');
 });
 
-test('Keyword Research truth pass does not advertise unimplemented batch, Common Words, or saved-preset workflows', async () => {
+test('Keyword Research truth pass advertises real Batch Analysis while Common Words and saved presets remain unavailable', async () => {
   const source = await readFile(new URL('../ui-capability-guard.js', import.meta.url), 'utf8');
   assert.match(source, /\[data-research-mode="analyze"\]/);
-  assert.match(source, /Single phrase only:/);
+  assert.match(source, /accepts up to 200 unique keywords/);
+  assert.doesNotMatch(source, /Single phrase only:/);
   assert.match(source, /no Common Words exclusion manager is implemented yet/);
   assert.match(source, /savePreset\.hidden=true/);
   assert.match(source, /Saved filter presets are not implemented/);
