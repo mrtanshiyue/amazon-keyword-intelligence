@@ -14,12 +14,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Print listing keyword bank call paths
+      - name: Print listing keyword bank integration details
         run: |
           python - <<'PY'
           from pathlib import Path
 
-          def around(path, anchors, radius=1800):
+          def around(path, anchors, radius=2400):
               text=Path(path).read_text()
               print(f'\n######## {path} ########')
               for anchor in anchors:
@@ -32,28 +32,27 @@ jobs:
                   print(text[start:end])
 
           around('growth-workspaces.js', [
-              'function mergeListingKeywordBank',
-              'keywordBank',
-              "'listing-optimizer'",
-              'Listing Keyword Bank',
-              'data-listing',
-              'listingPlacement'
-          ], 4200)
+              'function phraseCoverage',
+              'function listingCoverage',
+              'function normalizeListingKeywordBank',
+              'function renderListing',
+              "'[data-growth-listing]'",
+              'data-growth-listing=',
+              'mergeListingKeywordBank,',
+              'return {'
+          ], 5200)
           around('app.js', [
-              'persistedKeywordAssetRows',
-              'stageKeywordAssets',
-              'Send to Listing',
-              'mergeListingKeywordBank',
-              'listing.keywordBank',
-              'keywordLibraryState'
-          ], 3200)
+              'function renderKeywordLibrary',
+              'Keyword Library',
+              'data-keyword-library',
+              'data-kwlib',
+              'persistKeywordAssetRows',
+              'function renderKeywordWorkflow'
+          ], 5200)
           around('keyword-library-state.js', [
-              'function normalizeAsset',
-              'favorite',
-              'deletedAt',
-              'customFields'
-          ], 2200)
-          around('tests/keyword-lab-bulk-actions.test.mjs', ['mergeListingKeywordBank'], 1800)
-          around('tests/growth-workspaces.test.mjs', ['listing'], 1800)
-          around('tests/growth-consistency-actions.test.mjs', ['listingPlacementSuggestions'], 2400)
+              'return{',
+              'return {'
+          ], 3000)
+          around('tests/keyword-library-state.test.mjs', ['runtime is wired', 'Recycle Bin'], 2200)
+          around('tests/growth-workspaces.test.mjs', ['listing coverage', 'listing versions'], 2600)
           PY
