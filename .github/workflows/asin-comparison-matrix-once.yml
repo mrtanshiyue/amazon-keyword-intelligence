@@ -21,20 +21,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - name: Tighten backup whitelist patch
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          p=Path('.github/scripts/asin-comparison-matrix-once.py')
-          text=p.read_text()
-          old="replace_once('local-operations-actions.js', old, new, 'backup ASIN comparison state')"
-          new="p=Path('local-operations-actions.js'); text=p.read_text(); index=text.find(old);\nif index<0: raise SystemExit('backup ASIN comparison state: whitelist anchor missing');\np.write_text(text[:index]+text[index:].replace(old,new,1))"
-          if text.count(old)!=1:
-              raise SystemExit(f'backup script call: expected one match, found {text.count(old)}')
-          p.write_text(text.replace(old,new,1))
-          PY
       - name: Apply guarded ASIN comparison patch
-        run: python .github/scripts/asin-comparison-matrix-once.py
+        run: python .github/scripts/asin-comparison-matrix-wrapper.py
       - name: Focused ASIN comparison tests
         run: node --test tests/asin-comparison-matrix.test.mjs tests/growth-workspaces.test.mjs
       - name: Full check and build
