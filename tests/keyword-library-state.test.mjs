@@ -70,7 +70,7 @@ test('Keyword Library runtime is wired into app build and Keyword Lab excludes r
   ]);
   assert.match(index,/keyword-library-state\.js[\s\S]*app\.js/);
   assert.match(pkg,/node --check keyword-library-state\.js/);
-  assert.match(pkg,/keyword-lab-view\.js keyword-library-state\.js navigation-taxonomy\.js/);
+  assert.match(pkg,/keyword-lab-view\.js keyword-library-state\.js suggested-keywords\.js navigation-taxonomy\.js/);
   assert.match(app,/folder:'all',status:'all',trash:false,pageNo:1,pageSize:20/);
   assert.match(app,/keywordLibraryState\.moveAssets/);
   assert.match(app,/keywordLibraryState\.copyAssetsToFolder/);
