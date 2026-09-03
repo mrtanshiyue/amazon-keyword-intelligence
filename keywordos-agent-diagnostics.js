@@ -11,7 +11,7 @@ function validDate(v){const s=clean(v).slice(0,10);return /^\d{4}-\d{2}-\d{2}$/.
 function median(values=[]){const a=values.map(Number).filter(Number.isFinite).sort((x,y)=>x-y);if(!a.length)return null;const m=Math.floor(a.length/2);return a.length%2?a[m]:(a[m-1]+a[m])/2;}
 function recordFor(records,kind){return base?.recordFor?.(records,kind)||null;}
 function sourceRows(record,indexes,limit=20){return base?.rawEvidence?.(record,indexes,limit)||[];}
-function isDiagnosticQuery(query){return /\bwhy\b|what caused|reason.*change|cause.*change|为什么|为何|原因|怎么.*(变|变化)|上涨.*原因|下降.*原因/.test(lower(query));}
+function isDiagnosticQuery(query){const q=lower(query);if(/priority|prioriti[sz]ed|prioritised|prioriti[sz]e|优先|优先级|missing data|data gaps?|缺少什么数据|缺哪些数据|数据缺口/.test(q))return false;return /\bwhy\b|what caused|reason.*change|cause.*change|为什么|为何|原因|怎么.*(变|变化)|上涨.*原因|下降.*原因/.test(q);}
 function requestedWindow(query){const m=lower(query).match(/\b(\d{1,2})\s*(?:day|days|d)\b/);return m?Math.max(1,Math.min(MAX_WINDOW,Number(m[1])||DEFAULT_WINDOW)):DEFAULT_WINDOW;}
 function metricFromQuery(query,mode='general'){
   const q=lower(query),tests=[
