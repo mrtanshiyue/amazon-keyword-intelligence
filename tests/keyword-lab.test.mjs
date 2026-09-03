@@ -229,5 +229,5 @@ test('Keyword Lab runtime owns the Common Words workspace and links the legacy A
   assert.match(source, /data-keyword-lab-delete/);
   assert.match(source, /data-keyword-lab-restore/);
   assert.match(app, /KeywordOSKeywordLab\?\.filterLegacyAdsItems/);
-  assert.match(app, /stageKeywordAsset,render,/);
+  assert.match(app, /stageKeywordAsset,stageKeywordAssets,trackKeywords,stageNegativeCandidates,render,/);
 });
