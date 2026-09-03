@@ -67,7 +67,7 @@ test('invalid listing profile fails closed for backend placement', () => {
 
 test('growth consistency script loads immediately after the growth workspace', async () => {
   const index = await readFile(new URL('../index.html', import.meta.url), 'utf8');
-  const growth = index.indexOf('<script src="growth-workspaces.js?v=search-funnel-safe-2"></script>');
+  const growth = index.indexOf('<script src="growth-workspaces.js?v=rank-safe-1"></script>');
   const consistencyIndex = index.indexOf('<script src="growth-consistency-actions.js"></script>');
   const navigation = index.indexOf('<script src="navigation-taxonomy.js"></script>');
   assert.ok(growth >= 0);
