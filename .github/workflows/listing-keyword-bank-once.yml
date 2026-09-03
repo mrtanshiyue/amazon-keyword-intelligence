@@ -22,6 +22,8 @@ jobs:
       - run: npm ci
       - name: Apply guarded Listing Keyword Bank patch
         run: python .github/scripts/listing-keyword-bank-once.py
+      - name: Preserve Listing safety copy contract
+        run: python .github/scripts/listing-keyword-bank-fix-once.py
       - name: Focused Listing Keyword Bank tests
         run: node --test tests/listing-keyword-bank.test.mjs tests/keyword-lab-bulk-actions.test.mjs tests/keyword-library-state.test.mjs tests/growth-workspaces.test.mjs
       - name: Full check
