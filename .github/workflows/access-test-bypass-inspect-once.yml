@@ -1,0 +1,48 @@
+name: Access Test Bypass Inspect Once
+
+on:
+  push:
+    paths:
+      - '.github/workflows/access-test-bypass-inspect-once.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - name: Inspect matching Access applications and policy capability
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${CLOUDFLARE_API_TOKEN:-}"
+          test -n "${CLOUDFLARE_ACCOUNT_ID:-}"
+          auth=(-H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" -H "Content-Type: application/json")
+          apps="$(mktemp)"
+          code="$(curl -sS -o "$apps" -w '%{http_code}' "${auth[@]}" "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/access/apps")"
+          success="$(jq -r '.success // false' "$apps")"
+          echo "ACCESS_APPS_HTTP=${code}"
+          echo "ACCESS_APPS_SUCCESS=${success}"
+          if [ "$code" != "200" ] || [ "$success" != "true" ]; then
+            jq -r '.errors[]? | "ACCESS_APPS_ERROR=\(.code):\(.message)"' "$apps"
+            exit 10
+          fi
+          jq -r '.result[] | select(((.name // "")|ascii_downcase|contains("amazon-keyword-intelligence")) or ((.domain // "")|ascii_downcase|contains("amazon-keyword-intelligence"))) | "MATCH_APP_ID=\(.id)\nMATCH_APP_NAME=\(.name // "")\nMATCH_APP_DOMAIN=\(.domain // "")\nMATCH_APP_TYPE=\(.type // "")"' "$apps"
+          app_id="$(jq -r '[.result[] | select(((.name // "")|ascii_downcase|contains("amazon-keyword-intelligence")) or ((.domain // "")|ascii_downcase|contains("amazon-keyword-intelligence")))][0].id // empty' "$apps")"
+          test -n "$app_id" || { echo 'MATCH_APP=NONE'; exit 11; }
+          policies="$(mktemp)"
+          pcode="$(curl -sS -o "$policies" -w '%{http_code}' "${auth[@]}" "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/access/apps/${app_id}/policies")"
+          psuccess="$(jq -r '.success // false' "$policies")"
+          echo "ACCESS_POLICIES_HTTP=${pcode}"
+          echo "ACCESS_POLICIES_SUCCESS=${psuccess}"
+          if [ "$pcode" = "200" ] && [ "$psuccess" = "true" ]; then
+            jq -r '.result[] | "POLICY=\(.precedence // "?")|\(.decision // "")|\(.name // "")"' "$policies"
+          else
+            jq -r '.errors[]? | "ACCESS_POLICIES_ERROR=\(.code):\(.message)"' "$policies"
+            exit 12
+          fi
