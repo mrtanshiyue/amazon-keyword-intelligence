@@ -98,7 +98,7 @@ function currentSelection(page){const cfg=PAGE_CONFIG[page];if(!cfg?.scopeField)
 function registry(){return root?.KeywordOSUIBridge?.datasetRegistry||[];}
 function insertionPoint(content){return content.querySelector('.source-chip-row')||content.querySelector('.growth-actions')||content.firstElementChild;}
 function render(){
-  scheduled=false;const page=currentPage(),cfg=PAGE_CONFIG[page],content=root?.document?.querySelector?.('#content');
+  scheduled=false;const page=currentPage(),cfg=PAGE_CONFIG[page],content=root?.document?.querySelector?.('#content');if(page==='search-funnel')return;
   root?.document?.querySelector?.('.keywordos-evidence-trends')?.remove();if(!cfg||!content)return;
   const selection=currentSelection(page),records=registry(),model=trendModel(page,records,selection),html=panelHtml(page,model,provenance(records,page));
   const holder=document.createElement('div');holder.innerHTML=html;const panel=holder.firstElementChild,point=insertionPoint(content);point?point.insertAdjacentElement('afterend',panel):content.prepend(panel);
