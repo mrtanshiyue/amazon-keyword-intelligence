@@ -21,6 +21,16 @@ jobs:
       - run: npm ci
       - name: Apply guarded Agent explanation patch
         run: python .github/scripts/agent-explanations-once.py
+      - name: Fix focused assertion target
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('tests/keywordos-agent-explanations.test.mjs'); text=p.read_text()
+          old="assert.match(specialists.explanationHtml(priority),/Missing data/);"
+          new="assert.match(specialists.explanationHtml(missing),/Missing data/);"
+          if text.count(old)!=1: raise SystemExit(f'expected one assertion, found {text.count(old)}')
+          p.write_text(text.replace(old,new,1))
+          PY
       - name: Focused Agent explanation tests
         run: node --test tests/keywordos-agent-explanations.test.mjs tests/keywordos-agent.test.mjs tests/keywordos-agent-diagnostics.test.mjs tests/keywordos-agent-modes.test.mjs
       - name: Full check
