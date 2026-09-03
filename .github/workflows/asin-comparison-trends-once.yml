@@ -1,0 +1,55 @@
+name: ASIN Comparison Trends Once
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/asin-comparison-trends-once.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Apply guarded ASIN trend patch
+        run: python .github/scripts/asin-comparison-trends-once.py
+      - name: Focused ASIN trend tests
+        run: node --test tests/asin-comparison-matrix.test.mjs tests/growth-workspaces.test.mjs
+      - name: Full check
+        run: |
+          set -o pipefail
+          npm run check | tee /tmp/check.log
+          TEST_COUNT=$(grep -E '^# tests [0-9]+$' /tmp/check.log | tail -1 | awk '{print $3}')
+          test -n "$TEST_COUNT"
+          python - "$TEST_COUNT" <<'PY'
+          from pathlib import Path
+          import sys
+          p=Path('README.md')
+          text=p.read_text()
+          count=sys.argv[1]
+          if text.count('__TEST_COUNT__') != 1:
+              raise SystemExit(f'expected one README test placeholder, found {text.count("__TEST_COUNT__")}')
+          p.write_text(text.replace('__TEST_COUNT__', count, 1))
+          PY
+      - name: Build static assets
+        run: |
+          npm run build
+          git diff --check
+      - name: Commit implementation
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add README.md growth-workspaces.js tests/asin-comparison-matrix.test.mjs dist
+          git diff --cached --check
+          git commit -m "feat: add dated ASIN metric trends"
+          git push origin HEAD:main
