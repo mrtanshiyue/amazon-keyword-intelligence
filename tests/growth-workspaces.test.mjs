@@ -28,7 +28,9 @@ test('derives search funnel rates and sorts opportunity', () => {
   ]);
   assert.equal(rows[0].query, 'b');
   assert.equal(rows[0].ctr, 0.25);
-  assert.equal(rows[0].purchaseRate, 0.2);
+  assert.equal(rows[0].purchaseRate, 0.025);
+  assert.equal(rows[0].searchCvr, 0.025);
+  assert.equal(rows[0].clickCvr, 0.2);
 });
 
 test('keeps latest rank snapshot per ASIN and keyword', () => {

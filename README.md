@@ -351,7 +351,8 @@ P2 验收：一个关键词资产可看到来源、列表状态、Listing placem
 
 ### P3 — 透明的本地决策辅助
 
-- [ ] 从完整导入字段计算并展示可展开公式的 Purchase Rate、Search CVR、Click CVR、CPA、break-even ACoS 和预算情景；缺分母时为 —。
+- [x] 从完整导入字段计算并展示可展开公式的 Purchase Rate、Search CVR、Click CVR、CPA、break-even ACoS 和预算情景；缺分母时为 —。
+  - 2026-09-03：新增统一 `formulaMetric()` 透明计算契约，所有 ratio 均保存 numerator / denominator / formula / availability，分母为 0 或缺失时 `value=null`，UI 显示 `—` 而不是 0。Search Funnel 按本 README 已定义口径计算 **Purchase Rate = Purchases ÷ Searches**、**Search CVR = Purchases ÷ Searches**、**Click CVR = Purchases ÷ Clicks**；前两者保留为同公式兼容标签，并在可展开 `Formula & inputs` 中显示汇总输入。Ads 侧新增 `adsDecisionMetrics()`，只对当前加载 Ads rows 先汇总 Spend / Orders / Clicks / Attributed Sales，再计算 **CPA = Spend ÷ Orders**、observed CPC、Click CVR 与 ACoS，不平均行级比率。Product 360 的 break-even ACoS 改为 `breakEvenAcosMetric()`：只有同一 Product Master 映射同时存在真实 Finance、Costs、Ads 证据且 Attributed ad sales > 0 时才计算 **max(0, (Operating net − COGS) ÷ Attributed ad sales)**，否则显示 `—` 并展开说明缺失证据。预算只提供 browser-session planning scenario：从真实加载 Ads 汇总得到 observed CPC + Click CVR，用户仅输入“至少 1 单”的目标概率，使用 **ceil(ln(1 − target probability) ÷ ln(1 − Click CVR)) × observed CPC** 计算所需 clicks 与 scenario budget；不预填、不保存、不生成 campaign budget recommendation，更不会写 Amazon。CI 为 **391 passed / 0 failed**；`npm run build` 验证 **45 个 JS + 9 个 CSS，55 个发布文件**，source/dist byte identity 与 committed-dist parity gate 全部通过。
 - [ ] 增加可编辑的 Simple / Advanced 本地筛选与 Top-N 条件构造器；保存条件，不保存伪装成实时的结果。
 - [ ] 增加人工相关性审核队列；若有 ASIN-result overlap，允许显示公式公开的“本地相关度”。
 - [ ] 增加本地 alert inbox，只对两次真实快照间的价格、排名、库存、评论或广告变化发提示。
