@@ -22,7 +22,7 @@ jobs:
       - run: npm ci
       - name: Apply guarded Listing usage patch
         run: python .github/scripts/listing-usage-matrix-once.py
-      - name: Preserve exact-root expectation
+      - name: Preserve exact-root expectations
         run: python .github/scripts/listing-usage-matrix-fix-once.py
       - name: Focused Listing tests
         run: node --test tests/listing-usage-matrix.test.mjs tests/listing-keyword-bank.test.mjs tests/growth-workspaces.test.mjs
