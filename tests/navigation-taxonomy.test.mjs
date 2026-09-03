@@ -43,8 +43,8 @@ test('sidebar navigation is explicitly synchronized without MutationObserver fee
   assert.match(taxonomySource, /seenPages\.has\(record\.id\)\)\{button\.remove\(\);continue;\}/);
   assert.match(growthSource, /const missing=GROWTH_NAV_ITEMS\.filter/);
   assert.match(growthSource, /const buttons=\$\$\('\[data-page\]',nav\)\.filter\(b=>RENDERERS\[b\.dataset\.page\]&&!b\.dataset\.growthNavBound\)/);
-  assert.match(growthSource, /nav\.addEventListener\('click',event=>\{const button=event\.target\?\.closest\?\.\('\[data-page\]'\),page=button\?\.dataset\?\.page;if\(!RENDERERS\[page\]\)return;event\.preventDefault\(\);event\.stopImmediatePropagation\(\);render\(page\)\},true\)/);
-  assert.match(growthSource, /e\.stopPropagation\(\);render\(b\.dataset\.page\)/);
+  assert.match(growthSource, /event\.stopImmediatePropagation\(\);if\(page==='search-funnel'\)renderSearchFunnelSafePage\(\);else render\(page\)/);
+  assert.match(growthSource, /e\.stopPropagation\(\);if\(b\.dataset\.page==='search-funnel'\)renderSearchFunnelSafePage\(\);else render\(b\.dataset\.page\)/);
   assert.match(growthSource, /ensureNavigation:injectNav/);
   assert.match(appSource, /KeywordOSGrowth\?\.ensureNavigation\?\.\(\);/);
   assert.match(appSource, /KeywordOSNavigationTaxonomy\?\.organizeGrowthNavigation\?\.\(\);/);
