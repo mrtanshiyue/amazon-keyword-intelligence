@@ -233,7 +233,7 @@ function parseBatchInput(value,{source='manual'}={}){
 }
 function keywordLibraryInput(records=[]){
   const record=recordFor(records,'keyword-assets');if(!record)return Object.freeze({ok:false,source:'keyword-library',format:'library',keywords:Object.freeze([]),inputCount:0,duplicateCount:0,reason:'library-missing'});
-  const parsed=normalizeBatchKeywordList((record.rows||[]).map(keywordAssetValue),{source:'keyword-library',format:'library'});if(!parsed.ok&&parsed.reason==='empty-input')return Object.freeze({...parsed,reason:'library-empty'});return parsed;
+  const parsed=normalizeBatchKeywordList((record.rows||[]).filter(row=>!clean(row?.deletedAt)).map(keywordAssetValue),{source:'keyword-library',format:'library'});if(!parsed.ok&&parsed.reason==='empty-input')return Object.freeze({...parsed,reason:'library-empty'});return parsed;
 }
 function batchLeftJoin(inputs=[],evidenceRows=[],{inputSource='manual',missingReason='No exact keyword match across loaded keyword evidence.'}={}){
   const index=new Map();for(const row of evidenceRows||[]){const key=normalizedKeyword(row?.keyword);if(key&&!index.has(key))index.set(key,row);}const inputLabel=INPUT_SOURCE_LABELS[inputSource]||clean(inputSource)||'Batch input';
