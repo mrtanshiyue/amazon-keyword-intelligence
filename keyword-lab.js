@@ -120,9 +120,10 @@ function modeStatus(mode,summary,text){
   const metrics=summary.metrics.length?summary.metrics.join(', '):'no available metrics';
   return `${source} · ${summary.rows} keyword rows · ${metrics}`;
 }
-function shellHtml(active,summary,text){
+function shellSignature(active,summary,mode){return[active,languageMode(mode),summary.rows,summary.sources.join(','),summary.metrics.join(',')].join('|');}
+function shellHtml(active,summary,text,signature){
   const button=(mode,label)=>`<button type="button" class="mode-tab ${active===mode?'active':''}" data-keyword-lab-mode="${mode}" aria-pressed="${active===mode?'true':'false'}">${label}</button>`;
-  return `<div class="card" data-keyword-lab-shell><div class="card-head"><div class="card-title"><h3 data-no-i18n>${text.title}</h3><small data-no-i18n>${text.subtitle}</small></div></div><div class="card-body"><div class="mode-tabs" role="tablist" aria-label="Keyword Lab modes">${button('discovery',text.discovery)}${button('batch',text.batch)}${button('asin',text.asin)}</div><div class="small muted" data-keyword-lab-status data-no-i18n>${modeStatus(active,summary,text)}</div><div class="small muted" data-no-i18n>${text.contract}</div></div></div>`;
+  return `<div class="card" data-keyword-lab-shell data-keyword-lab-signature="${signature}"><div class="card-head"><div class="card-title"><h3 data-no-i18n>${text.title}</h3><small data-no-i18n>${text.subtitle}</small></div></div><div class="card-body"><div class="mode-tabs" role="tablist" aria-label="Keyword Lab modes">${button('discovery',text.discovery)}${button('batch',text.batch)}${button('asin',text.asin)}</div><div class="small muted" data-keyword-lab-status data-no-i18n>${modeStatus(active,summary,text)}</div><div class="small muted" data-no-i18n>${text.contract}</div></div></div>`;
 }
 function openCoreMode(mode){
   const run=()=>{
@@ -144,7 +145,7 @@ function activate(mode){
   openCoreMode(mode);
 }
 function bindShell(shell){
-  shell.querySelectorAll('[data-keyword-lab-mode]').forEach(button=>{
+  shell?.querySelectorAll('[data-keyword-lab-mode]').forEach(button=>{
     if(button.dataset.keywordLabBound==='1')return;
     button.dataset.keywordLabBound='1';
     button.addEventListener('click',()=>activate(button.dataset.keywordLabMode));
@@ -157,12 +158,12 @@ function applyShell(){
   const active=uiMode();if(!active)return false;
   if(page==='cerebro'){
     const legacyModes=$('.cerebro-search-card > .mode-tabs');
-    if(legacyModes){legacyModes.hidden=true;legacyModes.setAttribute('aria-hidden','true');}
+    if(legacyModes&&!legacyModes.hidden){legacyModes.hidden=true;legacyModes.setAttribute('aria-hidden','true');}
   }
-  const text=labels(root.KeywordOSI18N?.getLanguage?.()||'en'),summary=modelSummary(currentRows(active));
+  const language=root.KeywordOSI18N?.getLanguage?.()||'en',text=labels(language),summary=modelSummary(currentRows(active)),signature=shellSignature(active,summary,language);
   let shell=$('[data-keyword-lab-shell]',content);
-  if(!shell){content.insertAdjacentHTML('afterbegin',shellHtml(active,summary,text));shell=$('[data-keyword-lab-shell]',content);}
-  else shell.outerHTML=shellHtml(active,summary,text),shell=$('[data-keyword-lab-shell]',content);
+  if(!shell){content.insertAdjacentHTML('afterbegin',shellHtml(active,summary,text,signature));shell=$('[data-keyword-lab-shell]',content);}
+  else if(shell.dataset.keywordLabSignature!==signature){shell.outerHTML=shellHtml(active,summary,text,signature);shell=$('[data-keyword-lab-shell]',content);}
   bindShell(shell);
   return true;
 }
@@ -180,5 +181,5 @@ function start(){
   doc.readyState==='loading'?doc.addEventListener('DOMContentLoaded',boot,{once:true}):boot();
 }
 
-return{MODE_CATALOG,RESULT_FIELDS,LABELS,clean,normalizedKeyword,languageMode,labels,metric,resultRow,adsResultRows,asinResultRows,filterAdsByQuery,modelSummary,sameResultShape,currentRows,uiMode,applyShell,activate,start};
+return{MODE_CATALOG,RESULT_FIELDS,LABELS,clean,normalizedKeyword,languageMode,labels,metric,resultRow,adsResultRows,asinResultRows,filterAdsByQuery,modelSummary,sameResultShape,shellSignature,currentRows,uiMode,applyShell,activate,start};
 });
