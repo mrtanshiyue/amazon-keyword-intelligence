@@ -22,6 +22,8 @@ jobs:
       - run: npm ci
       - name: Apply guarded Suggested Keywords patch
         run: python .github/scripts/suggested-keywords-once.py
+      - name: Update test wiring for the new module
+        run: python .github/scripts/suggested-keywords-fix-once.py
       - name: Focused Suggested Keywords tests
         run: node --test tests/suggested-keywords.test.mjs tests/suggestion-bid-truth.test.mjs tests/business-accuracy-wiring.test.mjs tests/keyword-library-state.test.mjs
       - name: Full check
@@ -63,7 +65,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add README.md app.js index.html package.json suggested-keywords.js tests/suggested-keywords.test.mjs dist
+          git add README.md app.js index.html package.json suggested-keywords.js tests/suggested-keywords.test.mjs tests/keyword-library-state.test.mjs dist
           git diff --cached --check
           git commit -m "feat: add import-driven suggested keywords"
           git push origin HEAD:main
