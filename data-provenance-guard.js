@@ -430,11 +430,10 @@
     applyApprovalGuard();
   }, true);
 
-  const observer = new MutationObserver(() => scheduleRefresh());
   function start() {
     initializeActionLineage();
     applyTruth();
-    observer.observe(document.body, { childList: true, subtree: true });
+    window.addEventListener('keywordos:page-rendered', scheduleRefresh);
     void refresh();
   }
 

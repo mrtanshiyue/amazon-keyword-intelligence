@@ -51,12 +51,13 @@ test('sidebar navigation is explicitly synchronized without MutationObserver fee
 });
 
 test('page renderers notify enhancements explicitly instead of relying on global DOM observation', async () => {
-  const [appSource, growthSource, languageSource, runtimeSource, guardSource] = await Promise.all([
+  const [appSource, growthSource, languageSource, runtimeSource, guardSource, provenanceSource] = await Promise.all([
     readFile(new URL('../app.js', import.meta.url), 'utf8'),
     readFile(new URL('../growth-workspaces.js', import.meta.url), 'utf8'),
     readFile(new URL('../product-language.js', import.meta.url), 'utf8'),
     readFile(new URL('../runtime-capabilities.js', import.meta.url), 'utf8'),
-    readFile(new URL('../ui-capability-guard.js', import.meta.url), 'utf8')
+    readFile(new URL('../ui-capability-guard.js', import.meta.url), 'utf8'),
+    readFile(new URL('../data-provenance-guard.js', import.meta.url), 'utf8')
   ]);
   for (const source of [appSource, growthSource]) assert.match(source, /keywordos:page-rendered/);
   assert.match(languageSource, /addEventListener\('keywordos:page-rendered'/);
@@ -64,4 +65,6 @@ test('page renderers notify enhancements explicitly instead of relying on global
   assert.match(runtimeSource, /addEventListener\('keywordos:page-rendered'/);
   assert.doesNotMatch(runtimeSource, /observer\.observe\(document\.body/);
   assert.match(guardSource, /root\.addEventListener\('keywordos:page-rendered',scheduleAudit\)/);
+  assert.match(provenanceSource, /window\.addEventListener\('keywordos:page-rendered', scheduleRefresh\)/);
+  assert.doesNotMatch(provenanceSource, /observer\.observe\(document\.body/);
 });
