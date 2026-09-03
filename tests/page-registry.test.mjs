@@ -31,8 +31,10 @@ test('canonical route aliases live in the page registry', () => {
 
 test('registry exposes only canonical KeywordOS product names to navigation and commands', () => {
   const research = registry.page('cerebro');
-  assert.equal(research.navLabel, 'Keyword Research');
-  assert.equal(research.title, 'Keyword Research');
+  assert.equal(research.navLabel, 'Keyword Lab');
+  assert.equal(research.title, 'Keyword Lab');
+  assert.equal(registry.commandEntries().find(entry => entry.page === 'cerebro')?.label, 'Keyword Lab');
+  assert.equal(registry.commandEntries().some(entry => entry.label === 'Keyword Research'), false);
   assert.equal(registry.commandEntries().some(entry => /\bCerebro\b/.test(entry.label)), false);
   assert.equal(registry.commandEntries().some(entry => entry.page === 'tracker'), false);
   assert.equal(registry.commandEntries().some(entry => entry.page === 'listing-workspace'), false);

@@ -29,7 +29,7 @@ const RAW_PAGES=[
   ['rank-intelligence','keywords','keywords','↗','Rank & Index','Rank & Index Tracker','Track imported organic rank, sponsored rank and index status.','growth',40],
   ['global-keywords','keywords','keywords','⌕','Global Keyword Library','Global Keyword Library','Shared keyword knowledge across stores. Amazon execution remains store-scoped.','core',50],
   ['global-conflicts','keywords','keywords','⚠','Global Conflict Center','Global Conflict Center','Identify cross-store keyword conflicts before creating store-scoped negative actions.','core',60],
-  ['cerebro','keywords','keywords','⌕','Keyword Research','Keyword Research','Research and qualify keyword opportunities using Amazon advertising search-term data.','core',70],
+  ['cerebro','keywords','keywords','⌕','Keyword Lab','Keyword Lab','Discover, batch-analyze, and compare loaded keyword evidence through one source-aware result model.','core',70],
   ['keyword-library','keywords','keywords','≡','Keyword Library','Keyword Library','Store-scoped keyword assets with lifecycle, protection and performance status.','core',80],
   ['negative-library','keywords','keywords','⊖','Negative Library','Negative Library','Manage suggested and active negative targets with store-level scope and risk controls.','core',90],
   ['conflicts','keywords','keywords','⚠','Store Conflict Guard','Store Conflict Guard','Detect terms that are profitable for one product but wasteful for another within the selected store.','core',100],

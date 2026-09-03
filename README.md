@@ -76,8 +76,8 @@ KeywordOS 的差异化不是复制 Helium 10 或卖家精灵的外部数据库�
 | [data-provenance-guard.js](./data-provenance-guard.js) | Ads / Finance / Growth 数据集与 metric provenance、Action lineage、seed/stale approval fail-closed | ✅ USER IMPORT / BUNDLED SEED / CALCULATED / THIRD-PARTY ESTIMATE / MISSING 统一契约 |
 | [growth-import-validation.js](./growth-import-validation.js)、[growth-import-gate.js](./growth-import-gate.js) | 8 类 Growth CSV 严格校验、partial handoff 与拒绝行下载 | ✅ 用户 Growth 文件输入边界 fail-closed |
 | [growth-consistency-actions.js](./growth-consistency-actions.js) | Inventory observed-day velocity 与 Listing field profile 的运行时一致性边界 | ✅ 复用现有 Growth 计算器，统一用户可见口径 |
-| [ui-capability-guard.js](./ui-capability-guard.js) | 按钮能力契约、Rule-based Bids 命名、Keyword Research 可见能力与实际行为一致性 | ✅ 未接线按钮 fail-closed；Keyword Research 未实现能力准确改名/隐藏 |
-| [keyword-lab.js](./keyword-lab.js) | Keyword Lab 三模式运行时壳与 source-aware 统一结果契约 | 🟡 Ads / SQP / reverse-ASIN / ranks / keyword-assets 已按 exact keyword 合并且冲突指标保留来源；canonical 页面身份尚未迁移 |
+| [ui-capability-guard.js](./ui-capability-guard.js) | 按钮能力契约、Rule-based Bids 命名、Keyword Lab 可见能力与实际行为一致性 | ✅ 未接线按钮 fail-closed；Keyword Lab 未实现能力准确改名/隐藏 |
+| [keyword-lab.js](./keyword-lab.js) | Keyword Lab 三模式运行时壳与 source-aware 统一结果契约 | ✅ 三模式、五来源 exact merge、source-aware 指标冲突与 canonical Keyword Lab 页面身份已统一 |
 | [scripts/check-dist-assets.mjs](./scripts/check-dist-assets.mjs)、[.github/workflows/ci.yml](./.github/workflows/ci.yml) | source → dist 静态资产闭包、字节一致性与提交后重建校验 | ✅ 当前 52 个发布文件受 CI parity gate 约束 |
 | [navigation-taxonomy.js](./navigation-taxonomy.js) | 中央 Page Registry：canonical page、route alias、suite、sidebar、标题与 page-level i18n key | ✅ Core + Growth 页面身份单一来源，legacy 按钮直接隐藏 |
 | [productivity-actions.js](./productivity-actions.js) | 套件首页、command palette、history、breadcrumb 与 page shell 消费者 | ✅ suite / route / page shell 统一读取 registry |
@@ -117,10 +117,10 @@ KeywordOS 的差异化不是复制 Helium 10 或卖家精灵的外部数据库�
 
 ### Keywords
 
-- 🟡 Keyword Lab foundation 已接入：`keyword-lab.js` 在现有 `cerebro` 研究页与 `asin-comparison` 之间提供 **Keyword Discovery / Batch Analysis / ASIN Import & Compare** 三模式壳，并统一使用 `keyword / mode / sources / metrics / asins / segment / provenance / matched / reason` 结果 shape。Ads、validated/migrated SQP/ABA、reverse-ASIN、rank 和 keyword-assets 现在按 normalized keyword 精确合并；同名指标跨来源冲突时自动保留 source-qualified key（例如 `ads.clicks` / `sqp.clicks`、`sqp.searchVolume` / `reverse-asin.searchVolume`），不会静默覆盖。Batch 继续支持换行、逗号、关键词 CSV 与 Keyword Library，最多 200 个去重关键词，并对这套统一证据执行 exact left join；未命中输入保留原因。Rank 证据按 ASIN + keyword 取最新快照，但不同 ASIN 观察不会被折叠。
-- 🟡 中央 Page Registry、侧栏、command palette、页面标题与 breadcrumb 当前仍以 **Keyword Research** 作为 canonical 页面身份；内部 `cerebro` route 继续保留。后续完成 Keyword Lab 身份迁移时必须继续由 registry id 驱动，而不是按可见文本改写。
+- ✅ Keyword Lab 核心基础已接入：`keyword-lab.js` 在兼容 `cerebro` route 与 `asin-comparison` 之间提供 **Keyword Discovery / Batch Analysis / ASIN Import & Compare** 三模式壳，并统一使用 `keyword / mode / sources / metrics / asins / segment / provenance / matched / reason` 结果 shape。Ads、validated/migrated SQP/ABA、reverse-ASIN、rank 和 keyword-assets 现在按 normalized keyword 精确合并；同名指标跨来源冲突时自动保留 source-qualified key（例如 `ads.clicks` / `sqp.clicks`、`sqp.searchVolume` / `reverse-asin.searchVolume`），不会静默覆盖。Batch 继续支持换行、逗号、关键词 CSV 与 Keyword Library，最多 200 个去重关键词，并对这套统一证据执行 exact left join；未命中输入保留原因。Rank 证据按 ASIN + keyword 取最新快照，但不同 ASIN 观察不会被折叠。
+- ✅ 中央 Page Registry、侧栏、command palette、页面标题与 breadcrumb 已统一使用 **Keyword Lab** canonical 页面身份；内部 `cerebro` route 仅保留兼容，不再拥有独立产品命名。EN / 中文 / 双语 shell 继续由 registry id 驱动。
 - ✅ P0 语义收口：原 `Common Words` 入口已准确改名为 **Word Frequency / 词频**，继续只滚动到当前过滤结果的字面词频；无 handler 的 `Save as Filter Preset` 已隐藏。Common Words 排除、删除/恢复、保存筛选和完整列视图仍作为 P1 功能，不再在当前页伪装为已可用。
-- ✅ Keyword Research 的 Word Frequency / Learn / Search / Settings 工具按钮按 canonical `cerebro` route id 直接接线，不依赖可见标题；Batch Analysis、Word Frequency 与隐藏保存预设的状态同样由该 route 的 truth pass 驱动。
+- ✅ Keyword Lab 的 Word Frequency / Learn / Search / Settings 工具按钮按 canonical `cerebro` route id 直接接线，不依赖可见标题；Batch Analysis、Word Frequency 与隐藏保存预设的状态同样由该 route 的 truth pass 驱动。
 - ✅ Store 级 keyword assets、稳定 ID、标签、intent、保护状态和 Ads/SQP/rank/Listing/action evidence 汇总。
 - ✅ Keyword Library、Negative Library、Conflict Guard、Protected Keywords、Keyword Workflow。
 - 🟡 Rank & Index 支持用户导入的自然位、广告位和收录快照；没有自动日更、实时收录查询、Boost 或 Amazon 前台抓取，因此应称“快照追踪”。
@@ -185,7 +185,7 @@ Helium 10 于 2026-01-06 开始把 Magnet 合并进 Cerebro。当前方向是一
 
 | 官方当前能力 / UI | KeywordOS 应吸收 | 当前差距 |
 |---|---|---|
-| Cerebro 两标签：Find Suggestions 与 Analyze Keywords；后者最多 200 词，可从 My List 进入 | 保留两模式，但共用来源、筛选、摘要和结果表 | 🟡 本地 ≤200 Batch 已实现四类输入、五来源 exact keyword evidence merge 与 left join；保存筛选、完整列视图和统一页面身份仍不足 |
+| Cerebro 两标签：Find Suggestions 与 Analyze Keywords；后者最多 200 词，可从 My List 进入 | 保留两模式，但共用来源、筛选、摘要和结果表 | 🟡 本地 ≤200 Batch 已实现四类输入、五来源 exact keyword evidence merge 与 left join，统一页面身份已完成；保存筛选和完整列视图仍不足 |
 | 可折叠筛选；搜索量、词数、竞争产品、Title Density、自然/广告/推荐排名、include/exclude 等列 | 仅展示导入中实际存在的列；缺失为 — | 🟡 Ads / SQP / reverse-ASIN / rank / keyword-assets 已进入统一证据模型，但动态列配置和第三方 provider schema 仍不足 |
 | Keyword Distribution、Word Frequency、可拖动/显隐列、删除/恢复、历史、复制和导出 | 做成真实可操作的词根筛选、列视图和回收站 | 🟡 当前 Word Frequency 只展示字面词频，闭环仍未实现 |
 | 多 ASIN Relative Rank、竞品平均排名/数量和 advanced rank filters | 用用户导入快照做 own/shared/gap 矩阵与透明筛选 | 🟡 已有集合比较，provider schema 和交互不足 |
@@ -309,8 +309,8 @@ P0 验收：所有可见指标能追到来源；坏行不会变成零；备份�
 
 ### P1 — Keyword Lab 与第三方 CSV 适配
 
-- [ ] 把 Keyword Research 升级为一个 Keyword Lab，保留“关键词发现 / 批量分析 / ASIN 导入与对比”三种模式和一套结果模型。
-  - 2026-09-03 进展：`keyword-lab.js` 已建立三模式壳、≤200 Batch、统一五来源关键词证据与 source-aware metric collision 规则；Discovery、Batch 和 ASIN Compare 现在都消费同一结果 shape。中央 Page Registry 仍显示 Keyword Research，因此本项继续保持未完成。当前 CI 为 **325 passed / 0 failed**；`npm run build` 验证 **42 个 JS + 9 个 CSS，52 个发布文件**，source/dist byte identity 与 committed-dist parity gate 全部通过。
+- [x] 把 Keyword Research 升级为一个 Keyword Lab，保留“关键词发现 / 批量分析 / ASIN 导入与对比”三种模式和一套结果模型。
+  - 2026-09-03：`keyword-lab.js` 已建立三模式壳、≤200 Batch、统一五来源关键词证据与 source-aware metric collision 规则；Discovery、Batch 和 ASIN Compare 继续消费同一结果 shape。`navigation-taxonomy.js` 已把 canonical `cerebro` 页面产品名统一为 **Keyword Lab**，`product-language.js` 同步 EN / 中文 / 双语 shell；内部 route id 继续兼容。CI 为 **325 passed / 0 failed**；`npm run build` 验证 **42 个 JS + 9 个 CSS，52 个发布文件**，source/dist byte identity 与 committed-dist parity gate 全部通过。
 - [x] 批量分析接受换行、逗号、CSV 和 Keyword Library，最多 200 词；逐词 left join，未命中项保留并显示原因。
   - 2026-09-03：`parseBatchInput()` 支持换行、逗号与 quote-aware CSV；多列 CSV 必须存在 Keyword/Search Term 类表头，否则 fail-closed。`keywordLibraryInput()` 只读取已验证或迁移的 `keyword-assets`；输入按规范化关键词大小写无关去重并保留首次显示顺序，超过 200 个唯一词会完整拒绝而不是截断。Batch 现在对统一的 Ads / SQP/ABA / reverse-ASIN / rank / keyword-assets exact keyword evidence 执行 left join，substring 不视为命中；未命中输入仍保留 `matched=false`、missing provenance 与明确 reason，不把缺失指标写成 0。CI 为 **325 passed / 0 failed**；`npm run build`、**42 个 JS + 9 个 CSS / 52 个发布文件**、source/dist byte identity 与 committed-dist parity gate 全部通过。
 - [x] 合并 Ads、SQP/ABA、reverse-ASIN、rank 和 keyword-assets 证据；同名指标不跨来源静默覆盖。
