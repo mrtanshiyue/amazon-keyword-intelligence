@@ -1,437 +1,209 @@
-# KeywordOS — Amazon Keyword Intelligence
-
-KeywordOS 是一个面向 Amazon 卖家的 **CSV-first、本地证据优先、多 Store 经营工作台**。它把广告、交易、SQP/ABA、关键词、排名、Listing、库存、成本、竞品和评论文件整理成可追溯的分析、准备与复盘流程。
-
-当前阶段不连接 Amazon Ads API、SP-API 或 OAuth，不向 Amazon 写入广告、预算、Listing 或库存动作，也不把导入快照包装成实时数据。
-
-> 审计基线：2026-09-02，main@f719c3d7d155，版本 9.2.6。本地 npm run check 为 **255 passed / 0 failed**（41 个测试文件）。本次没有运行会重建 dist 的 npm run build；现有 dist 落后于源码，因此该提交只能作为源码基线，不能直接视为已验证的发布产物。
-
-## 状态约定
-
-| 标记 | 含义 |
-|---|---|
-| ✅ | 仓库中已实现，且本次静态审计或现有测试可以确认 |
-| 🟡 | 有实现，但存在数据、交互、完整性或命名缺口 |
-| ⬜ | 建议新增，尚未实现 |
-| ⛔ | 本阶段明确不做 |
-
-只有同时具备真实代码、正确数据边界、测试和可用 UI 的能力才能标为 ✅。演示数据、静态入口、未接线按钮和只存在于文档中的设计均不算完成。
-
-## 项目定位
-
-KeywordOS 的差异化不是复制 Helium 10 或卖家精灵的外部数据库，而是把卖家已经拥有的 Amazon 导出、财务文件、库存文件和获准使用的第三方研究导出，变成一条可审计的经营链：
-
-    文件导入
-      → 校验、列映射、来源与日期
-      → Store 隔离的 Dataset Registry
-      → 产品 / 关键词 / Listing / 广告 / 库存分析
-      → 本地建议与人工批准
-      → 后续文件快照复盘结果
-
-产品必须始终遵守四条规则：
-
-1. 没有来源的数据不展示，没有输入的指标不估成 0。
-2. 原始导入、透明计算、估算和缺失必须在 UI 中明确区分。
-3. Staged、Approved 只表示 KeywordOS 本地状态，不表示 Amazon 已执行。
-4. 搜索量、排名、竞价、销量、竞品和归因结论必须保留 Store、市场、来源文件、快照日期及计算口径。
-
-## 当前架构
-
-    CSV / bundled seed
-            │
-            ▼
-    浏览器解析、校验与导入
-            │
-            ▼
-    Dataset Registry / IndexedDB
-    + 少量 localStorage 状态
-            │
-            ▼
-    Products / Keywords / Listing / Marketing
-    Operations / Analytics / Local Agent
-
-    GitHub main → build → dist → Cloudflare Workers Static Assets
-                                      │
-                                      └─ GET/HEAD Worker API
-                                         ├─ manifest / seed
-                                         ├─ private session canary
-                                         └─ D1/R2 基础代码（未接产品写入）
-
-- 前端：原生 HTML、CSS、JavaScript，无前端框架、bundler 或正式 router。
-- 部署：Cloudflare Workers Static Assets + Worker API。
-- 浏览器数据：IndexedDB Dataset Registry；部分草稿、组织器和兼容状态仍使用 localStorage。
-- 服务端：D1/R2 数据版本与持久化基础已存在，但没有接到产品导入/写入路由。
-- Worker 当前只接受 GET / HEAD；其他方法返回 405。
-- 已有路由：/api/health、/api/data/manifest、/api/data/seed.js、/api/data/unified-seed.js、/api/private/session。
-- **测试阶段认证关闭（2026-09-03 owner override）**：Cloudflare Access application 与原 owner allow policy 保留，但生产 Access app 启用 `Bypass / Everyone`；Worker 默认 `AUTH_MODE=disabled-test`，不要求邮箱登录，也不伪造 authenticated identity。只有项目所有者再次明确要求恢复登录认证时，才允许移除 bypass 并显式切回 `AUTH_MODE=cloudflare-access`。
-
-关键代码入口：
-
-| 文件 | 职责 | 当前判断 |
-|---|---|---|
-| [index.html](./index.html) | 应用壳、脚本加载顺序 | ✅ 单页静态壳 |
-| [app.js](./app.js) | 核心状态、导航、主要页面与渲染 | 🟡 体积大，且与后置补丁共同拥有 UI |
-| [growth-workspaces.js](./growth-workspaces.js) | SQP、产品、竞品、评论、排名、Listing、库存工作区 | 🟡 功能多，解析和持久化一致性需补强 |
-| [dataset-registry.js](./dataset-registry.js) | Store 级数据集、元数据、IndexedDB 与 ranks/competitor stable merge | ✅ 数据中枢与追加快照幂等边界已存在 |
-| [data-provenance-guard.js](./data-provenance-guard.js) | Ads / Finance / Growth 数据集与 metric provenance、Action lineage、seed/stale approval fail-closed | ✅ USER IMPORT / BUNDLED SEED / CALCULATED / THIRD-PARTY ESTIMATE / MISSING 统一契约 |
-| [growth-import-validation.js](./growth-import-validation.js)、[growth-import-gate.js](./growth-import-gate.js) | 8 类 Growth CSV 严格校验、Helium 10 / 卖家精灵 CSV profile、preview、partial handoff 与拒绝行下载 | ✅ 第三方 profile 先补齐来源元数据再进入同一严格 validator；未知供应商列保留 |
-| [growth-consistency-actions.js](./growth-consistency-actions.js) | Inventory observed-day velocity 与 Listing field profile 的运行时一致性边界 | ✅ 复用现有 Growth 计算器，统一用户可见口径 |
-| [ui-capability-guard.js](./ui-capability-guard.js) | 按钮能力契约、Rule-based Bids 命名、Keyword Lab 可见能力与实际行为一致性 | ✅ 未接线按钮 fail-closed；Keyword Lab 未实现能力准确改名/隐藏 |
-| [keyword-lab.js](./keyword-lab.js) | Keyword Lab 三模式、source-aware 结果契约与 n-gram/Common Words 结果视图 | ✅ 三模式、五来源 exact merge、1/2/3+ gram、Common Words 排除、删除/恢复与词根联动已统一 |
-| [scripts/check-dist-assets.mjs](./scripts/check-dist-assets.mjs)、[.github/workflows/ci.yml](./.github/workflows/ci.yml) | source → dist 静态资产闭包、字节一致性与提交后重建校验 | ✅ 当前 52 个发布文件受 CI parity gate 约束 |
-| [navigation-taxonomy.js](./navigation-taxonomy.js) | 中央 Page Registry：canonical page、route alias、suite、sidebar、标题与 page-level i18n key | ✅ Core + Growth 页面身份单一来源，legacy 按钮直接隐藏 |
-| [productivity-actions.js](./productivity-actions.js) | 套件首页、command palette、history、breadcrumb 与 page shell 消费者 | ✅ suite / route / page shell 统一读取 registry |
-| [workflow-canonicalization.js](./workflow-canonicalization.js) | Tracker / Listing legacy route 兼容 | ✅ legacy hash 仅兼容跳转，不再拥有独立可见入口 |
-| [i18n.js](./i18n.js)、[product-language.js](./product-language.js) | 通用动态翻译 + registry-id 页面/套件语言层 | 🟡 已修复已知页面名、套件名与 Advertising 语义碰撞；全量 modal / aria 文案仍需继续审计 |
-| [src/worker.js](./src/worker.js) | Worker 只读 API 和静态资源入口 | ✅ 当前边界明确 |
-| [src/dataset-persistence.js](./src/dataset-persistence.js) | D1/R2 不可变数据版本基础 | 🟡 已准备但未接产品路由 |
-
-页面身份、canonical route alias、suite membership、sidebar group/order、command palette、page shell title/subtitle/breadcrumb 与 page-level i18n key 已集中到 `navigation-taxonomy.js` 的 Page Registry。legacy `tracker` / `listing-workspace` 只保留历史 route 兼容：导航组织器直接隐藏 legacy 按钮，旧 Listing helper 不再注入侧栏或拦截 Listing 套件。`product-language.js` 继续按 registry page/suite id 处理中英/双语的页面标题、侧栏、套件和 breadcrumb；这已经消除已知路由/标题漂移，但不等于所有动态 modal、空态和 aria 文案都已完成全量审计。
-
-> 2026-09-03 阻断级 UI 回归修复：左侧导航此前同时被 `growth-workspaces.js` 和 `navigation-taxonomy.js` 的 MutationObserver 改写。Growth section 被 canonical organizer 移走后会被再次注入，导致 Product Master / Product 360 / Competitors / Reviews 等按钮无限重复，翻译/重排又持续触发 observer，最终造成点击页面卡死。现在 sidebar 改为显式单次同步：`app.js` 每次导航重绘后只执行一次 Growth 缺项补齐和 canonical organize；两个 sidebar MutationObserver 已移除，Growth 补齐按 page id 幂等，organizer 对 canonical page id 再做去重保护。回归测试明确禁止重新引入该 observer feedback loop。CI 为 **426 passed / 0 failed**；`npm run build` 验证 **49 个 JS + 9 个 CSS，59 个发布文件**，source/dist byte identity 与 committed-dist parity gate 继续生效。
-
-## 当前已完成与真实状态
-
-### 数据与 Store 基础
-
-- ✅ 多 Store 外壳、全局只读分析边界、Store 级浏览器数据模型。
-- 🟡 实际业务路径、Growth helpers 和本地 Agent 仍大量固定在 Store 01；Store 02/03 与自建 Store 尚无完整导入工作流，因此不能称完整多 Store 产品。
-- ✅ Amazon Ads Search Term 和 Unified Transaction CSV 导入、主解析器校验与来源记录。
-- ✅ Dataset Registry 支持 ads、finance、sqp、costs、inventory、ranks、competitor、competitor-ads、competitor-creative、reviews、reverse-asin、listing、product-master、keyword-assets、action-outcomes。
-- ✅ 数据元信息包括来源、导入时间、覆盖期、行数、schema、checksum 和校验状态。
-- ✅ Data Health、16 MiB 浏览器导入限制、畸形未闭合 CSV 拒绝、旧浏览器数据迁移。
-- ✅ 8 类 Growth CSV 用户导入在进入现有 parser 前执行严格 header / identity / date / nonblank numeric 校验；界面展示 accepted / rejected / skipped，partial 文件只把 accepted rows 交给现有 parser，拒绝行可下载 CSV。
-- ✅ Growth 中当前两个追加型数据集已经定义稳定 merge：ranks 使用 date + ASIN + normalized keyword；competitor 使用 date + ASIN，有日期时保留历史，同 key 后导入覆盖旧行；日期缺失时使用 UNDATED + ASIN，只把无法形成时间序列的重复观察视为 correction。重复导入幂等，其他 replace 型数据集不受该策略影响。
-- ✅ Local Data Operations v3 覆盖全部当前 Dataset Registry kind（含 competitor-creative）和已知用户 localStorage 状态，包括 Listing versions/evidence checklist、competitor groups 与 Growth fallback；备份 manifest 记录 local key 数、dataset 数、总行数及内容 checksum。恢复后重新读取 IndexedDB/localStorage 核对 manifest，不一致则回滚；旧 v1/v2 备份仍可恢复。
-- ✅ Data Health 与 Sync Center 的 Ads / Finance recency 已改为读取当前 Store 01 状态模型；只有 Dataset Registry coverage 与当前活动行数和最新日期一致时才采用 Registry 元数据，否则使用活动数据行日期。运行时不再从 `.schema-list`、coverage 标签或表格文案反向解析日期。
-- ✅ `data-provenance-guard.js` 统一 Ads、Finance、Growth 与关键 metric 的证据状态：validated 普通 Dataset Registry 记录显示 `USER IMPORT`；仓库内 public-test Ads / Unified fallback 显示 `BUNDLED SEED` 且只读；`keyword-assets` / `action-outcomes` 等本地派生记录显示 `CALCULATED`；明确的估算字段显示 `THIRD-PARTY ESTIMATE`；没有可用证据保持 `MISSING`。source chips、Unified、Data Health 与 import readiness 都从当前状态 / Registry 生成，不再把 seed 硬写为 `Actual imported`。Action Center 新动作同时保存创建时 Ads provenance、source 与 checksum；历史无 lineage、seed 派生或 checksum 已过期的动作即使后来导入真实 Ads 也不会变成可批准/可导出的动作。
-
-### Products / Competitors / Reviews
-
-- ✅ Product Master、ASIN / Parent ASIN / SKU / FNSKU / family / marketplace 映射和 unmapped queue。
-- ✅ Product 360 只对明确映射的数据做广告、财务、成本和库存关联。
-- ✅ 竞品快照导入、价格/BSR/评分/评论/变体/可售状态历史与保守变更提示。
-- ✅ Storefront 快照和 7/15/30/60 日观察；只有明确 First Seen Date 才计为新品。
-- ✅ 竞品广告观察 CSV 和手工图片/卖点证据；不从观察结果推断真实 campaign/ad group 结构。
-- ✅ 评论导入、原文保留、显式 VOC 标签、1–2 星与 4–5 星字面词频、市场/语言元数据规范化。
-- ✅ 通用 reverse-ASIN CSV、2–20 ASIN 集合对比、共有/自有/竞品独有/缺口集合、导入 traffic share 分布。
-- ✅ 基于已导入快照的市场价格带、评论门槛、集中度和透明相对机会分数。
-
-### Keywords
-
-- ✅ Keyword Lab 核心基础已接入：`keyword-lab.js` 在兼容 `cerebro` route 与 `asin-comparison` 之间提供 **Keyword Discovery / Batch Analysis / ASIN Import & Compare** 三模式壳，并统一使用 `keyword / mode / sources / metrics / asins / segment / provenance / matched / reason` 结果 shape。Ads、validated/migrated SQP/ABA、reverse-ASIN、rank 和 keyword-assets 现在按 normalized keyword 精确合并；同名指标跨来源冲突时自动保留 source-qualified key（例如 `ads.clicks` / `sqp.clicks`、`sqp.searchVolume` / `reverse-asin.searchVolume`），不会静默覆盖。Batch 继续支持换行、逗号、关键词 CSV 与 Keyword Library，最多 200 个去重关键词，并对这套统一证据执行 exact left join；未命中输入保留原因。Rank 证据按 ASIN + keyword 取最新快照，但不同 ASIN 观察不会被折叠。
-- ✅ 中央 Page Registry、侧栏、command palette、页面标题与 breadcrumb 已统一使用 **Keyword Lab** canonical 页面身份；内部 `cerebro` route 仅保留兼容，不再拥有独立产品命名。EN / 中文 / 双语 shell 继续由 registry id 驱动。
-- ✅ Keyword Lab 的 **Common Words** 入口现在直接打开统一 n-gram 工作区：支持 1/2/3+ gram、首尾停用词控制、词根筛选/高亮、Common Words 排除以及关键词删除/恢复；这些动作只改变当前结果视图，不修改 Dataset Registry 或原始导入证据。
-- ✅ Keyword Lab 的 Common Words / Learn / Search / Settings 工具按钮按 canonical `cerebro` route id 接线，不依赖可见标题；Batch Analysis 与 Common Words 的状态由同一 route truth pass 驱动，未实现的保存筛选仍继续隐藏。
-- ✅ Store 级 keyword assets、稳定 ID、标签、intent、保护状态和 Ads/SQP/rank/Listing/action evidence 汇总。
-- ✅ Keyword Library、Negative Library、Conflict Guard、Protected Keywords、Keyword Workflow。
-- 🟡 Rank & Index 支持用户导入的自然位、广告位和收录快照；没有自动日更、实时收录查询、Boost 或 Amazon 前台抓取，因此应称“快照追踪”。
-- ✅ 旧 `tracker` route 仍可兼容历史链接，但 legacy Keyword Tracker 按钮由 registry organizer 直接隐藏，并且不会再被 canonical 排序逻辑当作 Rank & Index 入口；可见导航只保留 Rank & Index Tracker。
-- ✅ 页面/套件 shell 的 EN / 中文 / 双语标题由 registry page/suite id 驱动；Marketing shell 使用 suite id 显示 Marketing / 营销，不再让财务上下文的 `Advertising`→“广告费”污染导航语义。全量动态 modal / aria 文案仍按 P1 审计标准继续检查。
-
-### Listing
-
-- ✅ 持久化 Listing Optimizer，支持 Title、Bullets、Description、Backend Search Terms。
-- ✅ 词组/词根覆盖、字段覆盖、重复与 stuffing 提示、品牌词排除、backend UTF-8 byte 检查、关键词缺口与 placement 建议。
-- ✅ 本地版本、字段 diff、evidence checklist 和导入竞品标题对比；不发布到 Amazon。
-- 🟡 页面实际版本名仍为 Listing Optimizer 2.0，旧 README 的 “3.0 已完成”不准确。
-- ✅ Listing field profile 是 Backend Bytes KPI、field validation 与 placement suggestion 的同一限制源；`searchTermsLimit` 可编辑，非法/非正整数 profile 会 fail-closed，不再由建议路径另写死 250 bytes。
-- ✅ `listing-workspace` 仅保留 legacy route 兼容并 canonicalize 到 `listing-optimizer`；旧 `listing-workspace-actions.js` 不再注入独立 Listing Workspace 侧栏、拦截 Listing 顶部套件或维护第二套 active 状态，因此可见 Listing 入口只有 Listing Optimizer。
-
-### Marketing / Advertising
-
-- ✅ Advertising Dashboard、campaign → ad group → target → search term 下钻。
-- ✅ 基于已加载数据的 Suggestions、受支持的本地 Rules、Protected Negative 检查。
-- ✅ Suggestions 原 `AI Bids` 用户可见名称已改为 **Rule-based Bids / 规则化调价建议**，设置区改为 Bid Recommendation Settings / 调价建议设置；推荐仍完全来自已导入表现、配置阈值和固定 bid 倍率，没有 AI/ML 模型。内部 `AI Bids` key 仅为现有状态兼容，不作为产品名称展示。
-- ✅ `ui-capability-guard.js` 在应用渲染器之前记录真实 direct click handler，显式识别现有 document-delegated/navigation 动作；任何仍处于 enabled 但没有已知 action contract 的按钮会 fail-closed 为 disabled 并给出原因，已有 disabled 控件若缺原因也会补充说明。后续真实 handler 绑定时 guard 会恢复该按钮，不把占位入口伪装成可用功能。
-- ✅ Action Center、Change Log、本地 staged/approved 状态和后续导入窗口的 Action Outcome 对比。
-- ✅ Spend、Sales、Orders、ACoS、ROAS、CPC、CVR 与小样本、窗口不完整、并发动作、Amazon 外部混杂因素提示。
-- 🟡 Dayparting 只能保存本地计划，没有小时表现数据或执行能力。
-- ⛔ 没有自动竞价、预算、分时或 campaign mutation；本地批准不代表 Amazon 执行。
-
-### Operations / Analytics / Local Agent
-
-- ✅ Unified Transaction 收入、费用、退款、settlement 分析。
-- ✅ 导入成本、库存、可售/入库/残损状态、days of cover、补货日期和采购计划 CSV。
-- ✅ Inventory Risk、Anomaly Center、Replenishment 与 Inventory Capital 的日销量口径统一为 `productSalesVelocity()` 的 observed-day 模型：按同一 product 在所选窗口内实际出现的 distinct dated Ads report days 计算 units/day；没有 dated sales evidence 时保持 unavailable，而不是除以固定 30 天。
-- ✅ 本地单单利润情景、贡献毛利、break-even ACoS、退款成本暴露；缺少明确成本或映射时保持 unavailable。
-- ✅ SQP/ABA Search Query Funnel、趋势、Evidence drill-down、Anomaly Center、套件首页和移动表格处理。
-- 🟡 CSV 页面的 exact filter 主要隐藏现有表格行，主 KPI/汇总不一定同步重算。
-- ✅ 只读、确定性的 KeywordOS Agent 和 Advertising / Keyword / Listing / Profitability / Inventory / Help 模式。
-- ✅ “为什么指标变化”使用等长已加载窗口、算式、分组差值和原始行号；只说明算术贡献，不声称因果。
-- ⛔ 当前 Agent 不调用外部大模型或 Amazon API，不生成 Listing 文案，也不创建远程动作。
-
-### Settings / Platform
-
-- 🟡 Access JWT、Store membership 查询和 D1/R2 持久化代码已经存在，但 membership 未初始化，产品写入路由未接线。
-- 🟡 Amazon Connections、Users & Permissions、Sync Center 中没有可用的 Amazon 连接流程；相关 UI 必须继续明确显示 disabled / unavailable。
-- ✅ 服务端数据校验、R2 create-only、SHA-256 校验和 D1 current pointer 基础已经实现；这表示代码基础存在，不表示用户数据已保存到云端。
-- ✅ 当前 tracked `dist/` 已由源码重新构建；CI 同时验证静态入口闭包、source/dist byte identity 与 clean rebuild，提交中的发布目录不再允许静默漂移。
-
-## 本次审计确认的优先问题
-
-这些问题应先于继续堆叠新页面处理。
-
-| 优先级 | 问题 | 影响 | 完成标准 |
-|---|---|---|---|
-| P1 | 动态文案与可访问性双语仍需全量审计 | modal、空态或 aria 可能存在局部翻译遗漏 | canonical route/page/suite 已统一；继续覆盖全页面、空态、modal 和 aria 文案 |
-| P1 | Keyword Lab 词根与列视图闭环未完成 | 当前 Word Frequency、列配置、删除/恢复和保存视图仍分散 | 1/2/3+ gram 与原表联动、列显隐/排序、保存视图和可靠筛选预设 |
-
-## 竞品基准：截至 2026-09-02
-
-这里只借鉴工作流和交互，不复制品牌、页面造型、专有数据或黑箱评分。第三方在线能力若没有用户导出文件，在 KeywordOS 中必须显示“请导入数据”，不能展示模拟结果。
-
-### Helium 10
-
-Helium 10 于 2026-01-06 开始把 Magnet 合并进 Cerebro。当前方向是一个工具同时处理“单个种子词发现”和“最多 200 个词批量分析”，而不是两个孤立页面。
-
-| 官方当前能力 / UI | KeywordOS 应吸收 | 当前差距 |
-|---|---|---|
-| Cerebro 两标签：Find Suggestions 与 Analyze Keywords；后者最多 200 词，可从 My List 进入 | 保留两模式，但共用来源、筛选、摘要和结果表 | 🟡 本地 ≤200 Batch 已实现四类输入、五来源 exact keyword evidence merge 与 left join，统一页面身份已完成；保存筛选和完整列视图仍不足 |
-| 可折叠筛选；搜索量、词数、竞争产品、Title Density、自然/广告/推荐排名、include/exclude 等列 | 仅展示导入中实际存在的列；缺失为 — | 🟡 Ads / SQP / reverse-ASIN / rank / keyword-assets 已进入统一证据模型；Helium 10 / 卖家精灵 CSV provider profile 已接入，但动态列配置仍不足 |
-| Keyword Distribution、Word Frequency、可拖动/显隐列、删除/恢复、历史、复制和导出 | 做成真实可操作的词根筛选、列视图和回收站 | 🟡 1/2/3+ gram、Common Words 排除、删除/恢复和词根联动已完成；列视图、历史与导出仍待闭环 |
-| 多 ASIN Relative Rank、竞品平均排名/数量和 advanced rank filters | 用用户导入快照做 own/shared/gap 矩阵与透明筛选 | 🟡 已有集合比较且 provider CSV profile 已接入，primary ASIN / 矩阵交互仍不足 |
-| Tracker 以 ASIN 为主层，展开 Keywords / Competitors / Suggested Keywords；支持备注、标签、热力图 | 将真实 rank CSV 按 ASIN → Keywords 组织；重复导入后才显示趋势/heat map | 🟡 当前更像扁平关键词表 |
-| Listing Builder：Find Keywords → Keyword Bank → 编辑器；研究阶段最多 9 个竞品 ASIN，词根/短语竞品矩阵最多 20 个 | 复用已有 keyword assets 和 Listing Optimizer，建立最短传递链 | 🟡 两边已有数据但交互仍分散 |
-| 2026 Tracker 广告出价规则 | 只借鉴“条件 → 建议 → 人工复核”的本地模式 | ⛔ 不接广告账户，不自动调价 |
-
-不能仿制 Helium 10 的 IQ、CPR、Competitor Performance、KPS/CPS。官方没有公开足以复现的完整公式；KeywordOS 只能输出名称不同、公式完全展开的本地优先级。
-
-官方参考：
-
-- [Magnet merged into Cerebro，2026-01-06](https://kb.helium10.com/hc/en-us/articles/44262552100891-Magnet-Has-Been-Merged-Into-Cerebro-Everything-You-Need-to-Know)
-- [Cerebro 两种关键词模式，2026-01-06](https://kb.helium10.com/hc/en-us/articles/44519579661211-How-to-Analyze-Keywords-Using-Cerebro-Plus-Magnet)
-- [Cerebro ASIN、筛选与指标，2026-01-23](https://kb.helium10.com/hc/en-us/articles/360046326894-How-Do-I-Use-Cerebro)
-- [Keyword Tracker 当前产品层 UI](https://kb.helium10.com/hc/en-us/articles/27744441024923-Keyword-Tracker-Introduction-and-Overview)
-- [Keyword Tracker Heat Map](https://kb.helium10.com/hc/en-us/articles/35791324563227-Keyword-Tracker-Video-How-to-View-Keyword-Ranks-on-a-Heat-Map)
-- [Listing Builder 新流程，2026-05-13](https://kb.helium10.com/hc/en-us/articles/4407213995419-Listing-Builder-Keyword-Research-Revamped-AI-Listing-Generation)
-- [Listing 词根与竞品分析，2026-06-11](https://kb.helium10.com/hc/en-us/articles/36185539284379-Keyword-Root-Analysis-in-Listing-Builder)
-
-### 卖家精灵
-
-卖家精灵当前关键词产品链是“Mining → Reverse ASIN → Reverse Multiple ASINs / Traffic Comparison → Conversion Rate → My Keyword List → Product & Keyword Tracker”。最值得借鉴的是同一词集可以持续筛选、比较、词频、入库、导出和追加历史，而不是每页重新开始。
-
-| 官方当前能力 / UI | KeywordOS 应吸收 | 数据边界 |
-|---|---|---|
-| Keyword Mining 2.0：Keyword Magnet / Bulk Mining，批量最多 200；区间、include/exclude、匹配模式、历史筛选 | 本地语料的 exact/phrase/broad、1/2/3+ gram 和透明 ASIN overlap | 在线扩词与官方 Relevancy 不能本地伪造 |
-| Reverse ASIN：站点、30 日/月、变体、自然/广告分布、词频、Top 10、历史、列配置、删除词 | 导入 ASIN + keyword + snapshot_date + metrics 后复现筛选、分布和历史 | 在线反查、变体识别和 Top 10 商品依赖外部数据 |
-| Reverse Multiple ASINs 最多 20 个；去重、共有/独有/缺口、Top 10 校验 | 复用现有 2–20 ASIN 比较，补 primary ASIN 和 provider mapping | 一次导入只代表一次快照 |
-| Traffic Comparison：主 ASIN + 最多 10 竞品；切换曝光份额、周搜索、自然位、SP 位、转化、分布 | 一张高密度矩阵按指标切换，关键词列 sticky，详情抽屉看历史 | 没有重复日期文件时不显示趋势 |
-| My Keyword List：folder、label、tag、move/copy、compare、custom columns、20/50/100 分页 | 把现有 keyword assets 升级为所有关键词工作的中心 | 可完全浏览器本地实现 |
-| Product & Keyword Tracker：按 ASIN 添加词、每天记录自然/广告位、标签、比较、导出 | 使用用户重复导入的 rank 快照做趋势、变化和断档 | 自动日更和当前排名不在本阶段 |
-| Keyword Conversion Rate：searches/clicks/purchases、CVR、PPC、CPA、ACOS、预算 | 输入齐全时透明计算，展示公式和数据质量 | 市场原始值来自外部数据，不可凭空产生 |
-| Realtime Bid Tracker：任务、时间点、比较、导出 | 只借鉴任务/快照交互 | ⛔ 官方能力依赖 Amazon Ads API，本阶段排除 |
-
-卖家精灵的 DSR、SPR、Relevancy 等只能保留为导入列，不能冒充 KeywordOS 自算指标。若完整输入存在，可透明计算 Purchase Rate = purchases / searches、Search CVR = purchases / searches、Click CVR = purchases / clicks；分母为零或缺失时显示 —。
-
-官方参考：
-
-- [关键词功能帮助中心，2026-07-08](https://www.sellersprite.com/v3/knowledge/feature/home)
-- [Keyword Mining 2.0，2026-08-19](https://www.sellersprite.com/jp/v3/knowledge/feature/keyword-mining-for-beginners)
-- [Reverse ASIN 当前指南](https://www.sellersprite.com/v3/knowledge/feature/keyword-reverse-for-beginners)
-- [Reverse Multiple ASINs](https://www.sellersprite.com/v3/knowledge/feature/traffic-extend-for-beginners)
-- [Traffic Comparison](https://www.sellersprite.com/en/help/keyword-comparison-for-beginners)
-- [My Keyword List](https://m.sellersprite.com/v3/knowledge/feature/keyword-store-for-beginners)
-- [Product & Keyword Tracker，2026-06-24](https://agent.sellersprite.com/en/help/Product-Keyword-Tracker-Guide)
-- [Keyword Conversion Rate](https://www.sellersprite.com/v3/knowledge/feature/keyword-conversion-rate-for-beginners)
-- [Chrome Guide：v5.0.5 / 2.1.2，2026-07-31 发布](https://www.sellersprite.com/v3/knowledge/feature/chrome-guide)
-
-> 卖家精灵不同语言和镜像页面仍显示旧的 v4.8.0 / v5.0.3。本 README 以带发布日期的 2026-08-06 Chrome Guide 所列 v5.0.5 / 2.1.2 为准，不把缓存页面的旧版本当作最新版本。
-
-## 目标产品与 UI
-
-### 信息架构
-
-保留六个顶层套件，但任一时刻只展示当前套件的上下文侧栏；不要同时显示旧 domain group、重分组 suite 和重复 legacy entry。
-
-| 顶层套件 | 建议保留的工作区 |
-|---|---|
-| Products | Product Master、Product 360、Competitors、Reviews、Market Screen |
-| Keywords | Keyword Lab、ASIN Comparison、Keyword Library、Rank Snapshots、SQP Funnel、Negatives |
-| Listing | Keyword Bank、Listing Editor、Coverage & Gaps、Versions & Evidence |
-| Marketing | Ads Analytics、Suggestions、Local Rules、Action Center、Outcomes |
-| Operations | Finance、Costs、Inventory、Replenishment、Refund Review、Data Health |
-| Analytics | Portfolio、Cross-store、Trends、Anomalies、Read-only Agent |
-
-Keyword Lab 应合并目前分散或语义重复的入口，但复用现有路由、数据集和组件：
-
-    ┌ Marketplace ─ Dataset/Source ─ Snapshot date ─ Saved view ┐
-    │ [关键词发现] [批量分析 ≤200] [ASIN 导入与对比]             │
-    ├ Filters / include-exclude / exact-phrase-broad / Reset ───┤
-    │ Summary: matched / missing / source coverage / word roots  │
-    ├ sticky Keyword ┬ source-aware metric columns ┬ provenance ┤
-    │ selected rows → List / Track / Negative / Listing / Export │
-    └─────────────────────────────────────────────────────────────┘
-
-UI 统一规则：
-
-- 页面标题只显示 KeywordOS 自有名称；第三方名只出现在“导入格式/来源”中。
-- 所有导入驱动页面统一 EMPTY → LOADING → ERROR/PARTIAL → READY 状态。
-- 顶部固定 Marketplace、Source、Snapshot、Saved View；变化后立即刷新 source chips。
-- 筛选统一 min/max、include/exclude、exact/phrase/broad、Reset、结果数和 Load Last Filters。
-- 表格关键词/ASIN 主列 sticky；列排序、拖动、显隐、保存视图；选择后只出现一个浮动批量栏。
-- Copy 行为：有选择时复制选择行，无选择时复制当前已加载页。
-- 词频支持 1/2/3+ gram、停用词、点击词根过滤并高亮原表；删除词有回收站。
-- 趋势采用行内 sparkline + 详情抽屉；没有两个以上有效日期时隐藏趋势，而不是绘制假线。
-- 原始导入 / 透明计算 / 第三方估算 / bundled seed / 缺失使用一致徽标；表头 tooltip 展示公式、来源与日期。
-- 中文、英文、双语使用相同 i18n key；不得再按可见英文文本做语义替换。
-- 桌面优先高密度表格，同时保留现有移动端横向滚动、sticky identity column、键盘和 aria 支持。
-- 空状态直接给出模板、字段要求和“导入数据”主动作，不展示假的商品图、排名或 KPI 占位。
-
-## 产品路线图
-
-路线图只覆盖不接 Amazon API 也能完成的价值。顺序先修数据真相，再统一关键词工作流，最后增加本地智能；不新建空壳页面，不引入前端框架，不增加当前没有必要的依赖。
-
-### P0 — 可信发布基线
-
-- [x] 全局修正 bundled seed、用户导入、计算值、第三方估算和缺失的状态标识；seed 数据禁止进入可批准动作。
-  - 2026-09-03：`data-provenance-guard.js` 统一 Ads / Finance / Growth Dataset Registry 和关键 metric provenance：validated 普通记录为 `USER IMPORT`，仓库 public-test fallback 为 `BUNDLED SEED`，`keyword-assets` / `action-outcomes` 等本地派生记录为 `CALCULATED`，明确估算字段为 `THIRD-PARTY ESTIMATE`，无可用证据为 `MISSING`。Ads / Unified source chips、Unified Report、Data Health 与 import readiness 改为从状态 / Registry 输出，不再把 seed 写成 `Actual imported`。Action Center 新动作保存创建时 Ads provenance/source/checksum；历史无 lineage、seed 派生与 stale checksum 动作全部 fail-closed，因此后续导入真实 Ads 也不会让旧 seed 动作重新变得可批准或可导出。CI 为 **306 passed / 0 failed**；`npm run build` 生成 **51 个发布文件（41 个 JS、9 个 CSS、1 个 HTML）**，source/dist byte identity 与 committed-dist parity gate 全部通过。
-- [x] Growth CSV 严格数值、日期与身份校验：禁止无效值默认为 0，展示接受/拒绝/跳过数量，允许下载拒绝行。
-  - 2026-09-02：8 个 Growth schema 的 `growth-file-*` 用户导入统一经过严格 gate；非空非法数值、非法日期、缺失身份和列数错误进入 rejected，空记录计 skipped，partial 文件仅把 accepted rows 交给现有 parser，并提供 rejected CSV 下载。该输入校验项已完成。
-- [x] 为 ranks、competitor 等追加导入定义稳定 merge key、覆盖/追加策略和幂等测试。
-  - 2026-09-02：当前 Growth 中只有 ranks / competitor 使用 append。Dataset Registry 对 ranks 使用 `date + ASIN + normalized keyword`，对 competitor 使用 `date + ASIN`；同 key 的后导入作为 correction 覆盖旧值，不同日期保留历史。competitor 日期仍保持可选；缺日期时使用 `UNDATED + ASIN`，因此重复无日期观察会幂等折叠且不会伪装成时间序列。其他 replace 型数据集不参与该 merge。CI 为 **268 passed / 0 failed**，`npm run build` 通过。
-- [x] 补齐所有 Dataset Registry 与 localStorage 用户状态的备份 manifest 和恢复校验。
-  - 2026-09-02：Local Data Operations 升级为 backup v3，纳入当前全部 Registry kind 与已知用户 localStorage 状态；manifest 记录 local key 数、dataset 数、总行数和内容 checksum。v3 导入先校验 manifest，恢复后重新读取 IndexedDB/localStorage 做同一 manifest 校验，任何不一致都会触发回滚；v1/v2 旧备份继续兼容。CI 为 **272 passed / 0 failed**，`npm run build` 通过。
-- [x] 修复 Data Health recency 接线，并以状态模型驱动 UI，不从 DOM 文案反向取数据。
-  - 2026-09-02：`data-recency-actions.js` 直接读取现有 `KeywordOSUIBridge` 的 Ads / Finance 活动行与 Dataset Registry 状态；Registry coverage 只有在 validation、rowCount 与活动数据最新日期一致时才采用，过期 Registry 元数据不会覆盖当前数据。Data Health notice 与 Sync Center tooltip 共用同一 recency model，不再读取 `.schema-list`、coverage 标签或 coverage cell 文本。Ads / Finance 状态模型接线与反 DOM 回归测试已覆盖。CI 为 **276 passed / 0 failed**，`npm run build` 通过。
-- [x] 统一库存 observed-day velocity 和 Listing field profile，消除双口径。
-  - 2026-09-02：`growth-consistency-actions.js` 复用既有 `productSalesVelocity()`、`listingCoverage()`、`listingEvidenceTerms()` 与 UTF-8 byte 计算器，把 Inventory Risk / Anomaly Center 的可见日销量、days cover 与风险状态统一为实际 observed dated Ads days；无日期销量证据保持 unavailable。Listing Backend Bytes KPI、field validation 与 placement suggestion 统一读取当前 listing draft 的 `titleLimit` / `searchTermsLimit` profile，非法 profile fail-closed，不再由 placement 路径硬编码 250。CI 为 **282 passed / 0 failed**，`npm run build` 通过。
-- [x] 建立 source → dist 资产一致性检查，重新构建并验证当前发布产物。
-  - 2026-09-02：`scripts/check-dist-assets.mjs` 以源码 `index.html` 为入口推导静态发布闭包，拒绝缺失/多余文件、越界路径和 source/dist 字节差异；当时 `npm run build` 生成 **50 个发布文件（40 个 JS、9 个 CSS、1 个 HTML）**。CI 在 clean build 后继续要求 `git status --porcelain --untracked-files=all -- dist` 为空，阻止未提交、陈旧或额外 dist 进入 main；该轮已重建并同步整个 `dist/`。CI 为 **282 passed / 0 failed**，build 与 committed-dist parity gate 均通过。后续增加 `ui-capability-guard.js` 后当前发布闭包为 51 个文件；该结论只覆盖仓库发布产物，不等同于声明 Cloudflare 生产部署已经更新。
-- [x] 建立中央 page registry；统一 route、suite、侧栏、breadcrumb、command palette、标题与 i18n key。
-  - 2026-09-02：`navigation-taxonomy.js` 升级为中央 Page Registry，每个 canonical page 统一保存 page id、suite、sidebar group/order、title/subtitle、icon 与稳定 `page.<id>` i18n key；`tracker → rank-intelligence`、`listing-workspace → listing-optimizer` alias 也由同一 registry 提供。`productivity-actions.js` 的 suite home、suite active、history/hash、command palette、breadcrumb/title/subtitle 与 page-level i18n key，`workflow-canonicalization.js` 的 legacy alias，以及 `suite-home-intelligence.js` 的 suite route/title 均改为读取 registry。新增 coverage/uniqueness 回归确保现有 Core `NAV` 与 Growth `PAGE_META` 的 page id 全部受 registry 覆盖且无重复。CI 为 **289 passed / 0 failed**；`npm run build`、50-file source/dist byte identity 与 committed-dist parity gate 全部通过。该项不等于已去除 legacy DOM 入口，也不等于全局可见文案 i18n 已完成；这两项继续留在下一 P0。
-- [x] 去除重复 Tracker/Listing 入口，修正套件 active 状态、Cerebro 残留、中文混杂和 Advertising 语义碰撞。
-  - 2026-09-02：`navigation-taxonomy.js` 现在直接隐藏 `tracker` / `listing-workspace` legacy 按钮，并在 canonical 排序时显式排除 legacy page；历史 hash 仍由既有 alias 重定向。`listing-workspace-actions.js` 已收缩为兼容纯 helper，不再注入独立 Listing Workspace、拦截 Listing 顶部套件或根据可见文本维护第二套 active 状态。内部 `cerebro` route 保持兼容，但 registry 可见名称统一为 Keyword Research；`product-language.js` 为全部 canonical page 提供 registry-id 驱动的 EN / 中文 / 双语 page/suite shell 文案，并让 tool workspace 使用 Marketing suite id，因此导航不再受财务上下文 `Advertising`→“广告费”影响。CI 为 **294 passed / 0 failed**；`npm run build`、40 JS + 9 CSS 静态闭包、50-file source/dist byte identity 与 committed-dist parity gate 全部通过。该项只宣告已知 route / page / suite / title 漂移闭环；动态 modal、空态和 aria 文案仍保留为更广的 P1 文案审计。
-- [x] 把 AI Bids 改为准确名称；所有按钮必须有真实 handler，否则隐藏或 disabled 并说明原因。
-  - 2026-09-02：新增 `ui-capability-guard.js` 并在 `app.js` 等渲染器之前加载。Suggestions 原 `AI Bids` 用户可见 tab 改为 `Rule-based Bids` / `规则化调价建议`，并明确其输入只是已导入表现、配置阈值和固定 bid multiplier；内部 `AI Bids` key 仅保留兼容。guard 通过早期包装 button `addEventListener('click', ...)` 记录真实 direct handler，显式允许现有 document-delegated/navigation contract；任何没有 action contract 却仍 enabled 的按钮会 fail-closed 为 disabled + `aria-disabled` + 原因，已有 disabled 控件缺 title 时也补充原因。Keyword Research 的 Common Words / Learn / Search / Settings 同时改为 canonical route-id 直接接线，消除旧 `pageTitle() === 'Cerebro'` 漂移。CI 为 **300 passed / 0 failed**；`npm run build` 生成 **51 个发布文件（41 个 JS、9 个 CSS、1 个 HTML）**，source/dist byte identity 与 committed-dist parity gate 全部通过。
-- [x] 收紧 Keyword Research 当前能力文案：单短语过滤、Word Frequency 与未实现的保存筛选不得冒充批量分析、Common Words 或保存预设。
-  - 2026-09-03：`ui-capability-guard.js` 在 canonical `cerebro` route 上把现有 `Analyze Keywords` 准确显示为 `Phrase Filter / 短语筛选`，并明确只对已加载 Ads search-term 证据做单短语过滤；原 `Common Words` 改为 `Word Frequency / 词频`，继续执行既有滚动到词频动作；无 handler 的 `Save as Filter Preset` 隐藏。真正的 ≤200 词批量分析、Common Words 排除、删除/恢复与保存筛选仍保留在 P1 Keyword Lab，不在本 P0 提前伪实现。CI 为 **308 passed / 0 failed**；`npm run build`、**51 个发布文件**的 source/dist byte identity 与 committed-dist parity gate 全部通过。
-
-P0 验收：所有可见指标能追到来源；坏行不会变成零；备份往返不丢状态；源码、dist 和已部署入口同版本；中英模式无已知路由/标题漂移。
-
-### P1 — Keyword Lab 与第三方 CSV 适配
-
-- [x] 把 Keyword Research 升级为一个 Keyword Lab，保留“关键词发现 / 批量分析 / ASIN 导入与对比”三种模式和一套结果模型。
-  - 2026-09-03：`keyword-lab.js` 已建立三模式壳、≤200 Batch、统一五来源关键词证据与 source-aware metric collision 规则；Discovery、Batch 和 ASIN Compare 继续消费同一结果 shape。`navigation-taxonomy.js` 已把 canonical `cerebro` 页面产品名统一为 **Keyword Lab**，`product-language.js` 同步 EN / 中文 / 双语 shell；内部 route id 继续兼容。CI 为 **325 passed / 0 failed**；`npm run build` 验证 **42 个 JS + 9 个 CSS，52 个发布文件**，source/dist byte identity 与 committed-dist parity gate 全部通过。
-- [x] 批量分析接受换行、逗号、CSV 和 Keyword Library，最多 200 词；逐词 left join，未命中项保留并显示原因。
-  - 2026-09-03：`parseBatchInput()` 支持换行、逗号与 quote-aware CSV；多列 CSV 必须存在 Keyword/Search Term 类表头，否则 fail-closed。`keywordLibraryInput()` 只读取已验证或迁移的 `keyword-assets`；输入按规范化关键词大小写无关去重并保留首次显示顺序，超过 200 个唯一词会完整拒绝而不是截断。Batch 现在对统一的 Ads / SQP/ABA / reverse-ASIN / rank / keyword-assets exact keyword evidence 执行 left join，substring 不视为命中；未命中输入仍保留 `matched=false`、missing provenance 与明确 reason，不把缺失指标写成 0。CI 为 **325 passed / 0 failed**；`npm run build`、**42 个 JS + 9 个 CSS / 52 个发布文件**、source/dist byte identity 与 committed-dist parity gate 全部通过。
-- [x] 合并 Ads、SQP/ABA、reverse-ASIN、rank 和 keyword-assets 证据；同名指标不跨来源静默覆盖。
-  - 2026-09-03：`combinedKeywordEvidence()` 把 Ads 聚合与 validated/migrated `sqp`、`reverse-asin`、`ranks`、`keyword-assets` 按 normalized keyword 精确合并；无效 Registry 记录不会进入证据层。`mergeMetricEvidence()` 仅在指标只来自一个 source 时保留原 key；同名指标出现跨来源冲突时改为 source-qualified key，例如 `ads.clicks` / `sqp.clicks`、`sqp.searchVolume` / `reverse-asin.searchVolume`、`ranks.organicRank` / `reverse-asin.organicRank`，不会静默覆盖。Rank 取每个 ASIN + keyword 的最新快照并保留不同 ASIN observations；Batch 可命中只有 SQP 或 Keyword Library 证据的词；ASIN Compare 以 reverse-ASIN comparison 为主再补充 Ads/SQP/rank/keyword-assets，避免 reverse-ASIN 自重复。CI 为 **325 passed / 0 failed**；`npm run build`、**42 个 JS + 9 个 CSS / 52 个发布文件**、source/dist byte identity 与 committed-dist parity gate 全部通过。
-- [x] 增加 Helium 10 与卖家精灵 CSV profile：header alias、市场、报告类型、报告版本、快照日期、预览、严格校验和未知列保留。
-  - 2026-09-03：现有 `growth-import-validation.js` / `growth-import-gate.js` 直接扩展为第三方 CSV profile 层，不另建第二套 parser。Helium 10 Cerebro 支持 Keyword Phrase / Search Volume / Organic Rank / Sponsored Rank / Position (Rank) 等已公开字段，并可把以 ASIN 为列名的多 ASIN organic-rank 导出展开为 long-form reverse-ASIN 行；卖家精灵支持 Keyword、Searches/M / M. Searches、Organic Position、SP Rank、Impression Share、Conversion 等别名。第三方文件必须先在 preview 中确认或补齐 ASIN（单 ASIN 文件缺失时）、Marketplace 和 Snapshot Date，再进入既有严格 validator；非法 ASIN、日期、数值、列数及 20-ASIN 上限继续 fail-closed。Provider / Report Type / Report Version / Snapshot Date / Source File 随每行进入 reverse-ASIN 证据，Cerebro IQ Score、Title Density、SPR、DSR 等未映射供应商原始列按原列名保存在 `sourceColumns`，不重命名为 KeywordOS 指标。CI 为 **329 passed / 0 failed**；`npm run build` 验证 **42 个 JS + 9 个 CSS，52 个发布文件**，source/dist byte identity 与 committed-dist parity gate 全部通过。
-- [x] 暂不引入 XLSX 依赖；优先要求从第三方导出 CSV，或由用户另存为 CSV。
-  - 2026-09-03：本轮只复用浏览器原生 File / CSV 路径与现有 parser，没有新增 npm 依赖；Excel/XLSX 继续不进入当前范围。
-- [x] 完成可点击 1/2/3+ gram、停用词、Common Words 排除、删除/恢复、词根高亮和原表联动。
-  - 2026-09-03：`keyword-lab.js` 在统一 `currentRows()` 结果之上增加可测试的 token / contiguous n-gram / root-view reducer：1/2/3+ gram 统计按结果行计数，停用词模式只忽略 n-gram 首尾常见功能词，不把非连续 token 拼成伪短语；root 点击使用完整 token 序列匹配并联动筛选、高亮当前结果。Common Words 排除、keyword delete/restore 都是可逆 view state，不写回 Ads、第三方 CSV 或 Dataset Registry。`app.js` 的 legacy Ads result table 通过 `filterLegacyAdsItems()` 消费同一 view state，因此页码/结果数会跟随 root、排除与删除状态；Batch 结果表同样消费这套状态。原只读 Word Frequency summary 在 Keyword Lab 中被统一 n-gram workspace 取代，`ui-capability-guard.js` 把 canonical `cerebro` 的第二个工具入口恢复为真实 **Common Words / 常用词** 并滚动到该 workspace。CI 为 **334 passed / 0 failed**；`npm run build` 验证 **42 个 JS + 9 个 CSS，52 个发布文件**，source/dist byte identity 与 committed-dist parity gate 全部通过。
-- [x] 完成列排序/拖动/显隐、保存视图、可靠的筛选预设、查询历史、选中/当前页导出。
-  - 2026-09-03：新增轻量 `keyword-lab-view.js`，只管理 Keyword Lab 的浏览器视图状态，不复制证据模型。Discovery 与 Batch 结果表现在都有稳定列 key、点击排序、拖动/上下移动、显隐和浏览器本地持久化；Keyword identity 列始终保留。Discovery 的既有研究筛选通过严格字段白名单保存为自定义 Filter Preset，重名预设大小写无关更新而不是静默重复；现有查询历史升级为统一 Keyword Lab History，Batch ≤200 输入也会记录并可重放。Export 明确区分 Selected 与 Current Page，并只导出当前可见列顺序。Workspace Organizer 继续作为唯一 Saved View 入口：保存 `cerebro` 时附带可序列化、20KB 上限的 Keyword Lab workspace snapshot，重开时恢复 mode/query/filter/root/column/sort；不写回 Ads、第三方 CSV 或 Dataset Registry。新增 `keywordos_v9_keyword_lab_view` 进入现有本地备份白名单，无新 npm 依赖。CI 为 **342 passed / 0 failed**；`npm run build` 验证 **43 个 JS + 9 个 CSS，53 个发布文件**，source/dist byte identity 与 committed-dist parity gate 全部通过。
-- [x] 统一批量动作：Add to List、Track Snapshot、Negative Candidate、Send to Listing、Export。
-  - 2026-09-03：Keyword Lab 的 Discovery 与 Batch 现在共享同一组选中项批量动作。Add to List 复用现有 `keyword-assets` / Action Center 派生链路并按 keyword asset id 去重；Track Snapshot 只把关键词加入 Store tracker，明确不伪造 rank snapshot，排名值仍只来自导入的 `ranks` 证据；Negative Candidate 继续先执行 Protected Keyword 与 cross-product conflict gate，并对相同 Pending/Suggested 候选去重。Send to Listing 新增最小 `listing.keywordBank` intake：保留 keyword / source / addedAt，并在 Listing Optimizer 显示，但不会自动改写 Title、Bullets、Description 或 Backend Search Terms。Export 继续复用 Keyword Lab 现有 Selected / Current Page CSV 逻辑与可见列顺序。批量动作保持 browser-local / review-first，不新增 Amazon 写 API。CI 为 **345 passed / 0 failed**；`npm run build` 验证 **43 个 JS + 9 个 CSS，53 个发布文件**，source/dist byte identity 与 committed-dist parity gate 全部通过。
-- [x] 所有第三方专有指标保留原名、来源和快照，不生成仿 IQ/CPR/KPS/SPR/DSR 分数。
-  - 2026-09-03：`sourceColumns` 不再只停留在 reverse-ASIN 原始记录；`keyword-lab.js` 现在把第三方未知/专有列逐字段投影进统一 `metrics`，字段 key 与 `originalName` 都保留供应商原名，值保持 CSV 原始值，不做数值公式反推。每个第三方 metric 同时携带 Provider、Report Type / Version、Snapshot Date、Source File、Marketplace、ASIN observations，并统一标记 `third-party-estimate`；多快照 provenance 去重键也加入 provider/report/snapshot/file/ASIN，避免不同快照被错误折叠。Helium 10 的 Cerebro IQ Score / CPR / KPS 与卖家精灵 SPR / DSR 只有源文件实际提供时才出现；KeywordOS 不计算、不补齐、不仿制这些专有分数。
-
-P1 验收：同一关键词从导入到列表/Listing/追踪不需要复制粘贴；200 个输入不会静默丢失；相同文件重复导入不产生重复结果。
-
-### P2 — 多 ASIN、Library、Tracker 与 Listing 闭环
-
-- [x] ASIN Comparison 增加 primary owned ASIN、竞品组、共有/自有/缺口、覆盖热力图和按任一有源指标切换的矩阵。
-  - 2026-09-03：`growth-workspaces.js` 现在只接受 Product Master 明确拥有且同时存在于当前 reverse-ASIN 导入中的 ASIN 作为 primary；没有显式 ownership 时 fail-closed，不推断共有词或缺口。竞品范围直接复用既有 `competitor-groups`，默认也可使用当前全部 imported non-owned ASIN；保存组会与当前 reverse-ASIN ASIN 集合取交集，组内缺失 ASIN 明确提示。Shared / Own only / Competitor-only gap 均按 primary + 当前竞品 scope 重算，gap 只表示当前导入证据中 primary 缺行，不冒充 Amazon index/rank 结论。Coverage heatmap 按精确 ASIN + keyword 行是否存在着色；矩阵可切换当前文件实际提供的 Search Volume、Organic Rank、Sponsored Rank、Traffic Share、Conversion Rate，以及 `sourceColumns` 中真实存在的第三方原名字段，未导入的指标不会生成选项。primary / group / metric 只保存为 `keywordos_growth_asin_comparison_state_v1` 浏览器视图状态并进入现有 backup manifest，不建立第二套证据库。CI 为 **354 passed / 0 failed**；`npm run build` 验证 **43 个 JS + 9 个 CSS，53 个发布文件**，source/dist byte identity 与 committed-dist parity gate 全部通过。
-- [x] 只有相同 ASIN/keyword 存在多个日期快照时才显示自然位、广告位、traffic/conversion 的趋势与差值。
-  - 2026-09-03：reverse-ASIN 导入现在采用保守的 dated-history 规则：当本次导入所有行都有合法 Snapshot Date 时，按 ASIN + normalized keyword + snapshot date + provider/report/marketplace source series 追加历史，同日同源重导作为 correction 覆盖；若本次含任一无日期行则继续原有 replace 语义，不把无日期记录伪装成历史。ASIN Comparison 的 Organic Rank、Sponsored Rank、Traffic Share、Conversion Rate 只有在精确 ASIN + keyword + metric 的同一可比来源序列至少存在两个不同日期时才生成 trend/Δ，并只比较最近两个真实快照；Rank 显示原始数值差，Traffic/Conversion 显示百分点差，不自动解释好坏。单快照、同日重复、跨 ASIN/keyword 或跨来源数据都不会生成趋势；矩阵仍显示当前导入证据。原生 reverse-ASIN CSV 模板已补 Snapshot Date 列以便建立可追溯历史。CI 为 **359 passed / 0 failed**；`npm run build` 验证 **43 个 JS + 9 个 CSS，53 个发布文件**，source/dist byte identity 与 committed-dist parity gate 全部通过。
-- [x] Keyword Library 增加 folder、tag、status、note、favorite、move/copy、回收站、custom columns 和 20/50/100 分页。
-  - 2026-09-03：Keyword Library 不再只把当前 Ads search-term 聚合表当成资产表；`keyword-assets` 保持稳定 keyword ID，并在每次 Ads / SQP / local action 同步时保留 Library 元数据，因此 SQP-only、本地候选以及后续导入中暂时不再出现的已登记关键词不会因为缺少当前 Ads 行而丢失。新增 `keyword-library-state.js` 作为无依赖纯状态层，统一 folder membership、tag/status/note/favorite、Recycle Bin、custom fields 与 20/50/100 分页；Move 会替换 folder memberships，Copy 只增加 folder membership，不复制 keyword asset ID。Library 支持 folder/tag/status/lifecycle 搜索筛选、收藏优先、批量 Move/Copy/Status/Trash、Recycle Bin 恢复、最多 12 个本地 custom columns、列显隐和全量 filtered export；无 Ads 证据的资产其广告指标显示 `—`，不会伪造 0。custom column 定义继续保存在现有 backup-safe `keywordos_v9_keyword_ui`，每个值和 folder/status/note/favorite/trash 状态直接保存在同一个 `keyword-assets` Dataset Registry 行中，没有新建第二个关键词库或新 storage key。Keyword Lab 的 “Use Keyword Library” 会排除 Recycle Bin 资产。CI 为 **365 passed / 0 failed**；`npm run build` 验证 **44 个 JS + 9 个 CSS，54 个发布文件**，source/dist byte identity 与 committed-dist parity gate 全部通过。
-- [x] Rank Snapshots 改为 ASIN → Keywords 层级，增加日期覆盖、断档、备注/事件、自然/广告切换和本地 heat map。
-  - 2026-09-03：`rank-intelligence` 不再只显示 latest keyword/ASIN 平表；同一个现有 `ranks` Dataset Registry 现在按 **ASIN → Keywords → dated snapshots** 组织。`mergeRankSnapshots()` 以 ASIN + normalized keyword + date 为稳定快照键，新日期追加历史，同日重导作为 correction 覆盖，同时保留该快照已经填写的本地 Note / Event；没有新增第二套排名库或 localStorage key。页面按 ASIN 切换，显示真实 imported date coverage、相邻导入日期之间的 calendar gap，并明确 gap 只是“未观察日期间隔”，不假设日更；只有一个日期时不显示趋势暗示。Organic / Sponsored 可直接切换，同一 ASIN 的 keyword × imported date 矩阵生成本地 heat map，分桶仅按真实 rank 值 Top 10 / 11–25 / 26–50 / 51–100 / 100+ 着色，缺行保持 `—`，不生成排名分数。每个精确 ASIN + keyword + date 快照可编辑 Store-local Event / Note，注释直接保存在同一 `ranks` 行且不改写 imported rank/indexed 值。CI 为 **371 passed / 0 failed**；`npm run build` 验证 **44 个 JS + 9 个 CSS，54 个发布文件**，source/dist byte identity 与 committed-dist parity gate 全部通过。
-- [x] Suggested Keywords 使用集合差：最新 Ads/SQP/reverse-ASIN 导入词减去已追踪/已删除词，只在新导入后按保存规则重算。
-  - 2026-09-03：Suggestions 的旧 `New Keywords` Ads 阈值列表已替换为 **Suggested Keywords** 导入集合差。新增无依赖 `suggested-keywords.js`：候选全集只取真实用户导入的 Ads search terms、当前 validated/migrated SQP rows，以及 reverse-ASIN 当前最新 Snapshot Date 的关键词；按 normalized exact keyword 合并来源，不做 substring/fuzzy 扩词，也不调用 Amazon Suggest。保存规则固定记录为 `latest Ads + SQP + reverse-ASIN − tracked − deleted`，快照继续复用现有 backup-safe `keywordos_v9_suggestion_reviews` 的保留字段，不新增第二套持久化或 storage key。只有 Ads/SQP/reverse-ASIN import fingerprint 改变时才从来源全集重算；两次导入之间，新增 Tracker 或 Keyword Library Recycle Bin 删除只会把命中词从已保存快照中继续裁掉，取消追踪/恢复不会把词重新加回，必须等下一次真实导入重新评估。SQP/reverse-ASIN-only 词没有 Ads performance 时 Spend/Sales/ACoS/Orders 显示 `—`，不会伪造 0；来源行明确显示 ADS / SQP / reverse-ASIN。CI 为 **376 passed / 0 failed**；`npm run build` 验证 **45 个 JS + 9 个 CSS，55 个发布文件**，source/dist byte identity 与 committed-dist parity gate 全部通过。
-- [x] 串联 Keyword Library → Listing Keyword Bank → Title/Bullets/Description/Backend，保留来源、收藏、删除和 placement 状态。
-  - 2026-09-03：Keyword Library 的已选 active assets 现在可直接 **Send to Listing**，继续写入现有 `listing.keywordBank`，没有新建第二个 keyword bank / localStorage key。Bank item 在兼容旧 `keyword/source/addedAt` 行的同时补齐稳定 `assetId`、imported source list、favorite、Recycle Bin / status metadata；同一 normalized exact keyword 再次从 Library 送入时只刷新 metadata link，不复制关键词。Listing Optimizer 的 **Listing Keyword Bank** 会把 bank row 与当前 `keyword-assets` 重新精确关联，因此 Library 后续收藏切换或移入 Recycle Bin 不会让来源链断掉，删除资产也不会静默从已有 Listing Bank 消失。Title / Bullets / Description / Backend placement 不另存一份易过期状态，而是每次从当前本地 Listing draft 用完整 token-boundary phrase 精确计算：只显示真实命中的字段，词序颠倒、partial root 或 fuzzy match 不算 placement；Library 新增 `Listing placement` 列，可直接看到 `Not in bank / Unplaced / Title · Bullets · Description · Backend`。整个链路仍是 planning-only，不自动把词写进任何 Listing 字段，也不调用 Amazon API。CI 为 **381 passed / 0 failed**；`npm run build` 验证 **45 个 JS + 9 个 CSS，55 个发布文件**，source/dist byte identity 与 committed-dist parity gate 全部通过。
-- [x] Listing 增加词根/短语使用矩阵、字段覆盖次数、未使用词根和仅基于导入竞品文案的 placement comparison。
-  - 2026-09-03：Listing Optimizer 继续复用现有 `listing.keywordBank` 与本地四字段 draft，没有新增分析数据源或持久化键。新增 `phraseOccurrenceCount()` / `listingUsageMatrix()`：对 active Bank phrase 使用完整 token-boundary contiguous sequence 计数，并把每个 Bank phrase 的原始 token 作为 literal roots；Phrase / Root 两套矩阵分别显示 Title、Bullets、Description、Backend 的真实出现次数与 Total，Field coverage 同时汇总“覆盖了多少 phrase/root term”和“实际出现多少次”，Unused roots 只列当前四字段中 0 次出现的 Bank roots；Recycle Bin asset 不进入该优化矩阵，且不做 stemming、同义词扩展或语言推断。新增 `listingCompetitorPlacementComparison()`：只对每个 ASIN 最新一条真实导入的 competitor **Title** snapshot 与 active Bank phrase 做 exact phrase comparison，显示 Local placement / uses、Competitor title matches / uses、ASIN + snapshot date 以及 `Local only / Competitor title only / Local + competitor title / Not observed`；不会把 competitor description、reviews、reverse-ASIN 或外部文案当作 placement evidence。现有 `competitorListingGaps()` 保留兼容，但 Listing UI 已改用可追溯 placement comparison。CI 为 **385 passed / 0 failed**；`npm run build` 验证 **45 个 JS + 9 个 CSS，55 个发布文件**，source/dist byte identity 与 committed-dist parity gate 全部通过。
-
-P2 验收：一个关键词资产可看到来源、列表状态、Listing placement、排名快照和本地动作；没有第二个日期时 UI 不暗示趋势或日更。
-
-### P3 — 透明的本地决策辅助
-
-- [x] 从完整导入字段计算并展示可展开公式的 Purchase Rate、Search CVR、Click CVR、CPA、break-even ACoS 和预算情景；缺分母时为 —。
-  - 2026-09-03：新增统一 `formulaMetric()` 透明计算契约，所有 ratio 均保存 numerator / denominator / formula / availability，分母为 0 或缺失时 `value=null`，UI 显示 `—` 而不是 0。Search Funnel 按本 README 已定义口径计算 **Purchase Rate = Purchases ÷ Searches**、**Search CVR = Purchases ÷ Searches**、**Click CVR = Purchases ÷ Clicks**；前两者保留为同公式兼容标签，并在可展开 `Formula & inputs` 中显示汇总输入。Ads 侧新增 `adsDecisionMetrics()`，只对当前加载 Ads rows 先汇总 Spend / Orders / Clicks / Attributed Sales，再计算 **CPA = Spend ÷ Orders**、observed CPC、Click CVR 与 ACoS，不平均行级比率。Product 360 的 break-even ACoS 改为 `breakEvenAcosMetric()`：只有同一 Product Master 映射同时存在真实 Finance、Costs、Ads 证据且 Attributed ad sales > 0 时才计算 **max(0, (Operating net − COGS) ÷ Attributed ad sales)**，否则显示 `—` 并展开说明缺失证据。预算只提供 browser-session planning scenario：从真实加载 Ads 汇总得到 observed CPC + Click CVR，用户仅输入“至少 1 单”的目标概率，使用 **ceil(ln(1 − target probability) ÷ ln(1 − Click CVR)) × observed CPC** 计算所需 clicks 与 scenario budget；不预填、不保存、不生成 campaign budget recommendation，更不会写 Amazon。CI 为 **391 passed / 0 failed**；`npm run build` 验证 **45 个 JS + 9 个 CSS，55 个发布文件**，source/dist byte identity 与 committed-dist parity gate 全部通过。
-- [x] 增加可编辑的 Simple / Advanced 本地筛选与 Top-N 条件构造器；保存条件，不保存伪装成实时的结果。
-  - 2026-09-03：新增轻量 `local-filter-builder.js`，复用现有 `csv-page-controls.js` 的 7 个 CSV-first 页面边界，不改 parser、Dataset Registry 或任何证据行。Builder 自动选择当前页面 tbody 行数最多的主数据表，Simple 只允许 1 条条件；Advanced 最多 5 条并支持 ALL / ANY。条件字段完全来自当前表头，支持 contains / not contains / equals / not equals / > / ≥ / < / ≤ / between / missing / present；货币、千分位和百分比只按当前单元格显示值透明解析，不生成缺失指标。Top-N 在条件和既有 Marketplace / ASIN / SKU 上下文筛选之后执行，可选 Top / Bottom、1–1000 和当前可数值化字段；缺字段或没有可数值值时 fail-closed，不展示伪结果。状态只在 `keywordos_v9_local_filter_builder` 保存 `{page, mode, join, conditions, topN}` 与命名 preset，preset 按“页面 + 名称”大小写无关更新；`normalizeState()` 会丢弃 results / resultRows / resultCount / evaluatedAt 等结果型字段，重新加载或数据刷新后都从当前渲染导入表重新计算。它只用独立 DOM hidden 标记做可逆视图过滤，不重排数据，也不会覆盖现有 CSV context 的隐藏状态。CI 为 **399 passed / 0 failed**；`npm run build` 验证 **46 个 JS + 9 个 CSS，56 个发布文件**，source/dist byte identity 与 committed-dist parity gate 全部通过。
-- [x] 增加人工相关性审核队列；若有 ASIN-result overlap，允许显示公式公开的“本地相关度”。
-  - 2026-09-03：新增纯函数 `keyword-relevance-review.js` 并把审核 UI 放在现有 ASIN Comparison 下，不新建第二套关键词证据或页面。队列只读取当前 reverse-ASIN import 在所选 primary + competitor scope 中每个 ASIN 的最新 result set；exact normalized keyword 是唯一匹配键，不做 stemming、substring 或外部扩词。人工状态为 Pending / Relevant / Irrelevant / Unsure，并可保存 500 字以内 Note；人工结论不触发 Add to List、Negative、Listing 或任何 Amazon mutation。只有当前 scope 至少有 2 个 ASIN result set 且同一 exact keyword 出现在至少 2 个 result set 时才显示 **Local relevance = 包含该 exact keyword 的 ASIN result sets ÷ 当前 scope 的 ASIN result sets**；可展开查看 numerator、denominator、匹配 ASIN 和各 ASIN 当前 snapshot date，并明确声明它不是 Amazon Relevancy。没有真实 overlap 时值为 `—`。审核状态复用现有 backup-safe `keywordos_v9_suggestion_reviews` 的 `__keywordRelevanceReviews` 命名空间，不增加 storage key；状态绑定 deterministic reverse-ASIN evidence fingerprint + 当前 ASIN scope，换导入或换 scope 后旧人工判断不会冒充当前结论，删除源数据后队列也不会继续显示。CI 为 **405 passed / 0 failed**；`npm run build` 验证 **47 个 JS + 9 个 CSS，57 个发布文件**，source/dist byte identity 与 committed-dist parity gate 全部通过。
-- [x] 增加本地 alert inbox，只对两次真实快照间的价格、排名、库存、评论或广告变化发提示。
-  - 2026-09-03：新增纯函数 `alert-inbox.js`，复用现有 `anomaly-center` 作为唯一入口，并把页头 Notifications 图标接到同一 Local Alert Inbox，不新建实时监控服务。每条 alert 都要求同一 exact entity 至少有两个 **distinct dated** 真实观察：Price / Review 来自同 ASIN 最新两次 imported competitor snapshots（Price、Rating、Review Count）；Rank 来自同 ASIN + exact normalized keyword 最新两次 imported rank snapshots，0 / missing rank 不参与；Inventory 只比较同 SKU（无 SKU 时 ASIN）最新两次 dated `Available` snapshots；Ads 只在当前 `adsPersistent=true` 的 validated Ads report 内聚合最新两个 distinct dates 的 Spend / Orders / Attributed Sales / Clicks / Impressions，绝不把 Cloudflare seed 或两个不同 report imports 拼成时间序列。为让库存真正具备跨导入的第二快照，Dataset Registry 的 append/correction policy 从 ranks + competitor 扩展到 inventory，稳定键为 date + SKU（无 SKU 时 ASIN），同日同实体后导入视为 correction，历史日期保留。Inbox 的 `keywordos_v9_alert_inbox` 只保存 `{view, readIds, dismissedIds}`，进入现有 Local Data Operations v3 backup whitelist；alert id 由 category / source / entity / metric / 前后日期 / 前后值确定性生成，来源删除、scope 证据消失或 snapshot pair 改变后会重新计算并清掉失效 read/dismiss metadata，不保存派生 alert payload。现有 `anomalies()` 的 7-day threshold checks 继续独立显示，不再与 snapshot alerts 混为一谈。CI 为 **413 passed / 0 failed**；`npm run build` 验证 **48 个 JS + 9 个 CSS，58 个发布文件**，source/dist byte identity 与 committed-dist parity gate 全部通过。
-- [x] 在现有只读 Agent 上补充“为什么这个词优先”“缺少什么数据”的确定性解释，不生成外部事实。
-  - 2026-09-03：新增纯函数 `keywordos-agent-explanations.js`，继续复用现有只读 Agent 与 Store 01 validated Dataset Registry，不新增 storage、结果缓存、外部 API 或隐藏关键词分数。`Why is “keyword” prioritized? / 为什么 keyword 优先？` 必须明确给出 exact keyword；Agent 只按 exact normalized keyword 连接本地证据：Ads 汇总当前 validated report 内 exact Search Term 的显式指标，SQP 只看最新 dated exact query，reverse-ASIN 对每个 ASIN 只用最新 imported result set，Rank 对每个 ASIN 只用最新 dated exact-keyword snapshot，Keyword Library 只展示本地 favorite/status/recycle-bin 状态，Listing 只做完整 token-boundary phrase placement。回答明确声明没有 global hidden priority score，页面自己的排序规则仍是权威；只把订单、SQP purchase、multi-ASIN exact overlap、favorite 等已观察信号作为“可支持关注”的证据说明。`What data is missing? / 缺少什么数据？` 按当前 Specialist mode 列出 absent / empty validated datasets；若问题同时给出 exact keyword，则进一步区分 **Missing dataset** 与 **No exact keyword evidence**，并明确这些只是 KeywordOS 本地能力缺口，不是 Amazon 数据要求。`keywordos-agent-diagnostics.js` 会主动让 priority/missing-data 问题绕过 why-change 时序诊断；Specialist answer 增加 Deterministic rule / Why this keyword / Missing data 可展开表。所有解释都在查询时从当前来源重算，删除数据集后对应证据立即消失并转为 gap，不持久化派生结论、不做 substring/stemming/synonym、不生成 Amazon Relevancy 或外部事实。CI 为 **422 passed / 0 failed**；`npm run build` 验证 **49 个 JS + 9 个 CSS，59 个发布文件**，source/dist byte identity 与 committed-dist parity gate 全部通过。
-
-P3 验收：每个分数和建议均可展开查看输入、公式和限制；删除来源文件后不会留下无法追溯的结论。
-
-## 明确不在当前范围
-
-- ⛔ Amazon Ads API、SP-API、OAuth、Brand Analytics/SQP 自动读取。
-- ⛔ 自动竞价、预算修改、dayparting、campaign/ad group/target mutation。
-- ⛔ Listing 同步、发布或自动修改 Seller Central。
-- ⛔ 实时 Reverse ASIN、Amazon 建议、Index Checker、排名抓取、Tracker Boost、实时 PPC bid。
-- ⛔ 自动抓取 Amazon 页面、竞品变体、Top 10 商品、商品图或评论。
-- ⛔ 在无授权数据时展示搜索量、销量、自然位、广告位、ABA、BSR、Amazon Choice 或市场均值。
-- ⛔ 复制 Helium 10 / 卖家精灵的品牌 UI、文案、数据集或私有算法。
-- ⛔ AI Listing 草稿、图片理解和市场摘要，直到有明确模型来源、成本、隐私和人工批准边界。
-- ⛔ 浏览器扩展与 Google Trends / Keepa 等外部连接，直到核心 CSV 工作流验证确有需求。
-
-这些事项不是“即将完成”的承诺；除非项目所有者明确重新开范围，否则不应建立空入口或预留复杂抽象。
-
-## 实施顺序与质量门槛
-
-| 阶段 | 交付结果 | 前置条件 |
-|---|---|---|
-| A. Truth & Release | 数据标识、严格导入、无损备份、recency、中央 page registry、dist 同步 | 无 |
-| B. Keyword Lab | 统一三模式、200 词、来源合并、词根/列/历史、H10/卖家精灵 CSV profile | A |
-| C. Workflow | Multi-ASIN、Library、快照 Tracker、Listing Keyword Bank | A、B |
-| D. Local Intelligence | 透明公式、筛选构造器、人工审核、本地 alerts、Agent 解释 | A–C |
-
-每个阶段都必须满足：
-
-- Store 隔离、marketplace 和 snapshot date 不丢失。
-- 导入 schema、坏行、重复、空值、极值和恢复流程有测试。
-- 所有数值区分 raw / calculated / third-party estimate / missing。
-- UI 没有无 handler 控件；键盘、移动表格、空态、错误态和双语经过实际浏览器检查。
-- npm run check 和 npm run build 通过，源码与 dist 资产闭包一致。
-- README 的完成状态与同一提交中的代码一致；不能先把计划项改成完成。
-
-## 本地数据契约建议
-
-现有 Dataset Registry 应继续作为唯一证据中枢，不另建平行数据库。第三方导入最少保留：
-
-    dataset_id, store_id, marketplace, provider, report_type, report_version,
-    source_file, imported_at, snapshot_date, schema_version, checksum,
-    validation_status, accepted_rows, rejected_rows
-
-关键词资产最少保留：
-
-    keyword_id, normalized_keyword, display_keyword, marketplace,
-    sources[], folder, tags[], intent, status, note,
-    imported_at, snapshot_date, metric_quality
-
-指标保留原始列和 lineage。跨来源同名指标采用 provider + metric + window 命名或明确选择器，不做“看起来相同”就合并。任何本地派生字段必须保存公式版本和输入列；第三方估算只展示，不重新命名为事实。
-
-## 开发与验证
-
-    npm install
-    npm run check
-    npm run build
-    npm run dev
-
-如需操作现有 D1 migration：
-
-    npm run db:migrate
-
-正常发布路径为 GitHub main → Cloudflare Workers Build → Wrangler deploy。当前仓库提交已通过 source/dist parity；是否已部署到 Cloudflare 仍应以实际部署状态为准，不能仅凭源码/CI 推断生产已更新。
-
-## 永久边界与相关文档
-
-- [CURRENT_HANDOFF.md](./CURRENT_HANDOFF.md)：历史交接上下文；其中固定 SHA 可能过期，以当前 main 为准。
-- [CLOUDFLARE_ARCHITECTURE.md](./CLOUDFLARE_ARCHITECTURE.md)：Cloudflare 架构。
-- [P0_DATA_BOUNDARY.md](./P0_DATA_BOUNDARY.md)：安全与数据边界。
-- [migrations/0003_dataset_versions.sql](./migrations/0003_dataset_versions.sql)：D1 数据版本 schema。
-
-README 是产品状态和路线图的唯一入口。后续提交应更新本文件，而不是继续追加重复的 milestone、历史 SHA 或已失效的交付顺序。
+# KeywordOS · Amazon Keyword Intelligence
+
+> 面向 Amazon 运营的本地优先关键词、广告、Listing、商品与经营分析工作台。系统从**导入证据**生成可追溯分析和待审核的本地操作；当前版本不会连接或写入 Amazon。
+
+当前版本：`9.2.6`<br>
+当前审计基线：`main` / `212b7d8`<br>
+技术形态：Cloudflare Worker + Static Assets + D1 + R2；浏览器应用为原生 JavaScript，无 React/Vue 运行时。
+
+## 目录
+
+- [产品边界](#产品边界)
+- [产品能力](#产品能力)
+- [项目结构](#项目结构)
+- [数据与架构](#数据与架构)
+- [本地开发与验证](#本地开发与验证)
+- [审计结果与待修复项](#审计结果与待修复项)
+- [安全与运行约束](#安全与运行约束)
+- [相关文档](#相关文档)
+
+## 产品边界
+
+### 当前可以做
+
+- 导入、验证并在浏览器本地持久化 Amazon Ads Search Term 与 Unified Transaction CSV。
+- 在 Store 01 工作区中分析广告表现、搜索词、关键词、财务、库存、竞争对手、评论和排名等已导入证据。
+- 生成浏览器本地的关键词、否定词、Bid、Listing、规则和补货**建议/草稿**；支持备份、恢复、导出与审阅。
+- 用严格的来源标记呈现 `USER IMPORT`、`BUNDLED SEED`、`CALCULATED`、`THIRD-PARTY ESTIMATE` 与 `MISSING`。
+
+### 当前明确不会做
+
+- 不发起 Amazon Ads OAuth、SP-API、Amazon Ads API 请求，也不保存 Amazon 凭证。
+- 不向 Amazon 发布 Listing、修改竞价/预算/活动或执行任何广告动作。
+- 不提供匿名的 Worker 写入 API。Worker 业务路由仅接受 `GET` 与 `HEAD`。
+- 不从缺失数据推断搜索量、自然排名、销量、实时同步状态或 Amazon 执行结果。
+
+`Staged`、`Approved`、规则、计划和 Listing 草稿均是本地状态，**不表示 Amazon 已执行或已发布**。
+
+## 产品能力
+
+| 范围 | 已实现的工作台 | 证据与限制 |
+| --- | --- | --- |
+| Keywords | Keyword Lab、批量分析、Keyword Library、Tracker、负面词与冲突保护 | 仅使用导入的 Ads、SQP/ABA、reverse-ASIN、rank 与本地资产；不虚构搜索量或自然排名。 |
+| Marketing | Dashboard、Ad Manager、Analytics、Suggestions、Rules、Schedules、Action Center、Outcomes | 建议来自透明阈值/公式与导入数据；不会直接改动 Amazon。 |
+| Listing | Listing Optimizer、Keyword Bank、词组/词根使用矩阵、竞争对手标题对比 | 仅维护本地准备草稿；关键词送入 Bank 不会自动改写标题、五点或后台词。 |
+| Products | Product Master、Product 360、Competitor、Reviews | 跨源连接需要显式 SKU/ASIN/Product Master 映射，缺映射时保持不可用。 |
+| Operations | Import Center、Unified Report、Data Health、Inventory、补货规划、Local backup/restore | 导入先校验；补货是计划输出，不是采购单提交。 |
+| Analytics | Portfolio、Cross-store、Anomaly Center、趋势与本地 Alert Inbox | Alert 需要同一实体至少两次不同日期的真实观察，不伪装为实时监控。 |
+
+## 项目结构
+
+```text
+.
+├── index.html                     # 单页壳；按顺序加载浏览器模块
+├── app.js                         # 核心状态、页面渲染、广告/财务工作台
+├── growth-workspaces.js           # Products/Keywords/Listing/Operations/Analytics 扩展页面
+├── navigation-taxonomy.js         # 页面注册表、套件导航与 hash 路由
+├── dataset-registry.js            # 浏览器 IndexedDB Dataset Registry
+├── *-validation.js                # CSV shape/value 校验与导入保护
+├── *-actions.js                   # 本地可逆操作、草稿、备份与 UI 交互
+├── keyword-*.js                   # Keyword Lab、Library、relevance、suggestions
+├── competitor-*.js / review-*.js  # 竞争对手及 VOC 导入证据工具
+├── src/
+│   ├── worker.js                  # GET/HEAD Worker API 与 R2 数据交付
+│   ├── access-auth.js             # 备用 Cloudflare Access JWT 校验
+│   ├── store-authorization.js     # 备用 Store membership 查询
+│   ├── import-validation.js       # 服务端导入字节/CSV 校验
+│   ├── import-pipeline.js         # validate → persist 编排
+│   └── dataset-persistence.js     # R2 不可变对象与 D1 version/current pointer
+├── migrations/                    # D1 schema v1–v3
+├── tests/                         # Node 原生测试
+├── scripts/check-dist-assets.mjs  # 发布资源闭包与 source/dist 一致性检查
+├── dist/                          # 受提交的静态发布资产，由 npm run build 重建
+├── sample-data/                   # 本地审阅用样例 CSV
+└── CURRENT_HANDOFF.md / CLOUDFLARE_ARCHITECTURE.md / P0_DATA_BOUNDARY.md
+```
+
+浏览器模块以轻量全局契约协作；没有框架运行时或第二套客户端数据仓库。Dataset Registry 是已导入证据的唯一浏览器持久化中心；少量 UI 偏好、草稿与兼容状态使用 `localStorage`，并受本地备份校验覆盖。
+
+## 数据与架构
+
+```text
+Browser
+  ├─ Static Assets: index.html + CSS + browser JavaScript (dist/)
+  ├─ IndexedDB: Dataset Registry（已导入/派生的本地证据）
+  └─ localStorage: 草稿、视图、操作审阅与兼容 UI 状态
+
+Cloudflare Worker (src/worker.js)
+  ├─ /api/health
+  ├─ /api/data/manifest
+  ├─ /api/data/seed.js
+  ├─ /api/data/unified-seed.js
+  └─ /api/private/session
+       ├─ D1: 部署元数据、备用 membership、数据版本元数据
+       └─ R2: public-test seed/test object 与预备的不可变对象命名空间
+```
+
+### 数据真相规则
+
+- Store 01 的生产 public-test 基线为 Ads Search Term 8,753 行、Unified Transaction 3,643 行；Store 02/03 没有真实数据，页面不得捏造业务指标。
+- 浏览器导入的 Ads 与 Unified 数据会在写入 IndexedDB 前进行字段、数值、日期和关键财务值校验。
+- 所有跨源合并要求显式身份键；无法映射时显示 `MISSING` 或 unmapped queue，而不是猜测关联。
+- 备份恢复会校验 localStorage 顶层形状、Dataset Registry 记录和 manifest checksum；失败时回滚。
+
+### 预备的服务端持久化路径
+
+服务端内部已具备但尚未连接到公开写路由的安全链路：
+
+```text
+CSV bytes
+→ validateImportBody()
+→ SHA-256 / report-shape / value checks
+→ persistAcceptedDataset()
+→ R2 create-only write (If-None-Match: *)
+→ actual object integrity verification
+→ D1 batch: version metadata + current pointer
+```
+
+这套基础不代表用户数据已上传；当前产品导入仍是浏览器本地路径。
+
+## 本地开发与验证
+
+### 常规检查
+
+```bash
+npm ci
+npm run check
+npm run build
+```
+
+- `npm run check`：对 Worker 与浏览器脚本做语法检查，并运行 `tests/*.test.mjs`。
+- `npm run build`：重建 `dist/`，然后验证 HTML 引用的资源闭包以及 source/dist 字节一致性。
+- `npm run dev`：以 Wrangler 启动本地 Worker 与静态资源。
+
+### 重要：新 clone 的本地运行限制
+
+直接执行 `npm run dev` **不足以得到带基线数据的工作台**。本地 Miniflare D1 与 R2 默认是空的，因此会出现：
+
+- `/api/health` 因本地 D1 尚未建立 `deployment_meta` 而返回 `503`；
+- `/api/data/seed.js` 和 `/api/data/unified-seed.js` 因本地 R2 不含对象而返回 `404`；
+- 页面可加载，但显示空数据与 runtime unavailable。
+
+这是当前仓库缺少“一键本地初始化”脚本的结果，不应被误解为生产数据损坏。运行本地完整演示前，需要显式建立本地 D1 migration 并将允许的 seed object 写入本地 R2；当前 README 不把远程 `npm run db:migrate` 当作本地初始化命令，因为该脚本面向远程 D1。
+
+生产发布链路为 GitHub `main` → Cloudflare Workers Build → deploy。源码或本地构建通过不等同于生产已经更新。
+
+## 审计结果与待修复项
+
+本节记录对当前 `main`（`212b7d8`）的代码、构建、测试和浏览器交互审计结果。
+
+### 已验证
+
+- `npm run check` 通过：427/427 测试通过。
+- `npm run build` 通过：静态资源闭包与 source/dist byte identity 均通过。
+- 实测 Portfolio、Store Workspace、Keyword Lab、Import Center 路由与关键点击可渲染；已禁用的 Amazon/API/无实现动作带有原因提示，属于产品边界而非死锁。
+
+### P0：Inventory 路由会卡死浏览器
+
+**状态：未修复；应优先处理。**
+
+复现：从任意页面点击“库存”（`#page=inventory-risk`）。浏览器点击调度超时，随后可访问性/页面状态也不再响应，表现为主线程被持续渲染占用。
+
+根因位于 `growth-consistency-actions.js`：当前 `MutationObserver` 在内容变更时调用 `refresh()`，而 Inventory/Anomaly 补丁会通过 `innerHTML` 重写表格徽标、移除并追加行；它与 `import-workspace-states.js` 的子树观察器互相触发，形成 observer-driven redraw loop。
+
+仓库历史中 `a077d9a`（`fix: stop inventory observer feedback loop`）已针对这一问题实现过收敛逻辑，但当前 `212b7d8` 回退了该变更，同时删除了对应回归测试。修复应恢复等价保护：
+
+1. 仅在 badge 内容确实变化时更新 DOM，不用无条件 `innerHTML` 覆盖。
+2. 为 Anomaly 插入行标记所有权，并按稳定 fingerprint 判断结果是否已渲染。
+3. 恢复“Inventory 与 Anomaly DOM patch 必须收敛”的回归测试。
+
+在修复并完成浏览器回归前，不应将 Inventory/Anomaly 页面标记为稳定可用。
+
+### P1：本地开发初始化缺口
+
+**状态：未修复。**
+
+本地 Worker 依赖 D1 migration 与 R2 seed object，但项目未提供安全的本地 bootstrap 命令，也未在 `npm run dev` 前检测并给出可操作的初始化说明。应增加独立、显式且仅作用于本地绑定的初始化脚本，或让 `/api/health` 在未初始化时返回结构化 `setup_required` 状态。不要借此增加匿名生产写接口。
+
+### P2：文档与运行时来源表达需保持一致
+
+当本地 seed endpoint 404 时，页面的一些来源文字仍可显示 `Cloudflare seed · 202606.csv`，但指标为零。这会让操作者误以为已加载有效基线。初始化缺口解决前，UI 应在 seed 请求失败时把来源明确显示为 `MISSING`，而不是沿用 seed 名称。
+
+## 安全与运行约束
+
+### Amazon：硬关闭
+
+`AMAZON_API_MODE=disabled` 是当前约束。未获得明确授权前，不应加入 OAuth、SP-API、Ads API、凭证存储、自动同步、广告写入或 Listing 发布。
+
+### Access：测试旁路期间保留基础，不重新实现
+
+当前 Worker 默认为 `AUTH_MODE=disabled-test`，Cloudflare Access 的 `Bypass / Everyone` 用于测试。仓库保留 Access JWT、canonical `sub`、D1 membership 与 Store authorization 基础，供未来明确授权后恢复。
+
+在恢复前：
+
+- 不捕获真实身份 `sub`，不初始化 `access_users` / `store_memberships`。
+- 不将匿名访问视为认证或授权成功。
+- 不暴露 POST、PUT、PATCH、DELETE 等匿名业务 API。
+
+### GitHub/Cloudflare 运维
+
+`/cloudflare status` 是 GitHub-only 的只读状态通道，仅检查 secrets、令牌有效性和 Worker/D1/R2 的读取能力。它不得用于部署、Access 策略写入、D1/R2 数据写入或 Amazon 操作。
+
+## 相关文档
+
+- [CURRENT_HANDOFF.md](./CURRENT_HANDOFF.md)：当前维护交接与永久 owner 边界。
+- [CLOUDFLARE_ARCHITECTURE.md](./CLOUDFLARE_ARCHITECTURE.md)：Worker、D1、R2 与 Access 架构细节。
+- [P0_DATA_BOUNDARY.md](./P0_DATA_BOUNDARY.md)：数据边界、认证冻结和持久化安全契约。
+- [migrations](./migrations/)：D1 schema 演进。
+
+维护 README 时，以当前 `main`、实际代码与可复现验证为准；不要把历史里程碑、旧 SHA 或计划能力写成已交付事实。
