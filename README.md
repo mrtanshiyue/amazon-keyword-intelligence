@@ -321,7 +321,8 @@ P0 验收：所有可见指标能追到来源；坏行不会变成零；备份�
   - 2026-09-03：本轮只复用浏览器原生 File / CSV 路径与现有 parser，没有新增 npm 依赖；Excel/XLSX 继续不进入当前范围。
 - [x] 完成可点击 1/2/3+ gram、停用词、Common Words 排除、删除/恢复、词根高亮和原表联动。
   - 2026-09-03：`keyword-lab.js` 在统一 `currentRows()` 结果之上增加可测试的 token / contiguous n-gram / root-view reducer：1/2/3+ gram 统计按结果行计数，停用词模式只忽略 n-gram 首尾常见功能词，不把非连续 token 拼成伪短语；root 点击使用完整 token 序列匹配并联动筛选、高亮当前结果。Common Words 排除、keyword delete/restore 都是可逆 view state，不写回 Ads、第三方 CSV 或 Dataset Registry。`app.js` 的 legacy Ads result table 通过 `filterLegacyAdsItems()` 消费同一 view state，因此页码/结果数会跟随 root、排除与删除状态；Batch 结果表同样消费这套状态。原只读 Word Frequency summary 在 Keyword Lab 中被统一 n-gram workspace 取代，`ui-capability-guard.js` 把 canonical `cerebro` 的第二个工具入口恢复为真实 **Common Words / 常用词** 并滚动到该 workspace。CI 为 **334 passed / 0 failed**；`npm run build` 验证 **42 个 JS + 9 个 CSS，52 个发布文件**，source/dist byte identity 与 committed-dist parity gate 全部通过。
-- [ ] 完成列排序/拖动/显隐、保存视图、可靠的筛选预设、查询历史、选中/当前页导出。
+- [x] 完成列排序/拖动/显隐、保存视图、可靠的筛选预设、查询历史、选中/当前页导出。
+  - 2026-09-03：新增轻量 `keyword-lab-view.js`，只管理 Keyword Lab 的浏览器视图状态，不复制证据模型。Discovery 与 Batch 结果表现在都有稳定列 key、点击排序、拖动/上下移动、显隐和浏览器本地持久化；Keyword identity 列始终保留。Discovery 的既有研究筛选通过严格字段白名单保存为自定义 Filter Preset，重名预设大小写无关更新而不是静默重复；现有查询历史升级为统一 Keyword Lab History，Batch ≤200 输入也会记录并可重放。Export 明确区分 Selected 与 Current Page，并只导出当前可见列顺序。Workspace Organizer 继续作为唯一 Saved View 入口：保存 `cerebro` 时附带可序列化、20KB 上限的 Keyword Lab workspace snapshot，重开时恢复 mode/query/filter/root/column/sort；不写回 Ads、第三方 CSV 或 Dataset Registry。新增 `keywordos_v9_keyword_lab_view` 进入现有本地备份白名单，无新 npm 依赖。CI 为 **342 passed / 0 failed**；`npm run build` 验证 **43 个 JS + 9 个 CSS，53 个发布文件**，source/dist byte identity 与 committed-dist parity gate 全部通过。
 - [ ] 统一批量动作：Add to List、Track Snapshot、Negative Candidate、Send to Listing、Export。
 - [ ] 所有第三方专有指标保留原名、来源和快照，不生成仿 IQ/CPR/KPS/SPR/DSR 分数。
 

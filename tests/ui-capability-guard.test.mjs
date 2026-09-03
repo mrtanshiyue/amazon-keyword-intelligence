@@ -51,15 +51,16 @@ test('page detection uses the canonical registry route instead of translated vis
   assert.equal(guard.currentPageId({ hash: '#page=cerebro' }, registry), 'cerebro');
 });
 
-test('Keyword Lab truth pass advertises real Batch Analysis and the implemented Common Words workspace while saved presets remain unavailable', async () => {
+test('Keyword Lab truth pass advertises real Batch Analysis, Common Words, Columns and saved filter presets', async () => {
   const source = await readFile(new URL('../ui-capability-guard.js', import.meta.url), 'utf8');
   assert.match(source, /\[data-research-mode="analyze"\]/);
   assert.match(source, /accepts up to 200 unique keywords/);
   assert.doesNotMatch(source, /Single phrase only:/);
   assert.match(source, /Keyword Lab n-gram and Common Words workspace/);
   assert.match(source, /data-keyword-lab-roots/);
-  assert.match(source, /savePreset\.hidden=true/);
-  assert.match(source, /Saved filter presets are not implemented/);
+  assert.match(source, /savePreset\.hidden=false/);
+  assert.match(source, /Save the current exact Keyword Lab filter state/);
+  assert.match(source, /KeywordOSKeywordLabView\?\.openColumnSettings/);
 });
 
 test('capability guard loads before application renderers and is included in the publish build', async () => {

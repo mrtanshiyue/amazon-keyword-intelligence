@@ -74,3 +74,13 @@ test('workspace organizer state is accepted by the current local backup contract
   assert.equal(result.ok,true);
   assert.equal(result.backup.localStorage[org.STORAGE_KEY],raw);
 });
+
+
+test('saved views preserve a bounded provider-owned Keyword Lab workspace snapshot',()=>{
+  const workspace={keywordLab:{version:1,mode:'discovery',query:'reading glasses',columns:['keyword','orders'],sort:{key:'orders',dir:'desc'}}};
+  const state=org.saveView(org.emptyState(),{name:'Keyword Lab view',page:'cerebro',workspace},'v1','2026-09-03T00:00:00Z');
+  assert.deepEqual(state.views[0].workspace,workspace);
+  workspace.keywordLab.query='mutated later';
+  assert.equal(state.views[0].workspace.keywordLab.query,'reading glasses');
+  assert.equal(org.normalizeWorkspaceSnapshot({payload:'x'.repeat(20001)}),null);
+});

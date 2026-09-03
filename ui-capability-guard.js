@@ -117,9 +117,9 @@ function normalizeKeywordResearchTruth(){
   }
   const savePreset=$('#r-save');
   if(savePreset){
-    savePreset.hidden=true;
-    savePreset.setAttribute('aria-hidden','true');
-    savePreset.title='Saved filter presets are not implemented in the current Keyword Research workspace.';
+    savePreset.hidden=false;
+    savePreset.removeAttribute('aria-hidden');
+    savePreset.title='Save the current exact Keyword Lab filter state as a browser-local preset.';
   }
   if(analyzeTab?.classList.contains('active')){
     const heading=$('.cerebro-topline h2');
@@ -139,7 +139,7 @@ function bindKeywordResearchUtilities(){
     ['.utility-links .utility-link:nth-child(2)',()=> $('[data-keyword-lab-roots]')?.scrollIntoView({block:'center',behavior:'smooth'})],
     ['.utility-links .utility-link:nth-child(3)',()=>$('#page-learn')?.click()],
     ['.data-workspace .toolbar-right button:nth-child(1)',()=>$('#research-query')?.focus()],
-    ['.data-workspace .toolbar-right button:nth-child(2)',()=>{if(!$('#r-apply'))$('#research-toggle')?.click();$('#r-word-min')?.focus();}]
+    ['.data-workspace .toolbar-right button:nth-child(2)',()=>root.KeywordOSKeywordLabView?.openColumnSettings?.('discovery')]
   ];
   bindings.forEach(([selector,action])=>{
     const button=$(selector);
