@@ -21,8 +21,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - name: Apply guarded Keyword Lab bulk actions patch
-        run: python .github/scripts/keyword-lab-bulk-actions-once.py
+      - name: Apply corrected guarded Keyword Lab bulk actions patch
+        run: python .github/scripts/keyword-lab-bulk-actions-v2-once.py
       - name: Check and build
         run: |
           npm run check
