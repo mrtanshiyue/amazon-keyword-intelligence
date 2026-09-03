@@ -21,22 +21,15 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - name: Apply corrected guarded Keyword Lab bulk actions patch
-        run: python .github/scripts/keyword-lab-bulk-actions-v2-once.py
-      - name: Syntax app
-        run: node --check app.js
-      - name: Syntax growth workspaces
-        run: node --check growth-workspaces.js
-      - name: Syntax Keyword Lab view
-        run: node --check keyword-lab-view.js
+      - name: Apply guarded Keyword Lab bulk actions patch
+        run: python .github/scripts/keyword-lab-bulk-actions-v3-once.py
       - name: Focused bulk action tests
         run: node --test tests/keyword-lab-bulk-actions.test.mjs
-      - name: Full check
-        run: npm run check
-      - name: Build
-        run: npm run build
-      - name: Diff check
-        run: git diff --check
+      - name: Full check and build
+        run: |
+          npm run check
+          npm run build
+          git diff --check
       - name: Commit implementation
         run: |
           git config user.name "github-actions[bot]"
