@@ -1,0 +1,38 @@
+name: Keyword Lab Bulk Actions Once
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/keyword-lab-bulk-actions-once.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Apply guarded Keyword Lab bulk actions patch
+        run: python .github/scripts/keyword-lab-bulk-actions-once.py
+      - name: Check and build
+        run: |
+          npm run check
+          npm run build
+          git diff --check
+      - name: Commit implementation
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add README.md app.js growth-workspaces.js keyword-lab-view.js tests/keyword-lab-bulk-actions.test.mjs dist
+          git diff --cached --check
+          git commit -m "feat: unify Keyword Lab bulk actions"
+          git push origin HEAD:main
