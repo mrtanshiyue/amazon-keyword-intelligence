@@ -1,0 +1,64 @@
+name: Fix Inventory Freeze Once
+
+on:
+  push:
+    paths:
+      - '.github/scripts/fix-inventory-freeze-once.py'
+      - '.github/workflows/fix-inventory-freeze-once.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  hotfix:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Apply guarded inventory patch
+        run: python .github/scripts/fix-inventory-freeze-once.py
+      - name: Focused inventory tests
+        run: node --test tests/growth-consistency-actions.test.mjs tests/import-workspace-states.test.mjs tests/growth-workspaces.test.mjs
+      - name: Full check
+        run: npm run check | tee /tmp/check.log
+      - name: Build static assets
+        run: npm run build | tee /tmp/build.log
+      - name: Update README after validation
+        shell: bash
+        run: |
+          set -euo pipefail
+          tests="$(grep -E '^# tests [0-9]+$' /tmp/check.log | tail -1 | awk '{print $3}')"
+          js="$(grep -Eo 'Static asset closure OK \([0-9]+ script modules' /tmp/build.log | tail -1 | grep -Eo '[0-9]+')"
+          publish="$(grep -Eo 'Source/dist byte identity OK \([0-9]+ publish files' /tmp/build.log | tail -1 | grep -Eo '[0-9]+')"
+          test -n "$tests" && test -n "$js" && test -n "$publish"
+          python - "$tests" "$js" "$publish" <<'PY'
+          from pathlib import Path
+          import sys
+          tests, js, publish = sys.argv[1:]
+          p = Path('README.md')
+          text = p.read_text()
+          anchor = '> 2026-09-03 阻断级 UI 回归修复：左侧导航此前同时被 `growth-workspaces.js` 和 `navigation-taxonomy.js` 的 MutationObserver 改写。Growth section 被 canonical organizer 移走后会被再次注入，导致 Product Master / Product 360 / Competitors / Reviews 等按钮无限重复，翻译/重排又持续触发 observer，最终造成点击页面卡死。现在 sidebar 改为显式单次同步：`app.js` 每次导航重绘后只执行一次 Growth 缺项补齐和 canonical organize；两个 sidebar MutationObserver 已移除，Growth 补齐按 page id 幂等，organizer 对 canonical page id 再做去重保护。回归测试明确禁止重新引入该 observer feedback loop。'
+          if anchor not in text:
+              raise SystemExit('README sidebar hotfix anchor missing')
+          note = f"\n\n> 2026-09-03 Inventory / Anomaly 阻断级卡死修复：`growth-consistency-actions.js` 的 Inventory 后置补丁此前每次都用 `innerHTML` 重建 Risk badge，而 `import-workspace-states.js` 又会监听 `#content` subtree 并重建顶部 Import Readiness 卡片；卡片重建会再次触发 Growth consistency 的顶层刷新，两个 observer 因非幂等子节点写入形成跨模块反馈环。现在 Risk badge 只在 class/text 真正变化时原位更新，不再无条件增删节点；Anomaly Center 的库存告警行增加 managed marker + 内容 fingerprint，相同模型不再重复 remove/append。回归测试覆盖这条 cross-observer 收敛边界。CI 为 **{tests} passed / 0 failed**；`npm run build` 验证 **{js} 个 JS + 9 个 CSS，{publish} 个发布文件**，source/dist byte identity 与 committed-dist parity gate 全部通过。"
+          if 'Inventory / Anomaly 阻断级卡死修复' in text:
+              raise SystemExit('README inventory hotfix note already present')
+          p.write_text(text.replace(anchor, anchor + note, 1))
+          PY
+      - name: Verify source and committed dist
+        run: |
+          node scripts/check-dist-assets.mjs
+          git diff --check
+      - name: Commit hotfix
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add growth-consistency-actions.js tests/growth-consistency-actions.test.mjs README.md dist/growth-consistency-actions.js
+          git diff --cached --check
+          git commit -m "fix: stop inventory observer feedback loop"
+          git push origin HEAD:main
