@@ -74,3 +74,15 @@ test('growth consistency script loads immediately after the growth workspace', a
   assert.ok(consistencyIndex > growth);
   assert.ok(navigation > consistencyIndex);
 });
+
+test('inventory and anomaly DOM patches converge instead of feeding cross-observer redraw loops', async () => {
+  const [source, importStates] = await Promise.all([
+    readFile(new URL('../growth-consistency-actions.js', import.meta.url), 'utf8'),
+    readFile(new URL('../import-workspace-states.js', import.meta.url), 'utf8')
+  ]);
+  assert.match(importStates, /observer\.observe\(content,\{childList:true,subtree:true\}\)/);
+  assert.doesNotMatch(source, /row\.cells\[8\]\.innerHTML\s*=/);
+  assert.match(source, /function setBadge\(cell, risk\)/);
+  assert.match(source, /body\.dataset\.keywordosInventoryAnomalyFingerprint === fingerprint/);
+  assert.match(source, /row\.dataset\.keywordosInventoryAnomaly = '1'/);
+});

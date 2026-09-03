@@ -145,6 +145,25 @@
     return risk === 'Critical' ? 'red' : risk === 'Low' || risk === 'Damaged' ? 'amber' : risk === 'Healthy' ? 'green' : 'gray';
   }
 
+  function setBadge(cell, risk) {
+    if (!cell) return false;
+    const className = `badge ${badgeClass(risk)}`;
+    const badge = cell.children.length === 1 && cell.firstElementChild?.matches?.('span.badge')
+      ? cell.firstElementChild
+      : null;
+    if (!badge) {
+      const next = document.createElement('span');
+      next.className = className;
+      next.textContent = risk;
+      cell.replaceChildren(next);
+      return true;
+    }
+    let changed = false;
+    if (badge.className !== className) { badge.className = className; changed = true; }
+    if (badge.textContent !== risk) { badge.textContent = risk; changed = true; }
+    return changed;
+  }
+
   function queueBySku(rows) {
     const map = new Map();
     for (const row of rows) {
@@ -177,7 +196,7 @@
         ? `${model.observedDays} observed day${model.observedDays === 1 ? '' : 's'} · ${model.velocityStart || '—'} → ${model.velocityEnd || '—'}`
         : 'No dated Ads unit evidence for this product label.';
       setText(row.cells[7], model.daysCover == null ? '—' : model.daysCover.toFixed(1));
-      if (row.cells[8]) row.cells[8].innerHTML = `<span class="badge ${badgeClass(model.risk)}">${model.risk}</span>`;
+      setBadge(row.cells[8], model.risk);
       setText(row.cells[9], model.priority || '');
     });
 
@@ -194,11 +213,16 @@
       .slice(0, 10);
     const table = [...document.querySelectorAll('#content table.data-table')].find((candidate) => candidate.tHead?.rows?.[0]?.cells?.length === 4);
     if (!table?.tBodies?.[0]) return;
-    [...table.tBodies[0].rows].forEach((row) => {
-      if ((row.cells?.[0]?.textContent || '').trim().startsWith('Inventory ')) row.remove();
+    const body = table.tBodies[0];
+    const fingerprint = JSON.stringify(rows.map((item) => [item.sku || '', item.risk || '', item.daysCover ?? null, item.observedDays || 0]));
+    const managed = [...body.querySelectorAll('tr[data-keywordos-inventory-anomaly="1"]')];
+    if (body.dataset.keywordosInventoryAnomalyFingerprint === fingerprint && managed.length === rows.length) return;
+    [...body.rows].forEach((row) => {
+      if (row.dataset.keywordosInventoryAnomaly === '1' || (row.cells?.[0]?.textContent || '').trim().startsWith('Inventory ')) row.remove();
     });
     for (const item of rows) {
       const row = document.createElement('tr');
+      row.dataset.keywordosInventoryAnomaly = '1';
       const signal = document.createElement('td');
       signal.className = 'left';
       const strong = document.createElement('b');
@@ -216,8 +240,9 @@
       badge.textContent = 'High';
       severity.appendChild(badge);
       row.append(signal, entity, evidence, severity);
-      table.tBodies[0].appendChild(row);
+      body.appendChild(row);
     }
+    body.dataset.keywordosInventoryAnomalyFingerprint = fingerprint;
   }
 
   async function applyListing() {
