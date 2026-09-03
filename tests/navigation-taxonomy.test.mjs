@@ -42,6 +42,8 @@ test('sidebar navigation is explicitly synchronized without MutationObserver fee
   assert.doesNotMatch(growthSource, /new MutationObserver\(injectNav\)/);
   assert.match(taxonomySource, /seenPages\.has\(record\.id\)\)\{button\.remove\(\);continue;\}/);
   assert.match(growthSource, /const missing=GROWTH_NAV_ITEMS\.filter/);
+  assert.match(growthSource, /const buttons=\$\$\('\[data-page\]',nav\)\.filter\(b=>RENDERERS\[b\.dataset\.page\]&&!b\.dataset\.growthNavBound\)/);
+  assert.match(growthSource, /e\.stopPropagation\(\);render\(b\.dataset\.page\)/);
   assert.match(growthSource, /ensureNavigation:injectNav/);
   assert.match(appSource, /KeywordOSGrowth\?\.ensureNavigation\?\.\(\);/);
   assert.match(appSource, /KeywordOSNavigationTaxonomy\?\.organizeGrowthNavigation\?\.\(\);/);
