@@ -21,17 +21,36 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - name: Apply guarded Keyword Lab view patch
-        run: python .github/scripts/keyword-lab-view-once.py
+      - name: Fix default Keyword Lab columns
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('keyword-lab-view.js')
+          text = path.read_text()
+          old = "function normalizeColumns(mode,values){\n  const allowed=allowedKeys(mode),seen=new Set(),out=[];\n  for(const raw of Array.isArray(values)?values:[]){const key=clean(raw);if(!allowed.includes(key)||seen.has(key))continue;seen.add(key);out.push(key);}\n  if(!seen.has('keyword'))out.unshift('keyword');\n  return out.length?out:[...allowed];\n}"
+          new = "function normalizeColumns(mode,values){\n  const allowed=allowedKeys(mode);\n  if(!Array.isArray(values))return[...allowed];\n  const seen=new Set(),out=[];\n  for(const raw of values){const key=clean(raw);if(!allowed.includes(key)||seen.has(key))continue;seen.add(key);out.push(key);}\n  if(!seen.has('keyword'))out.unshift('keyword');\n  return out.length?out:[...allowed];\n}"
+          if text.count(old) != 1:
+              raise SystemExit(f'normalizeColumns default: expected one match, found {text.count(old)}')
+          path.write_text(text.replace(old, new, 1))
+
+          test_path = Path('tests/keyword-lab-view.test.mjs')
+          test_text = test_path.read_text()
+          anchor = "test('Keyword Lab column normalization keeps one stable keyword identity and drops unknown columns', () => {\n  assert.deepEqual(view.normalizeColumns('discovery',['sales','bogus','sales']),['keyword','sales']);"
+          replacement = "test('Keyword Lab column normalization keeps one stable keyword identity and drops unknown columns', () => {\n  assert.deepEqual(view.normalizeColumns('discovery'),view.allowedKeys('discovery'));\n  assert.deepEqual(view.normalizeState({}).columns.batch,view.allowedKeys('batch'));\n  assert.deepEqual(view.normalizeColumns('discovery',['sales','bogus','sales']),['keyword','sales']);"
+          if test_text.count(anchor) != 1:
+              raise SystemExit(f'default column test: expected one match, found {test_text.count(anchor)}')
+          test_path.write_text(test_text.replace(anchor, replacement, 1))
+          PY
       - name: Check and build
         run: |
           npm run check
           npm run build
-      - name: Commit implementation
+      - name: Commit fix
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add README.md app.js keyword-lab.js keyword-lab-view.js workspace-organizer.js local-operations-actions.js ui-capability-guard.js index.html package.json tests/keyword-lab-view.test.mjs tests/workspace-organizer.test.mjs tests/ui-capability-guard.test.mjs dist
+          git add keyword-lab-view.js tests/keyword-lab-view.test.mjs dist/keyword-lab-view.js
           git diff --cached --check
-          git commit -m "feat: complete Keyword Lab view controls"
+          git commit -m "fix: preserve default Keyword Lab columns"
           git push origin HEAD:main
