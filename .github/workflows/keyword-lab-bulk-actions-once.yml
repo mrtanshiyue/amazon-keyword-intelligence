@@ -22,22 +22,19 @@ jobs:
           cache: npm
       - run: npm ci
       - name: Apply guarded Keyword Lab bulk actions patch
-        run: python .github/scripts/keyword-lab-bulk-actions-v3-once.py
+        run: python .github/scripts/keyword-lab-bulk-actions-v4-once.py
       - name: Focused bulk action tests
         run: node --test tests/keyword-lab-bulk-actions.test.mjs
-      - name: Full check
+      - name: Full check and build
         run: |
-          npm run check > /tmp/keywordos-check.log 2>&1 || { grep -B 18 -A 28 -E '^not ok|# fail [1-9]' /tmp/keywordos-check.log || tail -n 180 /tmp/keywordos-check.log; exit 1; }
-          tail -n 25 /tmp/keywordos-check.log
-      - name: Build and diff check
-        run: |
+          npm run check
           npm run build
           git diff --check
       - name: Commit implementation
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add README.md app.js growth-workspaces.js keyword-lab-view.js tests/keyword-lab-bulk-actions.test.mjs dist
+          git add README.md app.js growth-workspaces.js keyword-lab-view.js tests/keyword-lab-bulk-actions.test.mjs tests/keyword-lab.test.mjs dist
           git diff --cached --check
           git commit -m "feat: unify Keyword Lab bulk actions"
           git push origin HEAD:main
