@@ -109,10 +109,39 @@ function sqpResultRows(rows=[],mode='discovery',record=null){
     queryRank:observationValue(group.rows,'rank',{source:'sqp'}),searchVolume:observationValue(group.rows,'volume',{source:'sqp'}),impressions:observationValue(group.rows,'impressions',{source:'sqp'}),clicks:observationValue(group.rows,'clicks',{source:'sqp'}),cartAdds:observationValue(group.rows,'cartAdds',{source:'sqp'}),purchases:observationValue(group.rows,'purchases',{source:'sqp'}),brandImpressionShare:observationValue(group.rows,'brandImpressionShare',{source:'sqp'}),brandClickShare:observationValue(group.rows,'brandClickShare',{source:'sqp'}),brandPurchaseShare:observationValue(group.rows,'brandPurchaseShare',{source:'sqp'})
   },asins:group.rows.map(row=>row?.asin),provenance:[provenanceFor('sqp','Imported SQP / ABA query evidence','imported',record)]})).filter(Boolean);
 }
+function thirdPartyColumnMetrics(rows=[]){
+  const byLabel=new Map();
+  for(const row of Array.isArray(rows)?rows:[]){
+    const provider=clean(row?.provider),columns=row?.sourceColumns&&typeof row.sourceColumns==='object'&&!Array.isArray(row.sourceColumns)?row.sourceColumns:null;
+    if(!provider||!columns)continue;
+    for(const [rawLabel,rawValue] of Object.entries(columns)){
+      const label=clean(rawLabel);if(!label||!fieldAvailable(rawValue))continue;
+      const observation=Object.freeze({value:rawValue,provider,reportType:clean(row?.reportType),reportVersion:clean(row?.reportVersion),snapshotDate:clean(row?.snapshotDate),sourceFile:clean(row?.sourceFile),marketplace:clean(row?.marketplace),asin:clean(row?.asin).toUpperCase()});
+      if(!byLabel.has(label))byLabel.set(label,[]);byLabel.get(label).push(observation);
+    }
+  }
+  const out={};
+  const shared=(observations,field)=>{const values=[...new Set(observations.map(item=>clean(item?.[field])).filter(Boolean))];return values.length===1?values[0]:'';};
+  for(const [label,observations] of byLabel){
+    const values=observations.map(item=>item.value),same=values.every(value=>Object.is(value,values[0])),provider=shared(observations,'provider');
+    out[label]=Object.freeze({value:observations.length===1||same?values[0]:Object.freeze(observations),source:provider||'Multiple third-party providers',quality:'third-party-estimate',available:true,originalName:label,provider,reportType:shared(observations,'reportType'),reportVersion:shared(observations,'reportVersion'),snapshotDate:shared(observations,'snapshotDate'),sourceFile:shared(observations,'sourceFile'),observations:Object.freeze(observations)});
+  }
+  return Object.freeze(out);
+}
+function thirdPartyProvenance(rows=[]){
+  const seen=new Set(),out=[];
+  for(const row of Array.isArray(rows)?rows:[]){
+    const provider=clean(row?.provider),columns=row?.sourceColumns&&typeof row.sourceColumns==='object'&&!Array.isArray(row.sourceColumns)?Object.keys(row.sourceColumns).map(clean).filter(Boolean):[];
+    if(!provider||!columns.length)continue;
+    const item={kind:'third-party-metric',label:`${provider}${clean(row?.reportType)?` · ${clean(row.reportType)}`:''} proprietary metrics`,quality:'third-party-estimate',provider,reportType:clean(row?.reportType),reportVersion:clean(row?.reportVersion),snapshotDate:clean(row?.snapshotDate),sourceFile:clean(row?.sourceFile),marketplace:clean(row?.marketplace),asin:clean(row?.asin).toUpperCase(),columns:Object.freeze(columns)};
+    const key=[item.provider,item.reportType,item.reportVersion,item.snapshotDate,item.sourceFile,item.marketplace,item.asin,columns.join('\u001f')].join('\u001e');if(seen.has(key))continue;seen.add(key);out.push(Object.freeze(item));
+  }
+  return Object.freeze(out);
+}
 function reverseAsinEvidenceRows(rows=[],mode='discovery',record=null){
   return groupByKeyword(rows,'keyword').map(group=>resultRow({keyword:group.keyword,mode,sources:['reverse-asin'],metrics:{
-    searchVolume:observationValue(group.rows,'volume',{source:'reverse-asin'}),organicRank:observationValue(group.rows,'organicRank',{source:'reverse-asin'}),sponsoredRank:observationValue(group.rows,'sponsoredRank',{source:'reverse-asin'}),trafficShare:observationValue(group.rows,'trafficShare',{source:'reverse-asin'}),conversionRate:observationValue(group.rows,'conversionRate',{source:'reverse-asin'})
-  },asins:group.rows.map(row=>row?.asin),provenance:[provenanceFor('reverse-asin','Imported reverse-ASIN keyword evidence','imported',record)]})).filter(Boolean);
+    searchVolume:observationValue(group.rows,'volume',{source:'reverse-asin'}),organicRank:observationValue(group.rows,'organicRank',{source:'reverse-asin'}),sponsoredRank:observationValue(group.rows,'sponsoredRank',{source:'reverse-asin'}),trafficShare:observationValue(group.rows,'trafficShare',{source:'reverse-asin'}),conversionRate:observationValue(group.rows,'conversionRate',{source:'reverse-asin'}),...thirdPartyColumnMetrics(group.rows)
+  },asins:group.rows.map(row=>row?.asin),provenance:[provenanceFor('reverse-asin','Imported reverse-ASIN keyword evidence','imported',record),...thirdPartyProvenance(group.rows)]})).filter(Boolean);
 }
 function rankResultRows(rows=[],mode='discovery',record=null){
   return groupByKeyword(latestPerAsinKeyword(rows),'keyword').map(group=>resultRow({keyword:group.keyword,mode,sources:['ranks'],metrics:{
@@ -131,7 +160,7 @@ function asinResultRows(comparison=[]){
     searchVolume:metric(Number(item?.volume)||0,'reverse-asin',{available:Number(item?.volume)>0}),organicRank:metric(item?.organicGap||null,'reverse-asin',{available:Boolean(item?.organicGap)}),sponsoredRank:metric(item?.sponsoredGap||null,'reverse-asin',{available:Boolean(item?.sponsoredGap)}),trafficShare:metric(item?.trafficGap||null,'reverse-asin',{available:Boolean(item?.trafficGap)}),conversionRate:metric(item?.conversionGap||null,'reverse-asin',{available:Boolean(item?.conversionGap)})
   },provenance:[provenanceFor('reverse-asin','Imported reverse-ASIN keyword evidence')]})).filter(Boolean);
 }
-function dedupeProvenance(items=[]){const seen=new Set(),out=[];for(const item of items){const key=[item?.kind,item?.label,item?.quality,item?.source,item?.importedAt].map(clean).join('\u001f');if(seen.has(key))continue;seen.add(key);out.push(item);}return out;}
+function dedupeProvenance(items=[]){const seen=new Set(),out=[];for(const item of items){const key=[item?.kind,item?.label,item?.quality,item?.source,item?.importedAt,item?.provider,item?.reportType,item?.reportVersion,item?.snapshotDate,item?.sourceFile,item?.marketplace,item?.asin].map(clean).join('\u001f');if(seen.has(key))continue;seen.add(key);out.push(item);}return out;}
 function mergeMetricEvidence(rows=[]){
   const byKey=new Map();
   for(const row of rows){for(const [key,evidence] of Object.entries(row?.metrics||{})){if(!evidence)continue;if(!byKey.has(key))byKey.set(key,[]);byKey.get(key).push(evidence);}}
@@ -217,7 +246,7 @@ function batchMatchSummary(rows=[]){const total=(rows||[]).length,matched=(rows|
 function modelSummary(rows=[]){const sourceSet=new Set(),metricSet=new Set();for(const row of rows||[]){for(const source of row?.sources||[])sourceSet.add(source);for(const [key,evidence] of Object.entries(row?.metrics||{}))if(evidence?.available)metricSet.add(key);}return Object.freeze({rows:(rows||[]).length,sources:Object.freeze([...sourceSet].sort((a,b)=>sourceRank(a)-sourceRank(b)||a.localeCompare(b))),metrics:Object.freeze([...metricSet])});}
 function sameResultShape(rows=[]){return (rows||[]).every(row=>RESULT_FIELDS.every(field=>Object.hasOwn(row||{},field)));}
 
-const PUBLIC_API={BATCH_INPUT_LIMIT,VALID_RECORD_STATES,SOURCE_ORDER,MODE_CATALOG,RESULT_FIELDS,BATCH_HEADER_ALIASES,INPUT_SOURCE_LABELS,NGRAM_MODES,STOP_WORDS,LABELS,clean,normalizedKeyword,languageMode,labels,escapeHtml,metric,resultRow,validRecord,recordFor,observationValue,groupByKeyword,latestPerAsinKeyword,adsResultRows,sqpResultRows,reverseAsinEvidenceRows,rankResultRows,keywordAssetValue,keywordAssetResultRows,asinResultRows,mergeMetricEvidence,mergeKeywordRows,mergeEvidenceRows,combinedKeywordEvidence,enrichBaseRows,filterAdsByQuery,filterResultRowsByQuery,keywordTokens,rowKeyword,containsGram,extractNgrams,ngramFrequency,normalizeRootWorkspaceState,reduceRootWorkspaceState,applyKeywordWorkspace,highlightKeywordHtml,parseCsvMatrix,batchHeader,normalizeBatchKeywordList,parseBatchInput,keywordLibraryInput,batchLeftJoin,batchMatchSummary,modelSummary,sameResultShape};
+const PUBLIC_API={BATCH_INPUT_LIMIT,VALID_RECORD_STATES,SOURCE_ORDER,MODE_CATALOG,RESULT_FIELDS,BATCH_HEADER_ALIASES,INPUT_SOURCE_LABELS,NGRAM_MODES,STOP_WORDS,LABELS,clean,normalizedKeyword,languageMode,labels,escapeHtml,metric,resultRow,validRecord,recordFor,observationValue,groupByKeyword,latestPerAsinKeyword,adsResultRows,sqpResultRows,thirdPartyColumnMetrics,thirdPartyProvenance,reverseAsinEvidenceRows,rankResultRows,keywordAssetValue,keywordAssetResultRows,asinResultRows,mergeMetricEvidence,mergeKeywordRows,mergeEvidenceRows,combinedKeywordEvidence,enrichBaseRows,filterAdsByQuery,filterResultRowsByQuery,keywordTokens,rowKeyword,containsGram,extractNgrams,ngramFrequency,normalizeRootWorkspaceState,reduceRootWorkspaceState,applyKeywordWorkspace,highlightKeywordHtml,parseCsvMatrix,batchHeader,normalizeBatchKeywordList,parseBatchInput,keywordLibraryInput,batchLeftJoin,batchMatchSummary,modelSummary,sameResultShape};
 if(!root?.document)return PUBLIC_API;
 
 const doc=root.document,$=(selector,scope=doc)=>scope.querySelector(selector);let observer=null,auditTimer=0;const batchState={rawText:'',parsed:null,source:'manual',error:'',dirty:false};let rootWorkspaceState=normalizeRootWorkspaceState({gramMode:'1',ignoreStopwords:true});
