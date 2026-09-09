@@ -1,0 +1,3 @@
+GET surge-config-gateway -> HTTP 401, content-type=application/json
+PUT invalid probe worker -> HTTP 401
+cf_error=10000:Authentication error
